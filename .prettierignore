@@ -1,0 +1,12 @@
+pnpm-lock.yaml
+**/node_modules
+**/dist
+**/build
+**/.next
+**/coverage
+**/.turbo
+# Flutter code is formatted by `dart format`, not Prettier
+apps/mobile
+# Source planning documents are kept as authored
+VOTER_FIELD_OPERATIONS_APP_SPEC.md
+docs/IMPLEMENTATION_PLAN.md

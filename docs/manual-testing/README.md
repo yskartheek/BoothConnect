@@ -13,24 +13,25 @@ same in Git Bash, macOS and Linux.
 Early issues only have small checks (does it install, does it start). The app
 becomes clickable later. Use this timeline to decide when to spend time testing.
 
-| After these issues | What you can try yourself | Tools |
-|---|---|---|
-| #13 | Repo installs; root scripts run (nothing to build yet) | Terminal |
-| #15, #16 | Postgres, Redis and MinIO start in Docker; MinIO console opens | Docker Desktop, browser |
-| #9 | API starts; `/v1/health` responds in the browser | Browser |
-| #10, #11 | Empty admin web page and empty Flutter app launch | Browser, Android emulator |
-| #26 | Seeded database: look at booths, users, households, voters | Prisma Studio |
-| #29–#33 | Sign in through the API with a dev one-time code and call `/v1/me` | curl / Postman / Bruno |
-| #36–#39 | Browse households and voters through the API; check volunteer A can't see booth B | curl / Postman |
-| #41–#43 | Record a visit and sync through the API; try replays and conflicts | curl / Postman |
-| #52 | Swagger UI, so the API can be explored from the browser | Browser |
-| #60–#64 | **First real app screens**: sign in on mobile, browse households | Android emulator |
-| #65–#67 | **Core demo**: record a visit offline, reconnect, watch it sync | Android emulator |
-| #69–#73 | **Admin import wizard** in the browser, end to end | Browser |
-| #74–#77 | Booth progress, voter record view, audit explorer | Browser |
+| After these issues | What you can try yourself                                                         | Tools                     |
+| ------------------ | --------------------------------------------------------------------------------- | ------------------------- |
+| #13                | Repo installs; root scripts run (nothing to build yet)                            | Terminal                  |
+| #15, #16           | Postgres, Redis and MinIO start in Docker; MinIO console opens                    | Docker Desktop, browser   |
+| #9                 | API starts; `/v1/health` responds in the browser                                  | Browser                   |
+| #10, #11           | Empty admin web page and empty Flutter app launch                                 | Browser, Android emulator |
+| #26                | Seeded database: look at booths, users, households, voters                        | Prisma Studio             |
+| #29–#33            | Sign in through the API with a dev one-time code and call `/v1/me`                | curl / Postman / Bruno    |
+| #36–#39            | Browse households and voters through the API; check volunteer A can't see booth B | curl / Postman            |
+| #41–#43            | Record a visit and sync through the API; try replays and conflicts                | curl / Postman            |
+| #52                | Swagger UI, so the API can be explored from the browser                           | Browser                   |
+| #60–#64            | **First real app screens**: sign in on mobile, browse households                  | Android emulator          |
+| #65–#67            | **Core demo**: record a visit offline, reconnect, watch it sync                   | Android emulator          |
+| #69–#73            | **Admin import wizard** in the browser, end to end                                | Browser                   |
+| #74–#77            | Booth progress, voter record view, audit explorer                                 | Browser                   |
 
 ## Guides
 
-| Issue | Guide | Status |
-|---|---|---|
-| #13 | [Initialize pnpm workspace and Turborepo](13-pnpm-workspace-turborepo.md) | Ready to test |
+| Issue | Guide                                                                     | Status        |
+| ----- | ------------------------------------------------------------------------- | ------------- |
+| #13   | [Initialize pnpm workspace and Turborepo](13-pnpm-workspace-turborepo.md) | Ready to test |
+| #14   | [Shared ESLint + Prettier config](14-eslint-prettier.md)                  | Ready to test |
