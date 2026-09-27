@@ -45,7 +45,7 @@ Tooling: pnpm + Turborepo for JS/TS, Prettier + ESLint, `flutter analyze` + `dar
 | `assignments` | RoleAssignment (role + geography node + validity window) | ✅ |
 | `geography` | Org → Program → State → PC → AC → Part → Polling Station tree (closure table); State/PC/AC master data; see [design](design/voter-roll-pdf-import.md) | ✅ |
 | `households` | Household records, scoped by booth | ✅ |
-| `voters` | Voter source data + FieldValue overlays (proposed/verified) | ✅ |
+| `voters` | Voter source data + FieldValue current values with history (no approval step, spec v1.1) | ✅ |
 | `field-definitions` | Configurable fields; restricted fields seeded **disabled** | ✅ |
 | `visits` | Append-only visits + outcomes, idempotency keys | ✅ |
 | `sync` | Batch push/pull for mobile, conflict detection | ✅ |
@@ -86,14 +86,17 @@ import_file           id, batch_id, file_ref, checksum, page_count, detected_hea
                       extracted_totals jsonb, status, error jsonb
 import_row_result     id, import_file_id, page, box_index, status(accepted|warning|rejected), messages jsonb,
                       field_confidence jsonb, corrected_values jsonb, corrected_by, corrected_at
-household             id, polling_station_id, display_address, structured_address jsonb, source_version_id, status
+household             id, polling_station_id, display_address, structured_address jsonb (house_no, street, area,
+                      pin_code, landmark), location (lat/lng), location_accuracy_m, location_captured_at,
+                      location_consent_id, origin (official_import|volunteer_added), source_version_id, status
 voter                 id, household_id, part_id, polling_station_id, section_no, serial_no,
                       source_voter_id (EPIC), source_data jsonb (immutable),
-                      verification_status, record_status, import_file_id
+                      record_status, origin (official_import|volunteer_added), import_file_id (null if added)
 node_stats            node_id, metrics jsonb, computed_at            -- per-node analytics, rebuilt on confirm
 field_definition      id, program_id, key, type, is_restricted, enabled, requires_consent, purpose
 field_value           id, entity_type, entity_id, field_definition_id, value jsonb, source_type,
-                      verification_status, consent_id, collected_by, collected_at, supersedes_id, base_version
+                      consent_id, collected_by, collected_at, supersedes_id, base_version,
+                      conflict_with_id (set when two offline edits collide; cleared when the volunteer chooses)
 visit                 id, household_id, volunteer_id, started_at, completed_at, outcome,
                       form_version, client_id (unique), notes
 consent               id, subject_voter_id, purpose, notice_version, status, captured_method,
@@ -105,10 +108,11 @@ audit_event           id, actor_id, action, resource_type, resource_id, result, 
 
 Key constraints:
 
-- `voter.source_data` is never updated after import. Corrections live in `field_value` with `supersedes_id` history.
+- `voter.source_data` is never updated after import. Volunteer edits live in `field_value` as the **current value** straight away (no proposed/verified step, spec v1.1), with `supersedes_id` history.
 - `visit.client_id` is unique, so a repeated sync can't duplicate a visit.
 - `(program_id, source_voter_id)` is unique per source version.
-- Restricted `field_definition` rows (caste/community, religion, political affiliation, precise location) are seeded with `enabled = false`, and the API rejects writes to disabled fields.
+- Volunteer-editable `field_definition` rows: name, age, gender, mobile, occupation, additional_info, and `caste_community` (enabled, `requires_consent = true`, restricted visibility).
+- Restricted rows (religion, political affiliation) are seeded with `enabled = false`, and the API rejects writes to disabled fields.
 
 ---
 
@@ -124,7 +128,12 @@ GET    /geographies?parentId&type&q                       (scoped; drives the le
 POST   /geographies, /geographies/imports                 admin: State/PC/AC master data
 GET    /households?boothId&q&status&cursor                (scoped, paginated)
 GET    /households/:id                                    (scoped; 404 outside scope)
-GET    /voters/:id                                        source + current values + provenance
+GET    /voters/:id                                        official values + current values + history
+POST   /households                  Idempotency-Key       volunteer adds a household (address, optional location)
+PATCH  /households/:id              Idempotency-Key       edit address / capture location (base_version checked)
+POST   /households/:id/members      Idempotency-Key       volunteer adds a member not on the official list
+PATCH  /voters/:id                  Idempotency-Key       edit member details → applied as current values
+POST   /conflicts/:id/resolve       { keepFieldValueId }  volunteer chooses which value to keep
 POST   /visits                     Idempotency-Key        append visit + field changes
 GET    /sync/pull?since=cursor                            assigned-booth delta for offline
 POST   /sync/push                  Idempotency-Key        batch of mutations → per-item result
@@ -144,14 +153,15 @@ GET    /analytics/nodes/:id/revisions                     changes between roll r
 GET    /audit-events?actor&action&from&to                 admin only
 ```
 
-**Conflict rule:** every field change carries the `base_version` (the `field_value` id the client last saw). If the server's current value for that field has moved on, the result is `conflict`, both values are kept, and the item goes into review. Visits are append-only and always merge.
+**Conflict rule:** every field change carries the `base_version` (the `field_value` id the client last saw). If the server's current value for that field has moved on, the result is `conflict`, both values are kept, and the volunteer chooses which to keep on the phone (`POST /conflicts/:id/resolve`). There is no reviewer queue. Visits are append-only and always merge.
 
 ---
 
 ## 5. Mobile vertical slice (`apps/mobile`)
 
 - **Architecture:** Riverpod + GoRouter + Drift (SQLite with SQLCipher encryption). The DB key lives in `flutter_secure_storage`.
-- **Screens:** Sign-in (OTP stub) → Home (progress, pending-sync badge) → Households list (search, status filter) → Household detail → Visit form (outcome, per-voter verify, optional fields with consent notice, refusal path) → Sync center.
+- **Screens** (see `docs/design/volunteer-app-mockups.html`, iOS and Android): Sign-in (OTP stub) → Home (progress, offline banner) → Households list (search, filters, Add household) → Household (address + map, member cards, Add member) → Member details (all editable fields, caste behind consent) → Household address (structured fields, one-tap location) → Visit (outcome, who you met, edit from list, refusal path) → Uploads (queue + Choose value).
+- **Status words shown to volunteers:** On phone, Uploading, Uploaded, Choose value, Not uploaded.
 - **Sync queue:** a `pending_mutation` table (id, idempotency_key, payload, status, attempts, next_attempt_at, last_error). Retries back off exponentially (capped at 5 min) and are triggered by connectivity changes and app resume.
 - **States visible everywhere:** loading, empty, error, denied, offline, pending, syncing, synced, conflict, failed.
 - **Theme:** tokens from `packages/design-tokens` feed the liquid-glass light/dark theme. The glass effect falls back to opaque surfaces when reduced transparency is on or the device is low-end.
@@ -163,7 +173,7 @@ GET    /audit-events?actor&action&from&to                 admin only
 - **Roll import:** pick the level with cascading dropdowns (State → PC → AC → Part), upload PDFs/ZIP, watch per-file extraction, review and correct rows beside the page image, then confirm
 - **Analytics explorer:** any node from State to polling station — its metrics, sibling/parent comparison, sortable children table, drill-down with breadcrumbs (thresholded)
 - **Booth progress:** assigned vs visited households and outcome breakdown (thresholded)
-- **Voter record view:** source vs proposed vs verified values with provenance
+- **Voter record view:** official values vs current values, with who changed what and when
 - **Audit explorer:** filterable table
 - Uses TanStack Query plus the generated `api-client`, with accessible primitives from Radix/shadcn.
 
@@ -171,7 +181,7 @@ GET    /audit-events?actor&action&from&to                 admin only
 
 ## 7. Seed data
 
-One organization, one program, and a synthetic hierarchy: one state → one PC → one AC → two parts, each with one polling station (the **two booths**). The second booth exists so cross-booth denial can be tested. Users: 1 admin, 2 volunteers (one per booth). Data: about 40 households and 120 synthetic voters (fake names, no real data). Restricted fields are present but disabled.
+One organization, one program, and a synthetic hierarchy: one state → one PC → one AC → two parts, each with one polling station (the **two booths**). The second booth exists so cross-booth denial can be tested. Users: 1 admin, 2 volunteers (one per booth). Data: about 40 households and 120 synthetic voters (fake names, no real data). Caste/community is enabled behind consent; religion and political affiliation are present but disabled.
 
 ---
 
@@ -186,7 +196,8 @@ One organization, one program, and a synthetic hierarchy: one state → one PC �
 | Analytics | Parent metrics equal the sum of their children; groups < 10 (including via filters or subtraction) are suppressed |
 | CSV safety | Values starting with `= + - @` are neutralized in the rejection export |
 | Idempotency | The same `/visits` or `/sync/push` twice gives one visit, and the same response is returned |
-| Conflict | Two stale edits to the same field produce a conflict and neither value is lost |
+| Conflict | Two stale edits to the same field produce a conflict, neither value is lost, and resolving keeps the chosen value with both in history |
+| Direct edits | A volunteer edit becomes the current value immediately; official `source_data` is unchanged; caste is rejected without a consent record |
 | Audit | Import confirm, visit create and login each write a hash-chained event; UPDATE/DELETE on `audit_event` fails |
 | Mobile | Queue survives app restart; offline visit → reconnect → synced state |
 
