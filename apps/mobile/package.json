@@ -1,0 +1,15 @@
+{
+  "name": "@boothconnect/mobile",
+  "version": "0.0.0",
+  "private": true,
+  "description": "BoothConnect field app (Flutter). These scripts wrap the Flutter tool so Turborepo can run them.",
+  "scripts": {
+    "start": "flutter run",
+    "setup": "flutter pub get",
+    "lint": "flutter pub get && dart format --output=none --set-exit-if-changed lib test && flutter analyze",
+    "analyze": "flutter pub get && flutter analyze",
+    "format": "dart format lib test",
+    "format:check": "dart format --output=none --set-exit-if-changed lib test",
+    "test": "flutter pub get && flutter test"
+  }
+}
