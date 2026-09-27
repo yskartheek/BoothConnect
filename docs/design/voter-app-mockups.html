@@ -1,0 +1,599 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BoothConnect Voter App</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,800&family=Figtree:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500&display=swap">
+<style>
+:root{
+  --page:#EDF0F5; --page-ink:#152033; --page-muted:#556079; --line:#D3DAE6; --panel:#F8F9FC;
+  --primary:#2446B8; --primary-2:#1560C9; --on-primary:#FFFFFF; --teal:#0A7880; --amber:#A76400;
+  --ok:#1B7A47; --warn:#8F5B00; --bad:#B02A2A;
+  --frame:#1A2030; --frame-edge:#3A4358;
+  --scr-base:#F3F5FA; --scr-a:#D6E0FF; --scr-b:#CBEDEE;
+  --ink:#121A2B; --muted:#56627A;
+  --glass-fill:rgba(255,255,255,.62); --glass-border:rgba(255,255,255,.55); --glass-hi:rgba(255,255,255,.72);
+  --solid:#FFFFFF; --solid-2:#EEF1F7; --hair:rgba(18,26,43,.11);
+  --tint:rgba(36,70,184,.10); --ok-bg:rgba(27,122,71,.12); --warn-bg:rgba(167,100,0,.13); --bad-bg:rgba(176,42,42,.11);
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --ui:"Figtree", "Segoe UI", system-ui, -apple-system, sans-serif;
+  --mono:"JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --page:#0B101B; --page-ink:#E5EAF3; --page-muted:#9AA6BD; --line:#232C3D; --panel:#111827;
+    --primary:#8AA2FF; --primary-2:#6CC3F5; --on-primary:#0A1024; --teal:#55C6CD; --amber:#F2AB45;
+    --ok:#62CF90; --warn:#F2B75A; --bad:#FF8484;
+    --frame:#2B3244; --frame-edge:#4A5570;
+    --scr-base:#0D1320; --scr-a:#1B2A60; --scr-b:#0D3C42;
+    --ink:#EAF0FA; --muted:#A5B0C6;
+    --glass-fill:rgba(22,27,36,.68); --glass-border:rgba(255,255,255,.14); --glass-hi:rgba(255,255,255,.10);
+    --solid:#161D2B; --solid-2:#1D2638; --hair:rgba(255,255,255,.10);
+    --tint:rgba(138,162,255,.16); --ok-bg:rgba(98,207,144,.14); --warn-bg:rgba(242,171,69,.15); --bad-bg:rgba(255,132,132,.14);
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --page:#0B101B; --page-ink:#E5EAF3; --page-muted:#9AA6BD; --line:#232C3D; --panel:#111827;
+  --primary:#8AA2FF; --primary-2:#6CC3F5; --on-primary:#0A1024; --teal:#55C6CD; --amber:#F2AB45;
+  --ok:#62CF90; --warn:#F2B75A; --bad:#FF8484;
+  --frame:#2B3244; --frame-edge:#4A5570;
+  --scr-base:#0D1320; --scr-a:#1B2A60; --scr-b:#0D3C42;
+  --ink:#EAF0FA; --muted:#A5B0C6;
+  --glass-fill:rgba(22,27,36,.68); --glass-border:rgba(255,255,255,.14); --glass-hi:rgba(255,255,255,.10);
+  --solid:#161D2B; --solid-2:#1D2638; --hair:rgba(255,255,255,.10);
+  --tint:rgba(138,162,255,.16); --ok-bg:rgba(98,207,144,.14); --warn-bg:rgba(242,171,69,.15); --bad-bg:rgba(255,132,132,.14);
+}
+
+*{box-sizing:border-box}
+body{background:var(--page);color:var(--page-ink);font-family:var(--ui);font-size:15px;line-height:1.5;padding-inline:20px;padding-block:32px 56px}
+.wrap{max-width:1180px;margin-inline:auto;display:flex;flex-direction:column;gap:28px}
+
+/* ---------- page header ---------- */
+.intro{display:flex;flex-wrap:wrap;gap:20px 40px;align-items:flex-end;justify-content:space-between}
+.intro h1{font-family:var(--display);font-weight:800;font-size:clamp(30px,4.2vw,44px);line-height:1.05;letter-spacing:-.02em;margin:0 0 10px;text-wrap:balance}
+.intro p{margin:0;max-width:62ch;color:var(--page-muted)}
+.eyebrow{font-family:var(--mono);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--teal);margin-bottom:10px}
+
+/* ---------- gallery ---------- */
+.stores{display:flex;gap:10px;flex-wrap:wrap}
+.store{display:flex;flex-direction:column;padding:10px 16px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-size:13px;color:var(--page-muted);min-width:130px}
+.store b{font-family:var(--display);font-size:18px;color:var(--page-ink)}
+.gallery{display:flex;flex-direction:column;gap:32px}
+.shot{display:grid;grid-template-columns:minmax(0,260px) minmax(0,1fr);gap:24px 48px;align-items:center;justify-content:center;padding:28px;border-radius:28px;background:var(--panel);border:1px solid var(--line)}
+.duo{display:flex;flex-wrap:wrap;gap:24px;justify-content:center}
+.plat{margin:0;display:flex;flex-direction:column;gap:10px;align-items:center}
+.plat figcaption{font-family:var(--mono);font-size:11.5px;letter-spacing:.06em;text-transform:uppercase;color:var(--page-muted)}
+@media (max-width:760px){.shot{grid-template-columns:1fr;padding:18px}}
+.cap h2{font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.02em;margin:0;letter-spacing:-.01em}
+.cap .issues{font-family:var(--mono);font-size:12px;color:var(--teal);margin:2px 0 6px}
+.cap ul{margin:0;padding-left:18px;color:var(--page-muted);font-size:14.5px;display:grid;gap:6px}
+
+/* ---------- phone frame ---------- */
+.phone{width:300px;max-width:100%;aspect-ratio:300/640;background:var(--frame);border:1px solid var(--frame-edge);padding:9px;box-shadow:0 18px 40px -18px rgba(10,16,32,.45)}
+.ios .phone{border-radius:46px}
+.android .phone{border-radius:30px}
+.screen{position:relative;height:100%;overflow:hidden;display:flex;flex-direction:column;color:var(--ink);font-size:13px;line-height:1.35;
+  background:radial-gradient(120% 55% at 0% 0%,var(--scr-a) 0%,transparent 62%),radial-gradient(90% 45% at 100% 35%,var(--scr-b) 0%,transparent 60%),var(--scr-base)}
+.ios .screen{border-radius:37px}
+.android .screen{border-radius:22px}
+
+.status{flex:none;height:34px;display:flex;align-items:center;justify-content:space-between;padding:0 22px;font-weight:700;font-size:12px;font-variant-numeric:tabular-nums}
+.android .status{height:28px;padding:0 16px;font-weight:600}
+.status .icons{display:flex;gap:5px;align-items:center}
+.status svg{width:14px;height:14px}
+.island{width:84px;height:22px;border-radius:12px;background:#05070C}
+.android .island{width:10px;height:10px;border-radius:50%}
+
+.body{flex:1;min-height:0;overflow:hidden;padding:4px 14px 12px;display:flex;flex-direction:column;gap:10px}
+.ring{position:relative;width:66px;height:66px;flex:none}
+.ring b{position:absolute;inset:0;display:grid;place-items:center;font-size:15px;font-weight:800}
+.av{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;font-size:11px;font-weight:800;flex:none;background:var(--tint);color:var(--primary)}
+.home-ind{flex:none;height:18px;display:flex;align-items:center;justify-content:center}
+.home-ind span{width:110px;height:4px;border-radius:3px;background:var(--ink);opacity:.8}
+.android .home-ind span{width:80px;height:3px}
+
+/* header */
+.hdr{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:30px}
+.back{display:flex;align-items:center;gap:2px;color:var(--primary);font-weight:600}
+.back svg{width:18px;height:18px}
+.title{font-weight:800;margin:0;letter-spacing:-.01em}
+.ios .title{font-size:26px}
+.android .title{font-size:19px;font-weight:600}
+.ios .hdr.sub .title{font-size:16px;font-weight:700}
+.hdr-actions{display:flex;gap:8px;color:var(--muted)}
+.hdr-actions svg{width:20px;height:20px}
+.ios-only,.android-only{display:none}
+.ios .ios-only,.android .android-only{display:revert}
+
+/* surfaces */
+.glass{background:var(--glass-fill);border:1px solid var(--glass-border);box-shadow:inset 0 1px 0 var(--glass-hi),0 6px 18px -10px rgba(10,16,32,.35);backdrop-filter:blur(18px) saturate(140%);-webkit-backdrop-filter:blur(18px) saturate(140%)}
+.reduced .glass{background:var(--solid);border-color:var(--hair);backdrop-filter:none;-webkit-backdrop-filter:none;box-shadow:0 1px 2px rgba(10,16,32,.12)}
+.card{border-radius:18px;padding:11px 12px;display:flex;flex-direction:column;gap:7px}
+.solid{background:var(--solid);border:1px solid var(--hair);border-radius:14px}
+.list{display:flex;flex-direction:column}
+.row{display:flex;gap:10px;align-items:center;padding:9px 11px;border-top:1px solid var(--hair)}
+.row:first-child{border-top:0}
+.row .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.row .t{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.row .s{color:var(--muted);font-size:12px}
+.label{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--muted)}
+.mono{font-family:var(--mono);font-size:11px}
+.muted{color:var(--muted)}
+.big{font-size:20px;font-weight:800;font-variant-numeric:tabular-nums}
+
+/* chips (status is always icon + text, never colour alone) */
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:700;border-radius:999px;padding:2px 8px;white-space:nowrap}
+.chip svg{width:12px;height:12px}
+.st-synced{color:var(--ok);background:var(--ok-bg)}
+.st-pending{color:var(--warn);background:var(--warn-bg)}
+.st-conflict,.st-failed{color:var(--bad);background:var(--bad-bg)}
+.st-syncing{color:var(--primary);background:var(--tint)}
+.st-plain{color:var(--muted);background:var(--solid-2)}
+
+.banner{display:flex;gap:8px;align-items:center;border-radius:12px;padding:8px 10px;font-weight:600;font-size:12px;background:var(--warn-bg);color:var(--warn)}
+.banner svg{width:16px;height:16px;flex:none}
+
+.bar{height:8px;border-radius:6px;background:var(--solid-2);overflow:hidden}
+.bar i{display:block;height:100%;width:59%;background:linear-gradient(90deg,var(--primary),var(--teal));border-radius:6px}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px}
+.stats div{display:flex;flex-direction:column}
+.stats b{font-size:16px;font-variant-numeric:tabular-nums}
+.stats span{font-size:11px;color:var(--muted)}
+
+.btn{display:flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:14px;font-weight:700;font-size:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:var(--on-primary);border:0;box-shadow:0 6px 16px -8px var(--primary)}
+.android .btn{border-radius:22px}
+.btn.ghost{background:var(--tint);color:var(--primary);box-shadow:none}
+.btn.small{min-height:32px;font-size:12px;padding:0 12px;border-radius:10px;white-space:nowrap;flex:none}
+.android .btn.small{border-radius:16px}
+.btn svg{width:16px;height:16px}
+
+.field{display:flex;flex-direction:column;gap:4px}
+.input{min-height:40px;border-radius:11px;background:var(--solid);border:1px solid var(--hair);display:flex;align-items:center;gap:8px;padding:0 11px;color:var(--ink)}
+.input svg{width:16px;height:16px;color:var(--muted)}
+.input.ph{color:var(--muted)}
+.otp{display:grid;grid-template-columns:repeat(6,1fr);gap:6px}
+.otp span{height:40px;border-radius:10px;background:var(--solid);border:1px solid var(--hair);display:grid;place-items:center;font-size:18px;font-weight:800}
+.otp span.cur{border:2px solid var(--primary)}
+
+.filters{display:flex;gap:6px;overflow:hidden}
+.filters span{flex:none;font-size:12px;font-weight:600;padding:5px 10px;border-radius:999px;background:var(--solid);border:1px solid var(--hair);color:var(--muted)}
+.filters span.on{background:var(--primary);color:var(--on-primary);border-color:transparent}
+
+.outcomes{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.outcomes span{font-size:12px;font-weight:600;padding:5px 8px;line-height:1.2;border-radius:10px;background:var(--solid);border:1px solid var(--hair);display:flex;align-items:center;gap:5px}
+.outcomes span.on{border:2px solid var(--primary);color:var(--primary);background:var(--tint)}
+.outcomes svg{width:13px;height:13px}
+.consent{border:1px dashed var(--line);border-radius:12px;padding:8px 10px;display:flex;flex-direction:column;gap:5px;background:var(--solid)}
+.check{display:flex;gap:7px;align-items:center;font-weight:600;font-size:12px}
+.check i{width:16px;height:16px;border-radius:5px;border:2px solid var(--muted);flex:none}
+.diff{display:grid;grid-template-columns:1fr 1fr;gap:6px;margin-top:4px}
+.diff div{background:var(--solid-2);border-radius:9px;padding:5px 7px;display:flex;flex-direction:column}
+
+/* bottom navigation */
+.nav{flex:none;display:grid;grid-template-columns:repeat(5,minmax(0,1fr));padding:6px 6px 2px;margin:0 8px 2px;border-radius:24px}
+.android .nav{margin:0;border-radius:0;padding:8px 4px 4px;border-left:0;border-right:0;border-bottom:0}
+.nav a{display:flex;flex-direction:column;align-items:center;gap:2px;font-size:10px;font-weight:600;color:var(--muted);text-decoration:none;padding:3px 0}
+.nav a svg{width:21px;height:21px}
+.nav a.on{color:var(--primary)}
+.android .nav a .pill{display:grid;place-items:center;width:44px;height:26px;border-radius:13px}
+.android .nav a.on .pill{background:var(--tint)}
+.nav a.later{opacity:.55}
+
+/* start visit: iOS bottom button, Android extended FAB */
+.cta{position:absolute;z-index:2}
+.ios .cta{left:20px;right:20px;bottom:30px}
+.android .cta{right:16px;bottom:24px;min-height:52px;border-radius:16px;padding:0 18px;box-shadow:0 8px 18px -8px rgba(10,16,32,.5)}
+.fade{position:absolute;left:0;right:0;bottom:0;height:120px;background:linear-gradient(transparent,var(--scr-base));pointer-events:none}
+
+/* notes section */
+.notes{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:20px;border-top:1px solid var(--line);padding-top:24px}
+.notes h3{font-family:var(--display);font-weight:600;font-size:17px;margin:0 0 6px}
+.notes p,.notes li{color:var(--page-muted);font-size:14px;margin:0}
+.notes ul{margin:0;padding-left:18px;display:grid;gap:4px}
+
+
+/* v2: bigger frame, roomier Android bar, forms */
+.phone{width:320px;aspect-ratio:320/680}
+.android .nav{padding:10px 2px 10px;min-height:76px}
+.android .nav a{font-size:10.5px;gap:4px;letter-spacing:-.01em}
+.nav a{min-width:0;white-space:nowrap}
+.android .nav a svg{width:22px;height:22px}
+.android .nav a .pill{width:48px;height:30px;border-radius:15px}
+.ios .nav a{font-size:10.5px}
+.sec{display:flex;justify-content:space-between;align-items:center}
+.link{color:var(--primary);font-weight:700;font-size:12.5px;display:inline-flex;align-items:center;gap:3px}
+.link svg{width:14px;height:14px}
+.member{display:flex;gap:10px;align-items:center;padding:10px 11px}
+.member .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.member .t{font-weight:800;font-size:14px}
+.member .s{color:var(--muted);font-size:12px}
+.members{display:flex;flex-direction:column;gap:8px}
+.av{width:36px;height:36px;font-size:12px}
+.map{height:78px;border-radius:12px;position:relative;overflow:hidden;background:
+  linear-gradient(90deg,transparent 48%,var(--hair) 48%,var(--hair) 52%,transparent 52%) 0 0/46px 46px,
+  linear-gradient(0deg,transparent 48%,var(--hair) 48%,var(--hair) 52%,transparent 52%) 0 0/46px 46px,
+  linear-gradient(120deg,var(--scr-b),var(--scr-a))}
+.map .road{position:absolute;left:-10%;right:-10%;top:44%;height:10px;background:var(--solid);opacity:.85;transform:rotate(-8deg)}
+.map .pin{position:absolute;left:50%;top:50%;width:22px;height:22px;margin:-22px 0 0 -11px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--primary);border:3px solid var(--solid)}
+.fcard{background:var(--solid);border:1px solid var(--hair);border-radius:14px;padding:10px 11px;display:flex;flex-direction:column;gap:9px}
+.frow{display:grid;grid-template-columns:1fr 1.6fr;gap:8px}
+.input.sm{min-height:34px}
+.select{justify-content:space-between}
+.select svg{transform:rotate(90deg)}
+.seg3{display:grid;grid-template-columns:repeat(3,1fr);background:var(--solid-2);border-radius:10px;padding:2px}
+.seg3 span{text-align:center;font-size:12px;font-weight:700;padding:7px 0;border-radius:8px;color:var(--muted)}
+.seg3 span.on{background:var(--solid);color:var(--primary);box-shadow:0 1px 3px rgba(10,16,32,.15)}
+.textarea{min-height:52px;align-items:flex-start;padding-top:8px;font-size:12.5px}
+.hint{font-size:11px;color:var(--muted)}
+.tag{display:inline-flex;align-items:center;gap:4px;font-size:10.5px;font-weight:800;letter-spacing:.03em;padding:2px 7px;border-radius:6px;background:var(--warn-bg);color:var(--warn)}
+.tag svg{width:11px;height:11px}
+.choice{display:flex;gap:9px;align-items:center;padding:9px 10px;border-radius:12px;border:1px solid var(--hair);background:var(--solid)}
+.choice.on{border:2px solid var(--primary);background:var(--tint)}
+.radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--muted);flex:none}
+.choice.on .radio{border:5px solid var(--primary)}
+.check.on i{background:var(--primary);border-color:var(--primary);position:relative}
+.check.on i::after{content:"";position:absolute;left:4px;top:1px;width:4px;height:8px;border:solid var(--on-primary);border-width:0 2px 2px 0;transform:rotate(45deg)}
+.fab-add{position:absolute;z-index:2}
+.ios .fab-add{display:none}
+.android .fab-add{right:16px;bottom:96px;min-height:52px;border-radius:16px;padding:0 18px;box-shadow:0 8px 18px -8px rgba(10,16,32,.5)}
+.group{font-family:var(--display);font-weight:800;font-size:30px;letter-spacing:-.02em;margin:24px 0 0}
+.flow{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;padding:24px;border-radius:28px;background:var(--panel);border:1px solid var(--line)}
+.flow h2{grid-column:1/-1;font-family:var(--display);font-weight:800;font-size:26px;letter-spacing:-.02em;margin:0}
+.step{display:flex;flex-direction:column;gap:6px;padding:14px;border-radius:18px;background:var(--page);border:1px solid var(--line)}
+.step .n{font-family:var(--mono);font-size:12px;color:var(--teal)}
+.step b{font-size:16px}
+.step p{margin:0;font-size:14px;color:var(--page-muted)}
+.step .chip{align-self:flex-start}
+.step.alt{border-style:dashed}
+.decision{padding:16px 18px;border-radius:18px;border:1px solid var(--line);background:var(--panel);font-size:14.5px;color:var(--page-muted)}
+.decision b{color:var(--page-ink)}
+
+/* v3: tasks, campaigns, profile, voter app */
+.task{display:flex;gap:10px;align-items:flex-start;padding:10px 11px}
+.task .main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.task .t{font-weight:700}
+.task .s{font-size:12px;color:var(--muted)}
+.task .check{margin-top:1px}
+.task.done .t{text-decoration:line-through;color:var(--muted)}
+.mini{height:5px;border-radius:4px;background:var(--solid-2);overflow:hidden}
+.mini i{display:block;height:100%;background:linear-gradient(90deg,var(--primary),var(--teal));border-radius:4px}
+.setting{display:flex;align-items:center;gap:10px;padding:11px 12px;border-top:1px solid var(--hair)}
+.setting:first-child{border-top:0}
+.setting .ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:var(--tint);color:var(--primary);flex:none}
+.setting .ic svg{width:16px;height:16px}
+.setting .main{flex:1;min-width:0;display:flex;flex-direction:column}
+.setting .t{font-weight:700}
+.setting .s{font-size:12px;color:var(--muted)}
+.setting.danger .t,.setting.danger .ic{color:var(--bad)}
+.setting.danger .ic{background:var(--bad-bg)}
+.switch{width:40px;height:24px;border-radius:12px;background:var(--solid-2);border:1px solid var(--hair);position:relative;flex:none}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;border-radius:50%;background:var(--solid);box-shadow:0 1px 3px rgba(10,16,32,.3)}
+.switch.on{background:var(--primary);border-color:transparent}
+.switch.on::after{left:18px}
+.android .switch{height:22px;border-radius:11px}
+.timeline{display:flex;flex-direction:column}
+.tl{display:grid;grid-template-columns:18px 1fr;gap:8px;padding-bottom:12px;position:relative}
+.tl::before{content:"";position:absolute;left:5px;top:14px;bottom:0;width:2px;background:var(--hair)}
+.tl:last-child::before{display:none}
+.tl .dot{width:12px;height:12px;border-radius:50%;background:var(--primary);margin-top:3px;box-shadow:0 0 0 3px var(--tint)}
+.tl .dot.teal{background:var(--teal)}
+.tl .dot.amber{background:var(--amber)}
+.tl b{display:block}
+.tl span{font-size:12px;color:var(--muted)}
+.hero{border-radius:20px;padding:13px;display:flex;flex-direction:column;gap:6px;color:#fff;background:linear-gradient(135deg,#2446B8,#0A7880)}
+.hero .label{color:rgba(255,255,255,.8)}
+.hero .muted{color:rgba(255,255,255,.85)}
+.hero .btn.ghost{background:rgba(255,255,255,.18);color:#fff}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;font-size:12.5px}
+.kv dt{color:var(--muted)}
+.kv dd{margin:0;font-weight:700;text-align:right}
+.bul{margin:0;padding-left:16px;display:grid;gap:4px;font-size:12.5px}
+.att{display:flex;gap:8px;align-items:center;padding:8px 10px;border-radius:11px;background:var(--solid);border:1px solid var(--hair);font-weight:600;font-size:12.5px}
+.att .ic{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--tint);color:var(--primary);font-size:10px;font-weight:800}
+.fab-new{position:absolute;z-index:2}
+.ios .fab-new{display:none}
+.android .fab-new{right:16px;bottom:96px;min-height:52px;border-radius:16px;padding:0 18px;box-shadow:0 8px 18px -8px rgba(10,16,32,.5)}
+
+@media (prefers-reduced-motion:no-preference){ .seg button{transition:background-color .15s,color .15s} }
+</style>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-cloud" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M7 18a4.5 4.5 0 0 1-.6-9A6 6 0 0 1 18 8.5a4.8 4.8 0 0 1-.6 9.5z"/><path d="M9.5 13l2 2 3.5-4"/></symbol>
+    <symbol id="i-phone" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><rect x="7" y="2.5" width="10" height="19" rx="2.5"/><path d="M11 18h2"/></symbol>
+    <symbol id="i-pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11.5a7 7 0 0 1 14 0C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></symbol>
+    <symbol id="i-edit" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4L19 9l-4-4L4 16z"/></symbol>
+    <linearGradient id="g-ring" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#2446B8"/><stop offset="1" stop-color="#12A1A8"/></linearGradient>
+    <symbol id="i-home" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/></symbol>
+    <symbol id="i-houses" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 6h13M8 12h13M8 18h13M3 6h.01M3 12h.01M3 18h.01"/></symbol>
+    <symbol id="i-tasks" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="3"/><path d="M8.5 12l2.5 2.5 4.5-5"/></symbol>
+    <symbol id="i-camp" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 11v2a1 1 0 0 0 1 1h2l6 4V6L6 10H4a1 1 0 0 0-1 1zM16 9a4 4 0 0 1 0 6M19 6a8 8 0 0 1 0 12"/></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></symbol>
+    <symbol id="i-offline" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 2l20 20M8.5 16.5a5 5 0 0 1 7 0M5 13a10 10 0 0 1 5.2-2.8M19 13a10 10 0 0 0-2.2-1.6M2 8.8a15 15 0 0 1 4.2-2.7M22 8.8A15 15 0 0 0 11 5M12 20h.01"/></symbol>
+    <symbol id="i-wifi" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><path d="M5 12.5a10 10 0 0 1 14 0M8.5 16a5 5 0 0 1 7 0M12 19.5h.01"/></symbol>
+    <symbol id="i-batt" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="7" width="18" height="10" rx="2.5"/><rect x="4" y="9" width="11" height="6" rx="1" fill="currentColor" stroke="none"/><path d="M22 11v2"/></symbol>
+    <symbol id="i-sig" viewBox="0 0 24 24" fill="currentColor"><rect x="3" y="15" width="3" height="5" rx="1"/><rect x="8.5" y="11" width="3" height="9" rx="1"/><rect x="14" y="7" width="3" height="13" rx="1"/><rect x="19.5" y="3" width="3" height="17" rx="1" opacity=".35"/></symbol>
+    <symbol id="i-back-ios" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M15 5l-7 7 7 7"/></symbol>
+    <symbol id="i-back-and" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 12H5M11 6l-6 6 6 6"/></symbol>
+    <symbol id="i-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12.5l4.5 4.5L19 7.5"/></symbol>
+    <symbol id="i-clock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M9 9l6 6M15 9l-6 6"/></symbol>
+    <symbol id="i-sync" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.5-4.5M4 13a8 8 0 0 0 14.5 4.5M5 3v4h4M19 21v-4h-4"/></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="12" cy="19" r="1.8"/></symbol>
+  </defs>
+</svg>
+
+<div class="wrap" id="app">
+  <header class="intro">
+    <div>
+      <div class="eyebrow">Voter app · concept</div>
+      <h1>BoothConnect voter app</h1>
+      <p>Concept screens for voters, based on spec §5.2, §7.6 and §9.2. Voters check their booth and polling-day details, share contact details if they choose, and control what their booth team can see. Every screen is shown for iOS and Android. All names and numbers are synthetic.</p>
+    </div>
+    <div class="stores">
+      <span class="store"><b>iOS</b>App Store</span>
+      <span class="store"><b>Android</b>Google Play</span>
+    </div>
+  </header>
+  <main class="gallery">
+    <section class="shot">
+      <div class="cap">
+        <h2>Sign in</h2>
+        <div class="issues">Voter app · spec §5.2, §7.6</div>
+        <ul><li>Voter ID number plus a one-time code to the voter's mobile.</li><li>The response never says whether a voter ID exists, so nobody can check someone else's registration.</li><li>A clear line that this isn't an official Election Commission app, which the stores' review guidelines expect.</li></ul>
+      </div>
+      <div class="duo">
+        <figure class="plat ios"><figcaption>iOS · App Store</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body" style="justify-content:center;gap:14px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+  <div class="glass" style="width:56px;height:56px;border-radius:18px;display:grid;place-items:center;color:var(--teal)"><svg width="28" height="28"><use href="#i-user"/></svg></div>
+  <div style="font-size:20px;font-weight:800">Your voter details</div>
+  <div class="muted" style="max-width:240px">Check your booth, keep your contact details up to date, and get polling-day information.</div>
+</div>
+<div class="glass card" style="gap:10px">
+  <div class="field"><span class="label">Voter ID (EPIC) number</span><div class="input mono" style="font-size:13px">XIZ5458518</div><span class="hint">Printed on your voter ID card</span></div>
+  <div class="field"><span class="label">Mobile number</span><div class="input">+91 98765 43210</div></div>
+  <div class="btn">Send code</div>
+</div>
+<div class="muted" style="font-size:11.5px;text-align:center;max-width:250px;align-self:center">We only show details to the person they belong to. This app is not run by the Election Commission.</div>
+</div>
+<div class="home-ind"><span></span></div></div></div>
+</figure>
+        <figure class="plat android"><figcaption>Android · Google Play</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body" style="justify-content:center;gap:14px">
+<div style="display:flex;flex-direction:column;align-items:center;gap:6px;text-align:center">
+  <div class="glass" style="width:56px;height:56px;border-radius:18px;display:grid;place-items:center;color:var(--teal)"><svg width="28" height="28"><use href="#i-user"/></svg></div>
+  <div style="font-size:20px;font-weight:800">Your voter details</div>
+  <div class="muted" style="max-width:240px">Check your booth, keep your contact details up to date, and get polling-day information.</div>
+</div>
+<div class="glass card" style="gap:10px">
+  <div class="field"><span class="label">Voter ID (EPIC) number</span><div class="input mono" style="font-size:13px">XIZ5458518</div><span class="hint">Printed on your voter ID card</span></div>
+  <div class="field"><span class="label">Mobile number</span><div class="input">+91 98765 43210</div></div>
+  <div class="btn">Send code</div>
+</div>
+<div class="muted" style="font-size:11.5px;text-align:center;max-width:250px;align-self:center">We only show details to the person they belong to. This app is not run by the Election Commission.</div>
+</div>
+<div class="home-ind"><span></span></div></div></div>
+</figure>
+      </div>
+    </section>
+    <section class="shot">
+      <div class="cap">
+        <h2>Home</h2>
+        <div class="issues">Voter app · spec §9.2</div>
+        <ul><li>The most useful fact first: when and where to vote.</li><li>One prompt for missing details, and a way to ask the booth volunteer for help.</li><li>Short, approved messages from the booth team.</li></ul>
+      </div>
+      <div class="duo">
+        <figure class="plat ios"><figcaption>iOS · App Store</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Namaste, Lakshmi</h3></div>
+<div class="hero">
+  <span class="label">Polling day</span>
+  <div style="font-size:18px;font-weight:800">Thursday 13 May · 7 am–6 pm</div>
+  <span class="muted" style="font-size:12.5px">Booth 142 · Govt. Primary School, Room 2, Nehru Nagar</span>
+  <div style="display:flex;gap:8px"><span class="btn ghost small">Directions</span><span class="btn ghost small">What to bring</span></div>
+</div>
+<div class="solid list">
+  <div class="row"><span class="av" style="background:var(--warn-bg);color:var(--warn)">2</span><div class="main"><span class="t">Check your details</span><span class="s">Mobile and language not added yet</span></div><svg width="16" height="16" class="muted"><use href="#i-chev"/></svg></div>
+  <div class="row"><span class="av">PS</span><div class="main"><span class="t">Your booth volunteer</span><span class="s">Priya S. · can visit to help</span></div><span class="link">Ask</span></div>
+</div>
+<span class="label">From your booth team</span>
+<div class="solid card" style="gap:4px"><b>Home voting for 85+</b><span class="muted" style="font-size:12px">Voters aged 85 and above can vote from home. Apply with Form 12D by 20 Apr.</span></div>
+</div>
+<nav class="nav glass" aria-label="Main"><a class="on"><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+        <figure class="plat android"><figcaption>Android · Google Play</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Namaste, Lakshmi</h3></div>
+<div class="hero">
+  <span class="label">Polling day</span>
+  <div style="font-size:18px;font-weight:800">Thursday 13 May · 7 am–6 pm</div>
+  <span class="muted" style="font-size:12.5px">Booth 142 · Govt. Primary School, Room 2, Nehru Nagar</span>
+  <div style="display:flex;gap:8px"><span class="btn ghost small">Directions</span><span class="btn ghost small">What to bring</span></div>
+</div>
+<div class="solid list">
+  <div class="row"><span class="av" style="background:var(--warn-bg);color:var(--warn)">2</span><div class="main"><span class="t">Check your details</span><span class="s">Mobile and language not added yet</span></div><svg width="16" height="16" class="muted"><use href="#i-chev"/></svg></div>
+  <div class="row"><span class="av">PS</span><div class="main"><span class="t">Your booth volunteer</span><span class="s">Priya S. · can visit to help</span></div><span class="link">Ask</span></div>
+</div>
+<span class="label">From your booth team</span>
+<div class="solid card" style="gap:4px"><b>Home voting for 85+</b><span class="muted" style="font-size:12px">Voters aged 85 and above can vote from home. Apply with Form 12D by 20 Apr.</span></div>
+</div>
+<nav class="nav glass" aria-label="Main"><a class="on"><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+      </div>
+    </section>
+    <section class="shot">
+      <div class="cap">
+        <h2>My details</h2>
+        <div class="issues">Voter app · spec §7.6</div>
+        <ul><li>Official roll data and details the voter shares are kept visibly separate.</li><li>The app can't change the official roll (a spec non-goal), so it points to Form 8 instead.</li><li>Shared details update straight away, like volunteer edits (spec v1.1).</li></ul>
+      </div>
+      <div class="duo">
+        <figure class="plat ios"><figcaption>iOS · App Store</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body" style="gap:8px">
+<div class="hdr"><h3 class="title">My details</h3></div>
+<div class="fcard">
+  <div class="sec"><span class="label">From the electoral roll</span><span class="chip st-plain"><svg><use href="#i-lock"/></svg>Official</span></div>
+  <dl class="kv"><dt>Name</dt><dd>Lakshmi Rao</dd><dt>Age · gender</dt><dd>46 · Female</dd><dt>Voter ID</dt><dd class="mono">XIZ5458518</dd><dt>Part · serial</dt><dd>408 · 217</dd><dt>Booth</dt><dd>142 · Room 2</dd></dl>
+  <span class="hint">Something wrong here? Official corrections are made with the Election Commission (Form 8). <span class="link" style="font-size:11px">How to apply</span></span>
+</div>
+<div class="fcard">
+  <div class="sec"><span class="label">Details you share</span><span class="link"><svg><use href="#i-edit"/></svg>Edit</span></div>
+  <dl class="kv"><dt>Mobile</dt><dd>98765 43210</dd><dt>Language</dt><dd>Telugu</dd><dt>Occupation</dt><dd>Teacher</dd></dl>
+  <span class="hint">Shared with your booth team only. You can stop sharing any time in Privacy.</span>
+</div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a class="on"><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+        <figure class="plat android"><figcaption>Android · Google Play</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body" style="gap:8px">
+<div class="hdr"><h3 class="title">My details</h3></div>
+<div class="fcard">
+  <div class="sec"><span class="label">From the electoral roll</span><span class="chip st-plain"><svg><use href="#i-lock"/></svg>Official</span></div>
+  <dl class="kv"><dt>Name</dt><dd>Lakshmi Rao</dd><dt>Age · gender</dt><dd>46 · Female</dd><dt>Voter ID</dt><dd class="mono">XIZ5458518</dd><dt>Part · serial</dt><dd>408 · 217</dd><dt>Booth</dt><dd>142 · Room 2</dd></dl>
+  <span class="hint">Something wrong here? Official corrections are made with the Election Commission (Form 8). <span class="link" style="font-size:11px">How to apply</span></span>
+</div>
+<div class="fcard">
+  <div class="sec"><span class="label">Details you share</span><span class="link"><svg><use href="#i-edit"/></svg>Edit</span></div>
+  <dl class="kv"><dt>Mobile</dt><dd>98765 43210</dd><dt>Language</dt><dd>Telugu</dd><dt>Occupation</dt><dd>Teacher</dd></dl>
+  <span class="hint">Shared with your booth team only. You can stop sharing any time in Privacy.</span>
+</div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a class="on"><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+      </div>
+    </section>
+    <section class="shot">
+      <div class="cap">
+        <h2>Updates</h2>
+        <div class="issues">Voter app · spec §9.2, §14</div>
+        <ul><li>A plain history of everything that changed on the voter's record and every contact.</li><li>Transparency: the voter can see who has access, and an access log.</li></ul>
+      </div>
+      <div class="duo">
+        <figure class="plat ios"><figcaption>iOS · App Store</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Updates</h3></div>
+<div class="timeline">
+  <div class="tl"><span class="dot"></span><div><b>You added your mobile number</b><span>Today, 10:12 · visible to your booth team</span></div></div>
+  <div class="tl"><span class="dot teal"></span><div><b>Booth volunteer visited</b><span>19 Sep · Priya S. · no one was home</span></div></div>
+  <div class="tl"><span class="dot amber"></span><div><b>You asked for help with Form 8</b><span>12 Sep · Priya S. will call you</span></div></div>
+  <div class="tl"><span class="dot"></span><div><b>You joined BoothConnect</b><span>12 Sep</span></div></div>
+</div>
+<div class="solid card" style="gap:4px"><b>Who has seen my details?</b><span class="muted" style="font-size:12px">Your booth volunteer and the booth coordinator. Every view is logged.</span><span class="link">See access log</span></div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a class="on"><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+        <figure class="plat android"><figcaption>Android · Google Play</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Updates</h3></div>
+<div class="timeline">
+  <div class="tl"><span class="dot"></span><div><b>You added your mobile number</b><span>Today, 10:12 · visible to your booth team</span></div></div>
+  <div class="tl"><span class="dot teal"></span><div><b>Booth volunteer visited</b><span>19 Sep · Priya S. · no one was home</span></div></div>
+  <div class="tl"><span class="dot amber"></span><div><b>You asked for help with Form 8</b><span>12 Sep · Priya S. will call you</span></div></div>
+  <div class="tl"><span class="dot"></span><div><b>You joined BoothConnect</b><span>12 Sep</span></div></div>
+</div>
+<div class="solid card" style="gap:4px"><b>Who has seen my details?</b><span class="muted" style="font-size:12px">Your booth volunteer and the booth coordinator. Every view is logged.</span><span class="link">See access log</span></div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a class="on"><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+      </div>
+    </section>
+    <section class="shot">
+      <div class="cap">
+        <h2>Campaign information</h2>
+        <div class="issues">Voter app · spec §7.7</div>
+        <ul><li>Voters see information campaigns only. Nothing is targeted at them using sensitive traits (spec §7.7 safeguards).</li><li>Filter chips by topic, and cards short enough to read at a glance.</li></ul>
+      </div>
+      <div class="duo">
+        <figure class="plat ios"><figcaption>iOS · App Store</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Campaigns</h3></div>
+<div class="filters"><span class="on">All</span><span>Polling day</span><span>Registration</span><span>Seniors</span></div>
+<div class="solid card" style="gap:5px"><span class="label">Polling day</span><b style="font-size:15px">What to bring to the booth</b><span class="muted" style="font-size:12.5px">Your voter ID (EPIC), or one of 12 approved photo IDs such as Aadhaar, PAN card or passport.</span><span class="link">Read more</span></div>
+<div class="solid card" style="gap:5px"><span class="label">Seniors</span><b style="font-size:15px">Voting from home at 85+</b><span class="muted" style="font-size:12.5px">Apply with Form 12D. A polling team visits you with a sealed ballot.</span><span class="link">Read more</span></div>
+<div class="solid card" style="gap:5px"><span class="label">Registration</span><b style="font-size:15px">Turning 18 this year?</b><span class="muted" style="font-size:12.5px">Help a first-time voter in your family apply with Form 6.</span><span class="link">Read more</span></div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a class="on"><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+        <figure class="plat android"><figcaption>Android · Google Play</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Campaigns</h3></div>
+<div class="filters"><span class="on">All</span><span>Polling day</span><span>Registration</span><span>Seniors</span></div>
+<div class="solid card" style="gap:5px"><span class="label">Polling day</span><b style="font-size:15px">What to bring to the booth</b><span class="muted" style="font-size:12.5px">Your voter ID (EPIC), or one of 12 approved photo IDs such as Aadhaar, PAN card or passport.</span><span class="link">Read more</span></div>
+<div class="solid card" style="gap:5px"><span class="label">Seniors</span><b style="font-size:15px">Voting from home at 85+</b><span class="muted" style="font-size:12.5px">Apply with Form 12D. A polling team visits you with a sealed ballot.</span><span class="link">Read more</span></div>
+<div class="solid card" style="gap:5px"><span class="label">Registration</span><b style="font-size:15px">Turning 18 this year?</b><span class="muted" style="font-size:12.5px">Help a first-time voter in your family apply with Form 6.</span><span class="link">Read more</span></div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a class="on"><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+      </div>
+    </section>
+    <section class="shot">
+      <div class="cap">
+        <h2>Privacy and settings</h2>
+        <div class="issues">Voter app · spec §14, DPDP Act</div>
+        <ul><li>Each shared detail has its own switch. Turning one off withdraws consent and hides the value.</li><li>Voters can request a copy of their data or delete their account, as India's data protection law requires.</li></ul>
+      </div>
+      <div class="duo">
+        <figure class="plat ios"><figcaption>iOS · App Store</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Privacy</h3></div>
+<span class="label">What you share with your booth team</span>
+<div class="solid list">
+  <div class="setting"><div class="main"><span class="t">Mobile number</span><span class="s">For polling-day reminders</span></div><span class="switch on"></span></div>
+  <div class="setting"><div class="main"><span class="t">Occupation</span><span class="s">For local issue planning</span></div><span class="switch on"></span></div>
+  <div class="setting"><div class="main"><span class="t">Caste / community</span><span class="s">Not shared · sensitive</span></div><span class="switch"></span></div>
+</div>
+<div class="solid list">
+  <div class="setting"><span class="ic"><svg><use href="#i-camp"/></svg></span><div class="main"><span class="t">Language</span><span class="s">Telugu</span></div><svg width="16" height="16" class="muted"><use href="#i-chev"/></svg></div>
+  <div class="setting"><span class="ic"><svg><use href="#i-cloud"/></svg></span><div class="main"><span class="t">Get a copy of my data</span><span class="s">Ready within 7 days</span></div><svg width="16" height="16" class="muted"><use href="#i-chev"/></svg></div>
+  <div class="setting danger"><span class="ic"><svg><use href="#i-x"/></svg></span><div class="main"><span class="t">Delete my account</span><span class="s">Your official roll entry is not affected</span></div></div>
+</div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a class="on"><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+        <figure class="plat android"><figcaption>Android · Google Play</figcaption>
+      <div class="phone"><div class="screen"><div class="status"><span>9:41</span><span class="island"></span><span class="icons"><svg><use href="#i-sig"/></svg><svg><use href="#i-wifi"/></svg><svg><use href="#i-batt"/></svg></span></div>
+<div class="body">
+<div class="hdr"><h3 class="title">Privacy</h3></div>
+<span class="label">What you share with your booth team</span>
+<div class="solid list">
+  <div class="setting"><div class="main"><span class="t">Mobile number</span><span class="s">For polling-day reminders</span></div><span class="switch on"></span></div>
+  <div class="setting"><div class="main"><span class="t">Occupation</span><span class="s">For local issue planning</span></div><span class="switch on"></span></div>
+  <div class="setting"><div class="main"><span class="t">Caste / community</span><span class="s">Not shared · sensitive</span></div><span class="switch"></span></div>
+</div>
+<div class="solid list">
+  <div class="setting"><span class="ic"><svg><use href="#i-camp"/></svg></span><div class="main"><span class="t">Language</span><span class="s">Telugu</span></div><svg width="16" height="16" class="muted"><use href="#i-chev"/></svg></div>
+  <div class="setting"><span class="ic"><svg><use href="#i-cloud"/></svg></span><div class="main"><span class="t">Get a copy of my data</span><span class="s">Ready within 7 days</span></div><svg width="16" height="16" class="muted"><use href="#i-chev"/></svg></div>
+  <div class="setting danger"><span class="ic"><svg><use href="#i-x"/></svg></span><div class="main"><span class="t">Delete my account</span><span class="s">Your official roll entry is not affected</span></div></div>
+</div>
+</div>
+<nav class="nav glass" aria-label="Main"><a><span class="pill"><svg><use href="#i-home"/></svg></span>Home</a><a><span class="pill"><svg><use href="#i-user"/></svg></span>My details</a><a><span class="pill"><svg><use href="#i-clock"/></svg></span>Updates</a><a><span class="pill"><svg><use href="#i-camp"/></svg></span>Campaigns</a><a class="on"><span class="pill"><svg><use href="#i-lock"/></svg></span>Privacy</a></nav><div class="home-ind"><span></span></div></div></div>
+</figure>
+      </div>
+    </section>
+  </main>
+  <section class="notes">
+    <div><h3>One app or two?</h3><p>The spec leaves this open (§22). These screens work either as a separate voter app or as a voter mode inside the same app, chosen at sign-in. A separate app is simpler for store review and for voters.</p></div>
+    <div><h3>Voter edits</h3><p>Details a voter shares (mobile, language, occupation) update straight away, as with volunteer edits in spec v1.1. The official roll entry is read-only; corrections go through the Election Commission (Form 8).</p></div>
+    <div><h3>Store review</h3><ul><li>The app says clearly that it isn't an official government app.</li><li>A privacy policy link, in-app account deletion, and a clear purpose for each permission.</li></ul></div>
+  </section>
+</div>
