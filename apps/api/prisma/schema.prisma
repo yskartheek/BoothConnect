@@ -38,6 +38,7 @@ model Organization {
   updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
 
   programs ElectionProgram[]
+  users    AppUser[]
 
   @@map("organization")
 }
@@ -114,11 +115,12 @@ model GeographyNode {
   createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
-  program     ElectionProgram    @relation(fields: [programId], references: [id], onDelete: Restrict)
-  parent      GeographyNode?     @relation("GeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children    GeographyNode[]    @relation("GeographyTree")
-  ancestors   GeographyClosure[] @relation("ClosureDescendant")
-  descendants GeographyClosure[] @relation("ClosureAncestor")
+  program         ElectionProgram    @relation(fields: [programId], references: [id], onDelete: Restrict)
+  parent          GeographyNode?     @relation("GeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children        GeographyNode[]    @relation("GeographyTree")
+  ancestors       GeographyClosure[] @relation("ClosureDescendant")
+  descendants     GeographyClosure[] @relation("ClosureAncestor")
+  roleAssignments RoleAssignment[]
 
   @@unique([programId, parentId, code], map: "geography_node_sibling_code_key")
   // Top-level states have no parent, and NULLs never collide in a normal unique index.
@@ -141,4 +143,98 @@ model GeographyClosure {
   @@id([ancestorId, descendantId])
   @@index([descendantId, depth])
   @@map("geography_closure")
+}
+
+// ---------------------------------------------------------------------------
+// Users, sessions and role assignments
+// ---------------------------------------------------------------------------
+
+enum UserStatus {
+  active
+  /// Loses access to every protected API immediately (spec §7.1).
+  suspended
+
+  @@map("user_status")
+}
+
+enum MfaState {
+  /// MFA not set up. Admins and campaign managers must enrol before touching personal data.
+  not_enrolled
+  enrolled
+
+  @@map("mfa_state")
+}
+
+model AppUser {
+  id                String     @id @default(uuid(7)) @db.Uuid
+  organizationId    String     @map("organization_id") @db.Uuid
+  name              String
+  /// E.164 format, e.g. +919876543210. Used for OTP sign-in, so unique.
+  phone             String     @unique
+  /// Stored lower-case.
+  email             String?    @unique
+  status            UserStatus @default(active)
+  preferredLanguage String     @default("en") @map("preferred_language")
+  mfaState          MfaState   @default(not_enrolled) @map("mfa_state")
+  lastLoginAt       DateTime?  @map("last_login_at") @db.Timestamptz
+  createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sessions        Session[]
+  roleAssignments RoleAssignment[] @relation("AssignedUser")
+  grantedRoles    RoleAssignment[] @relation("GrantedBy")
+
+  @@index([organizationId])
+  @@map("app_user")
+}
+
+/// One signed-in device. Refresh tokens rotate on every use (plan §2): only the
+/// hash of the current one is stored.
+model Session {
+  id          String    @id @default(uuid(7)) @db.Uuid
+  userId      String    @map("user_id") @db.Uuid
+  deviceId    String    @map("device_id")
+  /// SHA-256 of the current refresh token.
+  refreshHash String    @unique @map("refresh_hash")
+  expiresAt   DateTime  @map("expires_at") @db.Timestamptz
+  revokedAt   DateTime? @map("revoked_at") @db.Timestamptz
+  lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("session")
+}
+
+enum Role {
+  admin
+  campaign_manager
+  volunteer
+  voter
+
+  @@map("role")
+}
+
+/// A role on a geography node (and everything below it) for a time window.
+/// Active at time T: valid_from <= T and (valid_until is null or valid_until > T).
+model RoleAssignment {
+  id              String    @id @default(uuid(7)) @db.Uuid
+  userId          String    @map("user_id") @db.Uuid
+  role            Role
+  geographyNodeId String    @map("geography_node_id") @db.Uuid
+  validFrom       DateTime  @default(now()) @map("valid_from") @db.Timestamptz
+  validUntil      DateTime? @map("valid_until") @db.Timestamptz
+  /// Null only for assignments created by the seed or bootstrap scripts.
+  grantedById     String?   @map("granted_by") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  user          AppUser       @relation("AssignedUser", fields: [userId], references: [id], onDelete: Cascade)
+  geographyNode GeographyNode @relation(fields: [geographyNodeId], references: [id], onDelete: Restrict)
+  grantedBy     AppUser?      @relation("GrantedBy", fields: [grantedById], references: [id], onDelete: SetNull)
+
+  @@index([userId, validFrom])
+  @@index([geographyNodeId])
+  @@map("role_assignment")
 }

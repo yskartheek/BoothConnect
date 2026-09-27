@@ -1,6 +1,6 @@
 import type { PrismaService } from '../src/database/prisma.service';
-import type { GeographyNodeType } from '../src/generated/prisma/client';
-import { connectDatabase, expectDbError, inRollback, type Tx } from './support/database';
+import { connectDatabase, expectDbError, inRollback } from './support/database';
+import { createProgram, createNode as node, createTree } from './support/fixtures';
 
 // Needs a migrated database: `pnpm infra:up`, then `pnpm --filter api db:deploy`.
 describe('geography tree (real Postgres)', () => {
@@ -13,41 +13,6 @@ describe('geography tree (real Postgres)', () => {
   afterAll(async () => {
     await prisma?.$disconnect();
   });
-
-  async function createProgram(tx: Tx): Promise<string> {
-    const org = await tx.organization.create({ data: { name: 'Test org' } });
-    const program = await tx.electionProgram.create({
-      data: { organizationId: org.id, name: 'Test program', type: 'general_election' },
-    });
-    return program.id;
-  }
-
-  function node(
-    tx: Tx,
-    programId: string,
-    type: GeographyNodeType,
-    code: string,
-    parentId?: string,
-    isAuxiliary = false,
-  ) {
-    return tx.geographyNode.create({
-      data: { programId, type, code, name: `${type} ${code}`, parentId, isAuxiliary },
-    });
-  }
-
-  /** State → PC → AC → 2 parts → 3 stations (one auxiliary). */
-  async function createTree(tx: Tx) {
-    const programId = await createProgram(tx);
-    const state = await node(tx, programId, 'state', 'S29');
-    const pc = await node(tx, programId, 'pc', '6', state.id);
-    const ac = await node(tx, programId, 'ac', '40', pc.id);
-    const part408 = await node(tx, programId, 'part', '408', ac.id);
-    const part409 = await node(tx, programId, 'part', '409', ac.id);
-    const ps408 = await node(tx, programId, 'polling_station', '408', part408.id);
-    const ps408a = await node(tx, programId, 'polling_station', '408A', part408.id, true);
-    const ps409 = await node(tx, programId, 'polling_station', '409', part409.id);
-    return { programId, state, pc, ac, part408, part409, ps408, ps408a, ps409 };
-  }
 
   it('finds all polling stations under an AC with one closure query', async () => {
     const codes = await inRollback(prisma, async (tx) => {
@@ -99,7 +64,7 @@ describe('geography tree (real Postgres)', () => {
   it('rejects a parent from another program', async () => {
     await inRollback(prisma, async (tx) => {
       const tree = await createTree(tx);
-      const otherProgram = await createProgram(tx);
+      const { programId: otherProgram } = await createProgram(tx);
       await expectDbError(
         tx,
         () => node(tx, otherProgram, 'pc', '7', tree.state.id),
