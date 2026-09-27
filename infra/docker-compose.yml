@@ -3,7 +3,9 @@
 #   pnpm infra:up     start everything and wait until all services are healthy
 #   pnpm infra:down   stop everything (data is kept in the named volumes)
 #
-# Every setting has a development default, so this works without an .env file.
+# Settings come from the repository-root .env (template: infra/env/.env.example)
+# when it exists. Every setting also has a development default, so this works
+# without an .env file.
 # Never reuse these defaults outside local development.
 
 name: boothconnect
