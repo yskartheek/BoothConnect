@@ -194,7 +194,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter roll-parser setup
+      - run: pnpm --filter roll-parser sync
       - run: pnpm turbo run lint typecheck test --filter=@boothconnect/roll-parser
       - name: Build the Docker image and run its self-check
         run: |

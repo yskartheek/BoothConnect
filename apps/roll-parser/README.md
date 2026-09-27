@@ -22,7 +22,7 @@ in [`docs/SETUP.md`](../../docs/SETUP.md#6-roll-parser-python-optional).
 ## Commands
 
 ```powershell
-pnpm --filter roll-parser setup        # uv sync: create .venv, install packages
+pnpm --filter roll-parser sync        # uv sync: create .venv, install packages
 pnpm --filter roll-parser check        # show Tesseract/PyMuPDF/OpenCV versions
 pnpm --filter roll-parser lint         # ruff check + ruff format --check
 pnpm --filter roll-parser format       # apply ruff format and safe fixes

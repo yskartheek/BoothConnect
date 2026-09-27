@@ -34,7 +34,7 @@ You can do **A** (Windows directly), **B** (Docker only), or both.
    uv --version
    $env:TESSERACT_CMD = "C:\Program Files\Tesseract-OCR\tesseract.exe"   # unless it's on PATH
    pnpm install --frozen-lockfile
-   pnpm --filter roll-parser setup
+   pnpm --filter roll-parser sync
    ```
    **Expect:** uv downloads Python 3.12 if you don't have it, then
    `Installed ... packages`. A new folder `apps/roll-parser/.venv` appears
