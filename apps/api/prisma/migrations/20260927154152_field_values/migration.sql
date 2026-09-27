@@ -7,9 +7,6 @@ CREATE TYPE "field_entity" AS ENUM ('voter', 'household');
 -- CreateEnum
 CREATE TYPE "value_source" AS ENUM ('official_import', 'voter_self_submitted', 'volunteer_collected', 'admin_corrected', 'derived');
 
--- CreateEnum
-CREATE TYPE "field_value_status" AS ENUM ('proposed', 'verified', 'rejected');
-
 -- CreateTable
 CREATE TABLE "field_definition" (
     "id" UUID NOT NULL,
@@ -38,13 +35,13 @@ CREATE TABLE "field_value" (
     "field_definition_id" UUID NOT NULL,
     "value" JSONB NOT NULL,
     "source_type" "value_source" NOT NULL,
-    "verification_status" "field_value_status" NOT NULL DEFAULT 'proposed',
     "consent_id" UUID,
     "collected_by" UUID,
     "collected_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "supersedes_id" UUID,
     "base_version" UUID,
     "is_current" BOOLEAN NOT NULL DEFAULT true,
+    "conflict_with_id" UUID,
     "created_at" TIMESTAMPTZ NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "field_value_pkey" PRIMARY KEY ("id")
@@ -62,6 +59,9 @@ CREATE INDEX "field_value_current_idx" ON "field_value"("entity_type", "entity_i
 -- CreateIndex
 CREATE INDEX "field_value_field_definition_id_idx" ON "field_value"("field_definition_id");
 
+-- CreateIndex
+CREATE INDEX "field_value_conflict_with_id_idx" ON "field_value"("conflict_with_id");
+
 -- AddForeignKey
 ALTER TABLE "field_definition" ADD CONSTRAINT "field_definition_program_id_fkey" FOREIGN KEY ("program_id") REFERENCES "election_program"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -73,6 +73,10 @@ ALTER TABLE "field_value" ADD CONSTRAINT "field_value_collected_by_fkey" FOREIGN
 
 -- AddForeignKey
 ALTER TABLE "field_value" ADD CONSTRAINT "field_value_supersedes_id_fkey" FOREIGN KEY ("supersedes_id") REFERENCES "field_value"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "field_value" ADD CONSTRAINT "field_value_conflict_with_id_fkey" FOREIGN KEY ("conflict_with_id") REFERENCES "field_value"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
 
 -- ---------------------------------------------------------------------------
 -- Hand-written: rules Prisma can't express.
@@ -125,6 +129,17 @@ BEGIN
         USING ERRCODE = 'check_violation';
     END IF;
   END IF;
+
+  IF NEW."conflict_with_id" IS NOT NULL THEN
+    SELECT "entity_type", "entity_id", "field_definition_id" INTO old_value
+      FROM "field_value" WHERE "id" = NEW."conflict_with_id";
+    IF FOUND AND (old_value."entity_type" <> NEW."entity_type"
+                  OR old_value."entity_id" <> NEW."entity_id"
+                  OR old_value."field_definition_id" <> NEW."field_definition_id") THEN
+      RAISE EXCEPTION 'A value can only conflict with a value of the same entity and field'
+        USING ERRCODE = 'check_violation';
+    END IF;
+  END IF;
   NEW."is_current" := TRUE;
   RETURN NEW;
 END;
@@ -143,11 +158,15 @@ CREATE TRIGGER "field_value_mark_superseded" AFTER INSERT ON "field_value"
   FOR EACH ROW WHEN (NEW."supersedes_id" IS NOT NULL)
   EXECUTE FUNCTION field_value_mark_superseded();
 
--- Values are append-only: only verification_status and is_current may change.
+-- Values are append-only. The only changes allowed on an existing value are
+-- the ones that resolve history and conflicts: is_current true → false, and
+-- conflict_with_id cleared when the volunteer chooses which value to keep.
 CREATE FUNCTION field_value_append_only() RETURNS trigger LANGUAGE plpgsql AS $$
 BEGIN
-  IF (to_jsonb(NEW) - 'verification_status' - 'is_current')
-     IS DISTINCT FROM (to_jsonb(OLD) - 'verification_status' - 'is_current') THEN
+  IF (to_jsonb(NEW) - 'is_current' - 'conflict_with_id')
+     IS DISTINCT FROM (to_jsonb(OLD) - 'is_current' - 'conflict_with_id')
+     OR (NEW."is_current" AND NOT OLD."is_current")
+     OR (NEW."conflict_with_id" IS NOT NULL AND NEW."conflict_with_id" IS DISTINCT FROM OLD."conflict_with_id") THEN
     RAISE EXCEPTION 'Field values are append-only; record a change as a new value that supersedes this one'
       USING ERRCODE = 'check_violation';
   END IF;

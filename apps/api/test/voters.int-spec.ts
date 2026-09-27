@@ -55,11 +55,117 @@ describe('households and voters (real Postgres)', () => {
         () => tx.voter.update({ where: { id: voter.id }, data: { sourceVoterId: 'TST9999999' } }),
         /source data is the official record/,
       );
-      const verified = await tx.voter.update({
+      await expectDbError(
+        tx,
+        () => tx.voter.update({ where: { id: voter.id }, data: { origin: 'volunteer_added' } }),
+        /source data is the official record|voter_origin_check/,
+      );
+      const deleted = await tx.voter.update({
         where: { id: voter.id },
-        data: { verificationStatus: 'verified' },
+        data: { recordStatus: 'deleted' },
       });
-      expect(verified.verificationStatus).toBe('verified');
+      expect(deleted.recordStatus).toBe('deleted');
+    });
+  });
+
+  it('lets volunteers add households and members that have no roll entry', async () => {
+    await inRollback(prisma, async (tx) => {
+      const { tree, base } = await setup(tx);
+      const house = await tx.household.create({
+        data: {
+          partId: tree.part408.id,
+          pollingStationId: tree.ps408.id,
+          houseKey: '4-99',
+          displayAddress: '4-99',
+          structuredAddress: { house_no: '4-99', street: 'Main Road', pin_code: '502032' },
+          origin: 'volunteer_added',
+        },
+      });
+      const member = await tx.voter.create({
+        data: {
+          programId: tree.programId,
+          householdId: house.id,
+          partId: tree.part408.id,
+          pollingStationId: tree.ps408.id,
+          origin: 'volunteer_added',
+        },
+      });
+      expect(member.sourceData).toBeNull();
+
+      // A volunteer-added member can't carry roll data, and an official one needs it.
+      await expectDbError(
+        tx,
+        () =>
+          tx.voter.create({
+            data: {
+              programId: tree.programId,
+              householdId: house.id,
+              partId: tree.part408.id,
+              pollingStationId: tree.ps408.id,
+              origin: 'volunteer_added',
+              sourceData: { name: 'x' },
+            },
+          }),
+        /voter_origin_check/,
+      );
+      await expectDbError(
+        tx,
+        () =>
+          tx.voter.create({
+            data: {
+              programId: base.programId,
+              householdId: base.householdId,
+              partId: base.partId,
+              pollingStationId: base.pollingStationId,
+            },
+          }),
+        /voter_origin_check/,
+      );
+      await expectDbError(
+        tx,
+        () =>
+          tx.household.create({
+            data: {
+              partId: tree.part408.id,
+              pollingStationId: tree.ps408.id,
+              houseKey: '4-100',
+              displayAddress: '4-100',
+            },
+          }),
+        /household_origin_check/,
+      );
+    });
+  });
+
+  it('stores a household location only complete, in range and with consent', async () => {
+    await inRollback(prisma, async (tx) => {
+      const { household } = await setup(tx);
+      const consentId = '00000000-0000-7000-8000-000000000001';
+      const located = await tx.household.update({
+        where: { id: household.id },
+        data: {
+          locationLat: 17.4575,
+          locationLng: 78.2934,
+          locationAccuracyM: 8,
+          locationCapturedAt: new Date(),
+          locationConsentId: consentId,
+        },
+      });
+      expect(Number(located.locationLat)).toBeCloseTo(17.4575);
+      await expectDbError(
+        tx,
+        () =>
+          tx.household.update({
+            where: { id: household.id },
+            data: { locationConsentId: null },
+          }),
+        /household_location_check/,
+      );
+      await expectDbError(
+        tx,
+        () => tx.household.update({ where: { id: household.id }, data: { locationLat: 95 } }),
+        /household_location_check|numeric field overflow/,
+      );
     });
   });
 
@@ -114,7 +220,12 @@ describe('households and voters (real Postgres)', () => {
       const { tree, base, voter } = await setup(tx);
       await expectDbError(
         tx,
-        () => createVoter(tx, { ...base, serialNo: 2, sourceVoterId: voter.sourceVoterId }),
+        () =>
+          createVoter(tx, {
+            ...base,
+            serialNo: 2,
+            sourceVoterId: voter.sourceVoterId ?? undefined,
+          }),
         /Unique constraint/,
       );
       await expectDbError(tx, () => createVoter(tx, { ...base, serialNo: 1 }), /Unique constraint/);
@@ -125,7 +236,7 @@ describe('households and voters (real Postgres)', () => {
         sourceVersionId: next.sourceVersion.id,
         importFileId: next.file.id,
         serialNo: 1,
-        sourceVoterId: voter.sourceVoterId,
+        sourceVoterId: voter.sourceVoterId ?? undefined,
       });
       expect(again.sourceVoterId).toBe(voter.sourceVoterId);
     });

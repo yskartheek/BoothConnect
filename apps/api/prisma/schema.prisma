@@ -458,42 +458,51 @@ enum HouseholdStatus {
   @@map("household_status")
 }
 
-/// A house in a part, grouped from the roll's house numbers. Households outlive
-/// roll revisions, so visits and notes stay attached when a new revision arrives.
-model Household {
-  id                String          @id @default(uuid(7)) @db.Uuid
-  partId            String          @map("part_id") @db.Uuid
-  /// The station most of its voters vote at (main or auxiliary).
-  pollingStationId  String          @map("polling_station_id") @db.Uuid
-  /// House number normalised for grouping, e.g. "H NO 16-64" → "16-64".
-  houseKey          String          @map("house_key")
-  /// House number as printed in the roll.
-  displayAddress    String          @map("display_address")
-  structuredAddress Json            @default("{}") @map("structured_address")
-  /// The latest revision that listed this house.
-  sourceVersionId   String          @map("source_version_id") @db.Uuid
-  status            HouseholdStatus @default(active)
-  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+/// Where a household or member came from (spec v1.1).
+enum RecordOrigin {
+  official_import
+  /// Added by a volunteer in the field; has no official roll entry.
+  volunteer_added
 
-  part           GeographyNode @relation("HouseholdPart", fields: [partId], references: [id], onDelete: Restrict)
-  pollingStation GeographyNode @relation("HouseholdStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
-  sourceVersion  SourceVersion @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  @@map("record_origin")
+}
+
+/// A house in a part: grouped from the roll's house numbers, or added by a
+/// volunteer. Households outlive roll revisions, so visits and notes stay
+/// attached when a new revision arrives.
+model Household {
+  id                 String          @id @default(uuid(7)) @db.Uuid
+  partId             String          @map("part_id") @db.Uuid
+  /// The station most of its voters vote at (main or auxiliary).
+  pollingStationId   String          @map("polling_station_id") @db.Uuid
+  /// House number normalised for grouping, e.g. "H NO 16-64" → "16-64".
+  houseKey           String          @map("house_key")
+  /// House number as printed in the roll, or as entered by the volunteer.
+  displayAddress     String          @map("display_address")
+  /// { house_no, street, area, pin_code, landmark }; volunteers can edit it.
+  structuredAddress  Json            @default("{}") @map("structured_address")
+  /// One-tap location from the volunteer's phone, only with consent.
+  locationLat        Decimal?        @map("location_lat") @db.Decimal(9, 6)
+  locationLng        Decimal?        @map("location_lng") @db.Decimal(9, 6)
+  locationAccuracyM  Float?          @map("location_accuracy_m")
+  locationCapturedAt DateTime?       @map("location_captured_at") @db.Timestamptz
+  /// Consent record for the location (foreign key added with the consent table).
+  locationConsentId  String?         @map("location_consent_id") @db.Uuid
+  origin             RecordOrigin    @default(official_import)
+  /// The latest revision that listed this house; null for volunteer-added houses.
+  sourceVersionId    String?         @map("source_version_id") @db.Uuid
+  status             HouseholdStatus @default(active)
+  createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  part           GeographyNode  @relation("HouseholdPart", fields: [partId], references: [id], onDelete: Restrict)
+  pollingStation GeographyNode  @relation("HouseholdStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
+  sourceVersion  SourceVersion? @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
   voters         Voter[]
 
   @@unique([partId, houseKey])
   @@index([pollingStationId, status])
   @@map("household")
-}
-
-enum VerificationStatus {
-  unverified
-  /// Confirmed in person by a volunteer (or by an admin).
-  verified
-  /// Someone reported the entry as wrong; waiting for review.
-  disputed
-
-  @@map("verification_status")
 }
 
 enum VoterRecordStatus {
@@ -506,34 +515,37 @@ enum VoterRecordStatus {
   @@map("voter_record_status")
 }
 
-/// One elector as printed in one revision of a part's roll. `source_data` is the
-/// official record and never changes (a trigger enforces it); corrections live in
-/// field_value (#23).
+/// A household member: either one elector as printed in one revision of a
+/// part's roll (origin official_import), or a member added by a volunteer.
+/// For imported members `source_data` is the official record and never changes
+/// (a trigger enforces it). Everyone's editable details (name, age, mobile, …)
+/// live in field_value as current values with history (spec v1.1, #23).
 model Voter {
-  id                 String             @id @default(uuid(7)) @db.Uuid
-  programId          String             @map("program_id") @db.Uuid
-  householdId        String             @map("household_id") @db.Uuid
-  partId             String             @map("part_id") @db.Uuid
-  pollingStationId   String             @map("polling_station_id") @db.Uuid
-  sectionNo          Int                @map("section_no")
-  serialNo           Int                @map("serial_no")
-  /// EPIC number, e.g. XIZ5458518.
-  sourceVoterId      String             @map("source_voter_id")
-  /// As printed: name, relationType, relativeName, houseNumber, age, gender, plus rawText.
-  sourceData         Json               @map("source_data")
-  sourceVersionId    String             @map("source_version_id") @db.Uuid
-  importFileId       String             @map("import_file_id") @db.Uuid
-  verificationStatus VerificationStatus @default(unverified) @map("verification_status")
-  recordStatus       VoterRecordStatus  @default(active) @map("record_status")
-  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz
-  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+  id               String            @id @default(uuid(7)) @db.Uuid
+  programId        String            @map("program_id") @db.Uuid
+  householdId      String            @map("household_id") @db.Uuid
+  partId           String            @map("part_id") @db.Uuid
+  pollingStationId String            @map("polling_station_id") @db.Uuid
+  origin           RecordOrigin      @default(official_import)
+  /// Official members only (checked): position in the roll.
+  sectionNo        Int?              @map("section_no")
+  serialNo         Int?              @map("serial_no")
+  /// EPIC number, e.g. XIZ5458518. Official members always have one.
+  sourceVoterId    String?           @map("source_voter_id")
+  /// Official members only: as printed (name, relationType, relativeName, houseNumber, age, gender, rawText).
+  sourceData       Json?             @map("source_data")
+  sourceVersionId  String?           @map("source_version_id") @db.Uuid
+  importFileId     String?           @map("import_file_id") @db.Uuid
+  recordStatus     VoterRecordStatus @default(active) @map("record_status")
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
   program        ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
   household      Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
   part           GeographyNode   @relation("VoterPart", fields: [partId], references: [id], onDelete: Restrict)
   pollingStation GeographyNode   @relation("VoterStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
-  sourceVersion  SourceVersion   @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
-  importFile     ImportFile      @relation(fields: [importFileId], references: [id], onDelete: Restrict)
+  sourceVersion  SourceVersion?  @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  importFile     ImportFile?     @relation(fields: [importFileId], references: [id], onDelete: Restrict)
 
   @@unique([programId, sourceVersionId, sourceVoterId])
   @@unique([partId, sourceVersionId, serialNo])
@@ -608,46 +620,44 @@ enum ValueSource {
   @@map("value_source")
 }
 
-enum FieldValueStatus {
-  proposed
-  verified
-  rejected
-
-  @@map("field_value_status")
-}
-
-/// One value of one field for one voter or household. Append-only: a change is
-/// a new row whose supersedes_id points at the value it replaces, so the full
-/// history (and who said what) is kept. is_current is maintained by a trigger.
+/// One value of one field for one voter or household. Volunteer edits become the
+/// current value immediately (spec v1.1, ADR-0003). Append-only: a change is a
+/// new row whose supersedes_id points at the value it replaces, so the full
+/// history (and who changed what) is kept. is_current is maintained by a trigger.
 model FieldValue {
-  id                 String           @id @default(uuid(7)) @db.Uuid
-  entityType         FieldEntity      @map("entity_type")
+  id                String      @id @default(uuid(7)) @db.Uuid
+  entityType        FieldEntity @map("entity_type")
   /// A voter or household id, depending on entity_type.
-  entityId           String           @map("entity_id") @db.Uuid
-  fieldDefinitionId  String           @map("field_definition_id") @db.Uuid
-  value              Json
-  sourceType         ValueSource      @map("source_type")
-  verificationStatus FieldValueStatus @default(proposed) @map("verification_status")
+  entityId          String      @map("entity_id") @db.Uuid
+  fieldDefinitionId String      @map("field_definition_id") @db.Uuid
+  value             Json
+  sourceType        ValueSource @map("source_type")
   /// The consent record covering this value (required for consent fields; FK added with the consent table).
-  consentId          String?          @map("consent_id") @db.Uuid
-  collectedById      String?          @map("collected_by") @db.Uuid
-  collectedAt        DateTime         @default(now()) @map("collected_at") @db.Timestamptz
+  consentId         String?     @map("consent_id") @db.Uuid
+  collectedById     String?     @map("collected_by") @db.Uuid
+  collectedAt       DateTime    @default(now()) @map("collected_at") @db.Timestamptz
   /// The value this one replaces.
-  supersedesId       String?          @unique @map("supersedes_id") @db.Uuid
+  supersedesId      String?     @unique @map("supersedes_id") @db.Uuid
   /// The value the client last saw when it made this change (conflict detection).
-  baseVersion        String?          @map("base_version") @db.Uuid
+  baseVersion       String?     @map("base_version") @db.Uuid
   /// False once another value supersedes this one.
-  isCurrent          Boolean          @default(true) @map("is_current")
-  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  isCurrent         Boolean     @default(true) @map("is_current")
+  /// Set when two offline edits of the same field collide: the value this one
+  /// conflicts with. Cleared when the volunteer chooses which value to keep.
+  conflictWithId    String?     @map("conflict_with_id") @db.Uuid
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
 
   fieldDefinition FieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Restrict)
   collectedBy     AppUser?        @relation(fields: [collectedById], references: [id], onDelete: Restrict)
   supersedes      FieldValue?     @relation("FieldValueHistory", fields: [supersedesId], references: [id], onDelete: Restrict)
   supersededBy    FieldValue?     @relation("FieldValueHistory")
+  conflictWith    FieldValue?     @relation("FieldValueConflict", fields: [conflictWithId], references: [id], onDelete: Restrict)
+  conflictsWithMe FieldValue[]    @relation("FieldValueConflict")
 
-  /// "Current value(s) for each (entity, field)". Usually one; two stale edits
-  /// that conflict are both kept current until someone resolves them.
+  /// "Current value(s) for each (entity, field)". Usually one; two edits that
+  /// conflict are both current until the volunteer chooses one.
   @@index([entityType, entityId, fieldDefinitionId], map: "field_value_current_idx", where: raw("is_current"))
   @@index([fieldDefinitionId])
+  @@index([conflictWithId])
   @@map("field_value")
 }

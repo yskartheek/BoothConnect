@@ -107,21 +107,55 @@ describe('field definitions and values (real Postgres)', () => {
     });
   });
 
-  it('keeps both values of a conflict current until it is resolved', async () => {
+  it('records a conflict, keeps both values current, and resolves it by the volunteer’s choice', async () => {
     await inRollback(prisma, async (tx) => {
       const { voter, field, value } = await setup(tx);
       const language = await field('preferred_language');
       const base = await value(language.id, 'te');
-      await value(language.id, 'hi', { supersedesId: base.id, baseVersion: base.id });
-      // A second, stale edit based on the same version: stored as a conflicting proposal.
-      await value(language.id, 'en', { baseVersion: base.id });
+      // Volunteer A's offline edit arrives first and becomes current straight away.
+      const edited = await value(language.id, 'hi', {
+        supersedesId: base.id,
+        baseVersion: base.id,
+      });
+      // Volunteer B edited the same starting value offline: stored as a conflict.
+      const conflicting = await value(language.id, 'en', {
+        baseVersion: base.id,
+        conflictWithId: edited.id,
+      });
+      expect((await currentValues(tx, voter.id, language.id)).map((c) => c.value).sort()).toEqual([
+        'en',
+        'hi',
+      ]);
+
+      // B chooses A's value: B's value leaves the current set and the conflict is cleared.
+      await tx.fieldValue.update({
+        where: { id: conflicting.id },
+        data: { isCurrent: false, conflictWithId: null },
+      });
+      const current = await currentValues(tx, voter.id, language.id);
+      expect(current.map((c) => c.value)).toEqual(['hi']);
+      // Both values stay in history.
+      expect(
+        await tx.fieldValue.count({
+          where: { entityId: voter.id, fieldDefinitionId: language.id },
+        }),
+      ).toBe(3);
+    });
+  });
+
+  it('refuses a second replacement of the same value and conflicts across fields', async () => {
+    await inRollback(prisma, async (tx) => {
+      const { field, value } = await setup(tx);
+      const a = await field('field_a');
+      const b = await field('field_b');
+      const va = await value(a.id, 'x');
+      await value(a.id, 'y', { supersedesId: va.id });
+      await expectDbError(tx, () => value(a.id, 'z', { supersedesId: va.id }), /Unique constraint/);
       await expectDbError(
         tx,
-        () => value(language.id, 'ur', { supersedesId: base.id, baseVersion: base.id }),
-        /Unique constraint/,
+        () => value(b.id, 'w', { conflictWithId: va.id }),
+        /conflict with a value of the same entity and field/,
       );
-      const current = await currentValues(tx, voter.id, language.id);
-      expect(current.map((c) => c.value).sort()).toEqual(['en', 'hi']);
     });
   });
 
@@ -172,19 +206,27 @@ describe('field definitions and values (real Postgres)', () => {
     });
   });
 
-  it('is append-only: values can be verified, but not edited or deleted', async () => {
+  it('is append-only: only is_current (true → false) and conflict clearing may change', async () => {
     await inRollback(prisma, async (tx) => {
       const { field, value } = await setup(tx);
       const phone = await field('mobile_number');
       const v1 = await value(phone.id, '+919000000001');
-      const verified = await tx.fieldValue.update({
-        where: { id: v1.id },
-        data: { verificationStatus: 'verified' },
-      });
-      expect(verified.verificationStatus).toBe('verified');
+      const v2 = await value(phone.id, '+919000000002', { conflictWithId: v1.id });
       await expectDbError(
         tx,
         () => tx.fieldValue.update({ where: { id: v1.id }, data: { value: '+919999999999' } }),
+        /append-only/,
+      );
+      await tx.fieldValue.update({ where: { id: v2.id }, data: { conflictWithId: null } });
+      await expectDbError(
+        tx,
+        () => tx.fieldValue.update({ where: { id: v2.id }, data: { conflictWithId: v1.id } }),
+        /append-only/,
+      );
+      await tx.fieldValue.update({ where: { id: v1.id }, data: { isCurrent: false } });
+      await expectDbError(
+        tx,
+        () => tx.fieldValue.update({ where: { id: v1.id }, data: { isCurrent: true } }),
         /append-only/,
       );
       await expectDbError(
