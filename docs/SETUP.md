@@ -55,7 +55,8 @@ Budget about an hour for the first time, mostly downloads.
 
 **Only working on the API or web?** You can skip Flutter and Android Studio.
 Use the filtered commands in step 3, because `pnpm lint` and `pnpm test` at the
-root include the mobile app.
+root include the mobile app. The same goes for the Python roll-parser: it needs
+uv and Tesseract ([section 6](#6-roll-parser-python-optional)).
 
 ## 2. First run
 
@@ -107,20 +108,20 @@ pnpm --filter mobile start      # Flutter app; start the Android emulator first
 
 ## 3. Everyday commands
 
-| Command                             | What it does                                            |
-| ----------------------------------- | ------------------------------------------------------- |
-| `pnpm infra:up` / `pnpm infra:down` | Start / stop the Docker services (data is kept)         |
-| `pnpm infra:logs`                   | Follow the service logs                                 |
-| `pnpm infra:reset`                  | Stop the services and **delete their data**             |
-| `pnpm dev`                          | API + admin web with reload                             |
-| `pnpm lint` / `typecheck` / `test`  | All checks for all apps (needs Flutter for mobile)      |
-| `pnpm format` / `pnpm format:check` | Apply / check Prettier formatting                       |
-| `pnpm build`                        | Production builds of the API and admin web              |
-| `pnpm test:e2e`                     | Browser tests for the admin web                         |
-| `pnpm --filter api test:int`        | API integration tests (needs `pnpm infra:up`)           |
-| `pnpm --filter api db:deploy`       | Apply database migrations (needs `pnpm infra:up`)       |
-| `pnpm --filter api db:seed`         | Load development seed data                              |
-| `pnpm --filter <app> <script>`      | One app only; `<app>` is `api`, `admin-web` or `mobile` |
+| Command                             | What it does                                                           |
+| ----------------------------------- | ---------------------------------------------------------------------- |
+| `pnpm infra:up` / `pnpm infra:down` | Start / stop the Docker services (data is kept)                        |
+| `pnpm infra:logs`                   | Follow the service logs                                                |
+| `pnpm infra:reset`                  | Stop the services and **delete their data**                            |
+| `pnpm dev`                          | API + admin web with reload                                            |
+| `pnpm lint` / `typecheck` / `test`  | All checks for all apps (needs Flutter for mobile)                     |
+| `pnpm format` / `pnpm format:check` | Apply / check Prettier formatting                                      |
+| `pnpm build`                        | Production builds of the API and admin web                             |
+| `pnpm test:e2e`                     | Browser tests for the admin web                                        |
+| `pnpm --filter api test:int`        | API integration tests (needs `pnpm infra:up`)                          |
+| `pnpm --filter api db:deploy`       | Apply database migrations (needs `pnpm infra:up`)                      |
+| `pnpm --filter api db:seed`         | Load development seed data                                             |
+| `pnpm --filter <app> <script>`      | One app only; `<app>` is `api`, `admin-web`, `mobile` or `roll-parser` |
 
 Run `pnpm format`, `pnpm lint`, `pnpm typecheck` and `pnpm test` before
 pushing; CI runs the same checks (see `.github/workflows/ci.yml`).
@@ -165,7 +166,60 @@ All of these come from `.env`; every variable is explained in
 - **Flutter build fails in the `sqlite3` hook:** the first build downloads the
   SQLCipher library from GitHub; check your network or proxy.
 
-## 6. Where to go next
+## 6. Roll parser (Python, optional)
+
+`apps/roll-parser` reads electoral-roll PDFs. You only need this if you work
+on it, or want the root `pnpm lint` / `pnpm test` to cover it. There are two
+ways to run it.
+
+### Option A: on Windows directly
+
+1. **uv** (installs Python 3.12 and the packages for you):
+   ```powershell
+   winget install --id=astral-sh.uv -e
+   ```
+   Close and reopen PowerShell, then `uv --version`.
+2. **Tesseract 5:**
+   ```powershell
+   winget install --id=UB-Mannheim.TesseractOCR -e
+   ```
+   The installer puts it in `C:\Program Files\Tesseract-OCR` but doesn't add
+   it to `PATH`. Either add that folder to `PATH`, or tell the parser where it
+   is (for the current window; use System Properties → Environment Variables
+   to make it permanent):
+   ```powershell
+   $env:TESSERACT_CMD = "C:\Program Files\Tesseract-OCR\tesseract.exe"
+   ```
+   English is included. Telugu, needed later for Telugu rolls, can be ticked
+   under "Additional language data" in the installer.
+3. Install and check:
+   ```powershell
+   pnpm --filter roll-parser sync    # creates apps/roll-parser/.venv
+   pnpm --filter roll-parser check    # prints the Tesseract, PyMuPDF and OpenCV versions
+   pnpm --filter roll-parser test
+   ```
+
+### Option B: Docker only
+
+No Python or Tesseract on your machine; Docker Desktop is enough:
+
+```powershell
+docker compose -f infra/docker-compose.yml --profile roll-parser build roll-parser
+docker compose -f infra/docker-compose.yml --profile roll-parser run --rm roll-parser check
+```
+
+`pnpm infra:up` never starts the roll-parser; it has its own compose profile.
+
+### Troubleshooting
+
+- **`Tesseract not found`:** Tesseract isn't on `PATH` and `TESSERACT_CMD`
+  isn't set (or points to the wrong file). See step 2.
+- **`uv` is not recognized:** reopen PowerShell after installing uv.
+- **The root `pnpm lint` / `pnpm test` fail in `@boothconnect/roll-parser`
+  and you don't work on it:** leave it out with
+  `pnpm turbo run lint test --filter=!@boothconnect/roll-parser`.
+
+## 7. Where to go next
 
 - `docs/IMPLEMENTATION_PLAN.md`: what's being built, and in what order
 - `docs/adr/`: architecture decisions, starting with
