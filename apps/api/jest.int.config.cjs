@@ -10,5 +10,7 @@ module.exports = {
     '^.+\\.ts$': 'ts-jest',
   },
   testEnvironment: 'node',
+  // The generated Prisma client imports its own files with .js extensions.
+  moduleNameMapper: { '^(\\.{1,2}/.*)\\.js$': '$1' },
   setupFiles: ['<rootDir>/test/setup-int-env.cjs'],
 };

@@ -2,7 +2,10 @@ packages:
   - 'apps/*'
   - 'packages/*'
 
-# These ship prebuilt binaries; their install scripts aren't needed.
+# Install scripts: allowed only where needed (Prisma); the others ship prebuilt binaries.
 allowBuilds:
+  # Prisma downloads its migration (schema) engine on install.
+  '@prisma/engines': true
+  prisma: true
   '@parcel/watcher': false
   unrs-resolver: false

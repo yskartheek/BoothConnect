@@ -10,3 +10,5 @@ apps/mobile
 # Source planning documents are kept as authored
 VOTER_FIELD_OPERATIONS_APP_SPEC.md
 docs/IMPLEMENTATION_PLAN.md
+# Generated Prisma client
+**/src/generated

@@ -1,0 +1,2 @@
+# Prisma client, generated on install (`pnpm --filter api db:generate`)
+src/generated/
