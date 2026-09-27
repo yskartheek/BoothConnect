@@ -1,6 +1,12 @@
 import type { PrismaService } from '../src/database/prisma.service';
 import { connectDatabase, expectDbError, inRollback, type Tx } from './support/database';
-import { createHousehold, createImportedPart, createTree, createVoter } from './support/fixtures';
+import {
+  createConsent,
+  createHousehold,
+  createImportedPart,
+  createTree,
+  createVoter,
+} from './support/fixtures';
 
 // Needs a migrated database: `pnpm infra:up`, then `pnpm --filter api db:deploy`.
 describe('households and voters (real Postgres)', () => {
@@ -140,7 +146,11 @@ describe('households and voters (real Postgres)', () => {
   it('stores a household location only complete, in range and with consent', async () => {
     await inRollback(prisma, async (tx) => {
       const { household } = await setup(tx);
-      const consentId = '00000000-0000-7000-8000-000000000001';
+      const consent = await createConsent(tx, {
+        purpose: 'household_location',
+        subjectHouseholdId: household.id,
+      });
+      const consentId = consent.id;
       const located = await tx.household.update({
         where: { id: household.id },
         data: {
