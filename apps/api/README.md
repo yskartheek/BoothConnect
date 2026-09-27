@@ -71,3 +71,7 @@ Conventions for every model:
   add the SQL, then run `pnpm --filter api db:migrate`.
 - Integration tests run inside a transaction that is always rolled back
   (`test/support/database.ts`), so they leave no data behind.
+- Partial indexes with a `raw()` condition must use the text PostgreSQL
+  stores (check with `pg_get_expr`), or Prisma reports drift every time.
+  `pnpm --filter api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code`
+  must exit with 0.

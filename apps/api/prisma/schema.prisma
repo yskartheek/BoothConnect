@@ -74,6 +74,9 @@ model ElectionProgram {
 
   organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
   geographyNodes GeographyNode[]
+  sourceVersions SourceVersion[]
+  importBatches  ImportBatch[]
+  importFiles    ImportFile[]
 
   @@index([organizationId])
   @@map("election_program")
@@ -121,6 +124,9 @@ model GeographyNode {
   ancestors       GeographyClosure[] @relation("ClosureDescendant")
   descendants     GeographyClosure[] @relation("ClosureAncestor")
   roleAssignments RoleAssignment[]
+  sourceVersions  SourceVersion[]
+  importBatches   ImportBatch[]
+  importFiles     ImportFile[]
 
   @@unique([programId, parentId, code], map: "geography_node_sibling_code_key")
   // Top-level states have no parent, and NULLs never collide in a normal unique index.
@@ -180,10 +186,13 @@ model AppUser {
   createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  organization    Organization     @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  sessions        Session[]
-  roleAssignments RoleAssignment[] @relation("AssignedUser")
-  grantedRoles    RoleAssignment[] @relation("GrantedBy")
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sessions         Session[]
+  roleAssignments  RoleAssignment[]  @relation("AssignedUser")
+  grantedRoles     RoleAssignment[]  @relation("GrantedBy")
+  uploadedBatches  ImportBatch[]     @relation("BatchUploadedBy")
+  confirmedBatches ImportBatch[]     @relation("BatchConfirmedBy")
+  correctedRows    ImportRowResult[]
 
   @@index([organizationId])
   @@map("app_user")
@@ -237,4 +246,192 @@ model RoleAssignment {
   @@index([userId, validFrom])
   @@index([geographyNodeId])
   @@map("role_assignment")
+}
+
+// ---------------------------------------------------------------------------
+// Electoral-roll imports (docs/design/voter-roll-pdf-import.md §3–§5)
+// ---------------------------------------------------------------------------
+
+/// One published revision of one part's roll. A newer revision of the same part
+/// is a new row; older ones are kept for audit and comparison.
+model SourceVersion {
+  id                 String    @id @default(uuid(7)) @db.Uuid
+  programId          String    @map("program_id") @db.Uuid
+  /// Always a `part` node (checked by a trigger).
+  partNodeId         String    @map("part_node_id") @db.Uuid
+  /// e.g. 2026
+  revisionYear       Int       @map("revision_year")
+  /// e.g. "Special Intensive Revision 2026"
+  revisionType       String    @map("revision_type")
+  /// e.g. "Draft Electoral Roll of Special Intensive Revision, 2026"
+  rollIdentification String    @map("roll_identification")
+  qualifyingDate     DateTime? @map("qualifying_date") @db.Date
+  publishedOn        DateTime? @map("published_on") @db.Date
+  /// SHA-256 of the PDF it came from.
+  checksum           String
+  /// The revision of this part that this one replaces, if any.
+  previousVersionId  String?   @unique @map("previous_version_id") @db.Uuid
+  createdAt          DateTime  @default(now()) @map("created_at") @db.Timestamptz
+
+  program         ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+  partNode        GeographyNode   @relation(fields: [partNodeId], references: [id], onDelete: Restrict)
+  previousVersion SourceVersion?  @relation("SourceVersionHistory", fields: [previousVersionId], references: [id], onDelete: Restrict)
+  nextVersion     SourceVersion?  @relation("SourceVersionHistory")
+  importFile      ImportFile?
+
+  @@unique([partNodeId, checksum])
+  @@index([programId])
+  @@map("source_version")
+}
+
+enum ImportBatchStatus {
+  /// Files are being uploaded.
+  uploading
+  /// At least one file is still being extracted.
+  processing
+  /// Extraction finished; files wait for review or confirmation.
+  review
+  /// Every file is confirmed, rejected, duplicate or failed.
+  completed
+  cancelled
+
+  @@map("import_batch_status")
+}
+
+/// One upload session at a chosen hierarchy level (State, PC, AC or Part).
+model ImportBatch {
+  id            String            @id @default(uuid(7)) @db.Uuid
+  programId     String            @map("program_id") @db.Uuid
+  /// The level the admin picked; every file's part must be under it.
+  targetNodeId  String            @map("target_node_id") @db.Uuid
+  uploadedById  String            @map("uploaded_by") @db.Uuid
+  status        ImportBatchStatus @default(uploading)
+  fileCount     Int               @default(0) @map("file_count")
+  confirmedById String?           @map("confirmed_by") @db.Uuid
+  confirmedAt   DateTime?         @map("confirmed_at") @db.Timestamptz
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  program     ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+  targetNode  GeographyNode   @relation(fields: [targetNodeId], references: [id], onDelete: Restrict)
+  uploadedBy  AppUser         @relation("BatchUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
+  confirmedBy AppUser?        @relation("BatchConfirmedBy", fields: [confirmedById], references: [id], onDelete: Restrict)
+  files       ImportFile[]
+
+  @@index([programId, createdAt])
+  @@index([targetNodeId])
+  @@map("import_batch")
+}
+
+enum ImportFileStatus {
+  uploaded
+  extracting
+  /// Extracted, but the totals don't match or confidence is low.
+  needs_review
+  ready
+  confirmed
+  /// The PDF's header is outside the batch's target node, or it isn't a roll.
+  rejected
+  /// Same checksum as a file already imported (or being imported).
+  duplicate
+  failed
+
+  @@map("import_file_status")
+}
+
+enum ExtractionMethod {
+  text
+  ocr
+
+  @@map("extraction_method")
+}
+
+/// One roll PDF (one part) inside a batch.
+model ImportFile {
+  id               String            @id @default(uuid(7)) @db.Uuid
+  batchId          String            @map("batch_id") @db.Uuid
+  /// Denormalised from the batch so duplicate checks can be a unique index.
+  programId        String            @map("program_id") @db.Uuid
+  /// Object key in the private import bucket.
+  fileRef          String            @map("file_ref")
+  originalName     String            @map("original_name")
+  sizeBytes        BigInt            @map("size_bytes")
+  /// SHA-256 of the file, hex.
+  checksum         String
+  status           ImportFileStatus  @default(uploaded)
+  duplicateOfId    String?           @map("duplicate_of_id") @db.Uuid
+  pageCount        Int?              @map("page_count")
+  /// Cover-page header as extracted (state, PC, AC, part, stations, revision…).
+  detectedHeader   Json?             @map("detected_header")
+  /// The part this file belongs to, once matched (always a `part` node).
+  partNodeId       String?           @map("part_node_id") @db.Uuid
+  sourceVersionId  String?           @unique @map("source_version_id") @db.Uuid
+  extractionMethod ExtractionMethod? @map("extraction_method")
+  /// 0–1, from field confidence and the totals check.
+  qualityScore     Float?            @map("quality_score")
+  printedTotals    Json?             @map("printed_totals")
+  extractedTotals  Json?             @map("extracted_totals")
+  /// Why the file was rejected or failed.
+  error            Json?
+  extractedAt      DateTime?         @map("extracted_at") @db.Timestamptz
+  confirmedAt      DateTime?         @map("confirmed_at") @db.Timestamptz
+  createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  batch         ImportBatch       @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  program       ElectionProgram   @relation(fields: [programId], references: [id], onDelete: Restrict)
+  duplicateOf   ImportFile?       @relation("DuplicateOf", fields: [duplicateOfId], references: [id], onDelete: SetNull)
+  duplicates    ImportFile[]      @relation("DuplicateOf")
+  partNode      GeographyNode?    @relation(fields: [partNodeId], references: [id], onDelete: Restrict)
+  sourceVersion SourceVersion?    @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  rows          ImportRowResult[]
+
+  /// A file can only be live once per program; duplicates, rejected and failed
+  /// uploads keep their row (with the same checksum) for the record.
+  /// The condition is written the way PostgreSQL normalises `status NOT IN (...)`,
+  /// otherwise Prisma reports drift on every migrate.
+  @@unique([programId, checksum], map: "import_file_live_checksum_key", where: raw("(status <> ALL (ARRAY['duplicate'::import_file_status, 'rejected'::import_file_status, 'failed'::import_file_status]))"))
+  @@index([batchId, status])
+  @@index([partNodeId])
+  @@map("import_file")
+}
+
+enum ImportRowStatus {
+  accepted
+  warning
+  rejected
+
+  @@map("import_row_status")
+}
+
+/// One voter box extracted from a roll page, before it becomes a voter.
+model ImportRowResult {
+  id              String          @id @default(uuid(7)) @db.Uuid
+  importFileId    String          @map("import_file_id") @db.Uuid
+  page            Int
+  /// Position on the page, 0-based in reading order.
+  boxIndex        Int             @map("box_index")
+  sectionNo       Int?            @map("section_no")
+  serialNo        Int?            @map("serial_no")
+  status          ImportRowStatus
+  /// Validation messages: [{ code, field, message }]
+  messages        Json            @default("[]")
+  /// OCR text of the box, kept for audit and correction.
+  rawText         String?         @map("raw_text")
+  /// Parsed fields: epic, name, relationType, relativeName, houseNumber, age, gender, deleted.
+  extractedValues Json            @map("extracted_values")
+  /// 0–1 per field.
+  fieldConfidence Json            @default("{}") @map("field_confidence")
+  /// Admin corrections, applied on top of extracted_values at confirm time.
+  correctedValues Json?           @map("corrected_values")
+  correctedById   String?         @map("corrected_by") @db.Uuid
+  correctedAt     DateTime?       @map("corrected_at") @db.Timestamptz
+
+  importFile  ImportFile @relation(fields: [importFileId], references: [id], onDelete: Cascade)
+  correctedBy AppUser?   @relation(fields: [correctedById], references: [id], onDelete: Restrict)
+
+  @@unique([importFileId, page, boxIndex])
+  @@index([importFileId, status])
+  @@index([importFileId, sectionNo, serialNo])
+  @@map("import_row_result")
 }
