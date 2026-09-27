@@ -3,6 +3,10 @@
 #   pnpm infra:up     start everything and wait until all services are healthy
 #   pnpm infra:down   stop everything (data is kept in the named volumes)
 #
+# The roll-parser worker has the `roll-parser` profile, so it only runs when
+# asked for (see apps/roll-parser/README.md):
+#   docker compose -f infra/docker-compose.yml --profile roll-parser run --rm roll-parser check
+#
 # Settings come from the repository-root .env (template: infra/env/.env.example)
 # when it exists. Every setting also has a development default, so this works
 # without an .env file.
@@ -85,6 +89,15 @@ services:
         mc mb --ignore-existing "local/$$S3_BUCKET_IMPORTS"
         mc anonymous set none "local/$$S3_BUCKET_IMPORTS"
         echo "Bucket $$S3_BUCKET_IMPORTS is ready"
+
+  # Python worker that extracts voter rows from roll PDFs (apps/roll-parser).
+  # Not started by `pnpm infra:up`.
+  roll-parser:
+    profiles: ['roll-parser']
+    build:
+      context: ../apps/roll-parser
+    image: boothconnect/roll-parser:dev
+    pull_policy: build
 
 volumes:
   postgres-data:
