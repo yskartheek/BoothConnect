@@ -8,6 +8,7 @@ old one's status.
 To add one, copy [`0000-template.md`](0000-template.md) to
 `NNNN-short-title.md` with the next free number, and add it to the table.
 
-| ADR                              | Title            | Status   |
-| -------------------------------- | ---------------- | -------- |
-| [0001](0001-technology-stack.md) | Technology stack | Accepted |
+| ADR                                 | Title                               | Status   |
+| ----------------------------------- | ----------------------------------- | -------- |
+| [0001](0001-technology-stack.md)    | Technology stack                    | Accepted |
+| [0002](0002-pdf-roll-extraction.md) | PDF roll extraction (Python worker) | Proposed |
