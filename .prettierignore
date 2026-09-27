@@ -14,3 +14,5 @@ VOTER_FIELD_OPERATIONS_APP_SPEC.md
 docs/IMPLEMENTATION_PLAN.md
 # Generated Prisma client
 **/src/generated
+# Design mockups are standalone HTML pages
+docs/design/*.html
