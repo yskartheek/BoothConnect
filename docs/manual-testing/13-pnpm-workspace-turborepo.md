@@ -11,7 +11,7 @@ run the workspace. That's a prerequisite for every later issue.
 
 ## Prerequisites (one time)
 
-1. Install **Node.js 20 LTS** or newer: https://nodejs.org
+1. Install **Node.js 20 LTS (20.19 or newer)** or Node 22: https://nodejs.org
 2. Turn on corepack, which provides the pnpm version pinned in `package.json`:
    ```powershell
    corepack enable
@@ -58,7 +58,7 @@ run the workspace. That's a prerequisite for every later issue.
   modified, run `git add --renormalize .` once.
 - **`corepack enable` on Windows** may need an Administrator shell, because it
   writes pnpm shims next to `node.exe`.
-- **Node version:** `engines.node` is `>=20.11`, and `.nvmrc` pins 20 for
+- **Node version:** `engines.node` is `>=20.19` (raised in #14 for ESLint 10), and `.nvmrc` pins 20 for
   nvm-windows users (`nvm use 20`). Node 22 also works (this issue was
   built and checked on Node 22).
 - The `.gitkeep` files in the empty folders can be deleted once real content
