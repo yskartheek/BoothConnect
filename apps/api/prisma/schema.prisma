@@ -72,11 +72,13 @@ model ElectionProgram {
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz
 
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  geographyNodes GeographyNode[]
-  sourceVersions SourceVersion[]
-  importBatches  ImportBatch[]
-  importFiles    ImportFile[]
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  geographyNodes   GeographyNode[]
+  sourceVersions   SourceVersion[]
+  importBatches    ImportBatch[]
+  importFiles      ImportFile[]
+  voters           Voter[]
+  fieldDefinitions FieldDefinition[]
 
   @@index([organizationId])
   @@map("election_program")
@@ -118,15 +120,19 @@ model GeographyNode {
   createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
-  program         ElectionProgram    @relation(fields: [programId], references: [id], onDelete: Restrict)
-  parent          GeographyNode?     @relation("GeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children        GeographyNode[]    @relation("GeographyTree")
-  ancestors       GeographyClosure[] @relation("ClosureDescendant")
-  descendants     GeographyClosure[] @relation("ClosureAncestor")
-  roleAssignments RoleAssignment[]
-  sourceVersions  SourceVersion[]
-  importBatches   ImportBatch[]
-  importFiles     ImportFile[]
+  program             ElectionProgram    @relation(fields: [programId], references: [id], onDelete: Restrict)
+  parent              GeographyNode?     @relation("GeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children            GeographyNode[]    @relation("GeographyTree")
+  ancestors           GeographyClosure[] @relation("ClosureDescendant")
+  descendants         GeographyClosure[] @relation("ClosureAncestor")
+  roleAssignments     RoleAssignment[]
+  sourceVersions      SourceVersion[]
+  importBatches       ImportBatch[]
+  importFiles         ImportFile[]
+  householdsInPart    Household[]        @relation("HouseholdPart")
+  householdsAtStation Household[]        @relation("HouseholdStation")
+  votersInPart        Voter[]            @relation("VoterPart")
+  votersAtStation     Voter[]            @relation("VoterStation")
 
   @@unique([programId, parentId, code], map: "geography_node_sibling_code_key")
   // Top-level states have no parent, and NULLs never collide in a normal unique index.
@@ -193,6 +199,7 @@ model AppUser {
   uploadedBatches  ImportBatch[]     @relation("BatchUploadedBy")
   confirmedBatches ImportBatch[]     @relation("BatchConfirmedBy")
   correctedRows    ImportRowResult[]
+  collectedValues  FieldValue[]
 
   @@index([organizationId])
   @@map("app_user")
@@ -278,6 +285,8 @@ model SourceVersion {
   previousVersion SourceVersion?  @relation("SourceVersionHistory", fields: [previousVersionId], references: [id], onDelete: Restrict)
   nextVersion     SourceVersion?  @relation("SourceVersionHistory")
   importFile      ImportFile?
+  households      Household[]
+  voters          Voter[]
 
   @@unique([partNodeId, checksum])
   @@index([programId])
@@ -385,6 +394,7 @@ model ImportFile {
   partNode      GeographyNode?    @relation(fields: [partNodeId], references: [id], onDelete: Restrict)
   sourceVersion SourceVersion?    @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
   rows          ImportRowResult[]
+  voters        Voter[]
 
   /// A file can only be live once per program; duplicates, rejected and failed
   /// uploads keep their row (with the same checksum) for the record.
@@ -434,4 +444,210 @@ model ImportRowResult {
   @@index([importFileId, status])
   @@index([importFileId, sectionNo, serialNo])
   @@map("import_row_result")
+}
+
+// ---------------------------------------------------------------------------
+// Households and voters
+// ---------------------------------------------------------------------------
+
+enum HouseholdStatus {
+  active
+  /// No voter in the latest revision of the part lists this house any more.
+  removed
+
+  @@map("household_status")
+}
+
+/// A house in a part, grouped from the roll's house numbers. Households outlive
+/// roll revisions, so visits and notes stay attached when a new revision arrives.
+model Household {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  partId            String          @map("part_id") @db.Uuid
+  /// The station most of its voters vote at (main or auxiliary).
+  pollingStationId  String          @map("polling_station_id") @db.Uuid
+  /// House number normalised for grouping, e.g. "H NO 16-64" → "16-64".
+  houseKey          String          @map("house_key")
+  /// House number as printed in the roll.
+  displayAddress    String          @map("display_address")
+  structuredAddress Json            @default("{}") @map("structured_address")
+  /// The latest revision that listed this house.
+  sourceVersionId   String          @map("source_version_id") @db.Uuid
+  status            HouseholdStatus @default(active)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  part           GeographyNode @relation("HouseholdPart", fields: [partId], references: [id], onDelete: Restrict)
+  pollingStation GeographyNode @relation("HouseholdStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
+  sourceVersion  SourceVersion @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  voters         Voter[]
+
+  @@unique([partId, houseKey])
+  @@index([pollingStationId, status])
+  @@map("household")
+}
+
+enum VerificationStatus {
+  unverified
+  /// Confirmed in person by a volunteer (or by an admin).
+  verified
+  /// Someone reported the entry as wrong; waiting for review.
+  disputed
+
+  @@map("verification_status")
+}
+
+enum VoterRecordStatus {
+  active
+  /// A newer revision of the part replaced this row.
+  superseded
+  /// Marked deleted in the roll, or removed by a later revision.
+  deleted
+
+  @@map("voter_record_status")
+}
+
+/// One elector as printed in one revision of a part's roll. `source_data` is the
+/// official record and never changes (a trigger enforces it); corrections live in
+/// field_value (#23).
+model Voter {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  programId          String             @map("program_id") @db.Uuid
+  householdId        String             @map("household_id") @db.Uuid
+  partId             String             @map("part_id") @db.Uuid
+  pollingStationId   String             @map("polling_station_id") @db.Uuid
+  sectionNo          Int                @map("section_no")
+  serialNo           Int                @map("serial_no")
+  /// EPIC number, e.g. XIZ5458518.
+  sourceVoterId      String             @map("source_voter_id")
+  /// As printed: name, relationType, relativeName, houseNumber, age, gender, plus rawText.
+  sourceData         Json               @map("source_data")
+  sourceVersionId    String             @map("source_version_id") @db.Uuid
+  importFileId       String             @map("import_file_id") @db.Uuid
+  verificationStatus VerificationStatus @default(unverified) @map("verification_status")
+  recordStatus       VoterRecordStatus  @default(active) @map("record_status")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  program        ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+  household      Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  part           GeographyNode   @relation("VoterPart", fields: [partId], references: [id], onDelete: Restrict)
+  pollingStation GeographyNode   @relation("VoterStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
+  sourceVersion  SourceVersion   @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  importFile     ImportFile      @relation(fields: [importFileId], references: [id], onDelete: Restrict)
+
+  @@unique([programId, sourceVersionId, sourceVoterId])
+  @@unique([partId, sourceVersionId, serialNo])
+  @@index([pollingStationId, recordStatus])
+  @@index([partId, recordStatus])
+  @@index([householdId])
+  @@index([programId, sourceVoterId])
+  @@map("voter")
+}
+
+// ---------------------------------------------------------------------------
+// Configurable fields and their values (spec §7.3, plan §3)
+// ---------------------------------------------------------------------------
+
+enum FieldType {
+  text
+  number
+  boolean
+  date
+  phone
+  single_select
+  multi_select
+
+  @@map("field_type")
+}
+
+enum FieldEntity {
+  voter
+  household
+
+  @@map("field_entity")
+}
+
+/// A field that can be collected for voters or households. Restricted fields
+/// (caste/community, religion, political affiliation, precise location) are
+/// disabled by default; enabling one needs consent and a documented legal basis.
+model FieldDefinition {
+  id              String      @id @default(uuid(7)) @db.Uuid
+  programId       String      @map("program_id") @db.Uuid
+  /// Stable key used by the apps, e.g. "mobile_number", "preferred_language".
+  key             String
+  /// i18n key for the label shown in the apps.
+  labelKey        String      @map("label_key")
+  appliesTo       FieldEntity @map("applies_to")
+  type            FieldType
+  /// Allowed values for select fields: [{ value, labelKey }].
+  options         Json?
+  isRestricted    Boolean     @default(false) @map("is_restricted")
+  enabled         Boolean     @default(false)
+  requiresConsent Boolean     @default(false) @map("requires_consent")
+  /// Why the field is collected; shown in the collection notice.
+  purpose         String
+  /// Required before a restricted field can be enabled.
+  legalBasis      String?     @map("legal_basis")
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  program ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+  values  FieldValue[]
+
+  @@unique([programId, key])
+  @@map("field_definition")
+}
+
+enum ValueSource {
+  official_import
+  voter_self_submitted
+  volunteer_collected
+  admin_corrected
+  derived
+
+  @@map("value_source")
+}
+
+enum FieldValueStatus {
+  proposed
+  verified
+  rejected
+
+  @@map("field_value_status")
+}
+
+/// One value of one field for one voter or household. Append-only: a change is
+/// a new row whose supersedes_id points at the value it replaces, so the full
+/// history (and who said what) is kept. is_current is maintained by a trigger.
+model FieldValue {
+  id                 String           @id @default(uuid(7)) @db.Uuid
+  entityType         FieldEntity      @map("entity_type")
+  /// A voter or household id, depending on entity_type.
+  entityId           String           @map("entity_id") @db.Uuid
+  fieldDefinitionId  String           @map("field_definition_id") @db.Uuid
+  value              Json
+  sourceType         ValueSource      @map("source_type")
+  verificationStatus FieldValueStatus @default(proposed) @map("verification_status")
+  /// The consent record covering this value (required for consent fields; FK added with the consent table).
+  consentId          String?          @map("consent_id") @db.Uuid
+  collectedById      String?          @map("collected_by") @db.Uuid
+  collectedAt        DateTime         @default(now()) @map("collected_at") @db.Timestamptz
+  /// The value this one replaces.
+  supersedesId       String?          @unique @map("supersedes_id") @db.Uuid
+  /// The value the client last saw when it made this change (conflict detection).
+  baseVersion        String?          @map("base_version") @db.Uuid
+  /// False once another value supersedes this one.
+  isCurrent          Boolean          @default(true) @map("is_current")
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  fieldDefinition FieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Restrict)
+  collectedBy     AppUser?        @relation(fields: [collectedById], references: [id], onDelete: Restrict)
+  supersedes      FieldValue?     @relation("FieldValueHistory", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy    FieldValue?     @relation("FieldValueHistory")
+
+  /// "Current value(s) for each (entity, field)". Usually one; two stale edits
+  /// that conflict are both kept current until someone resolves them.
+  @@index([entityType, entityId, fieldDefinitionId], map: "field_value_current_idx", where: raw("is_current"))
+  @@index([fieldDefinitionId])
+  @@map("field_value")
 }

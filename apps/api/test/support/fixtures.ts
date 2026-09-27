@@ -50,3 +50,96 @@ export function createUser(tx: Tx, organizationId: string, name = 'Test user') {
     data: { organizationId, name, phone: `+91900000${String(phoneCounter).padStart(4, '0')}` },
   });
 }
+
+type Tree = Awaited<ReturnType<typeof createTree>>;
+
+let checksumCounter = 0;
+function fakeChecksum(): string {
+  checksumCounter += 1;
+  return checksumCounter.toString(16).padStart(64, '0');
+}
+
+/** An import batch, file and source version for one part, as if a roll had been confirmed. */
+export async function createImportedPart(
+  tx: Tx,
+  tree: Tree,
+  part: Tree['part408'],
+  previousVersionId?: string,
+) {
+  const admin = await createUser(tx, tree.orgId, 'Importer');
+  const batch = await tx.importBatch.create({
+    data: { programId: tree.programId, targetNodeId: tree.ac.id, uploadedById: admin.id },
+  });
+  const checksum = fakeChecksum();
+  const sourceVersion = await tx.sourceVersion.create({
+    data: {
+      programId: tree.programId,
+      partNodeId: part.id,
+      revisionYear: 2026,
+      revisionType: 'Special Intensive Revision 2026',
+      rollIdentification: 'Draft Electoral Roll of Special Intensive Revision, 2026',
+      checksum,
+      previousVersionId,
+    },
+  });
+  const file = await tx.importFile.create({
+    data: {
+      batchId: batch.id,
+      programId: tree.programId,
+      fileRef: `imports/${batch.id}/${checksum}.pdf`,
+      originalName: `part-${part.code}.pdf`,
+      sizeBytes: 1_000n,
+      checksum,
+      partNodeId: part.id,
+      sourceVersionId: sourceVersion.id,
+      status: 'confirmed',
+    },
+  });
+  return { sourceVersion, file };
+}
+
+export function createHousehold(
+  tx: Tx,
+  partId: string,
+  pollingStationId: string,
+  sourceVersionId: string,
+  houseKey: string,
+) {
+  return tx.household.create({
+    data: { partId, pollingStationId, sourceVersionId, houseKey, displayAddress: houseKey },
+  });
+}
+
+let epicCounter = 0;
+
+/** A synthetic voter; EPICs use the fake prefix TST. */
+export function createVoter(
+  tx: Tx,
+  data: {
+    programId: string;
+    householdId: string;
+    partId: string;
+    pollingStationId: string;
+    sourceVersionId: string;
+    importFileId: string;
+    sectionNo?: number;
+    serialNo: number;
+    sourceVoterId?: string;
+  },
+) {
+  epicCounter += 1;
+  const epic = data.sourceVoterId ?? `TST${String(epicCounter).padStart(7, '0')}`;
+  return tx.voter.create({
+    data: {
+      ...data,
+      sectionNo: data.sectionNo ?? 1,
+      sourceVoterId: epic,
+      sourceData: {
+        name: `Voter ${data.serialNo}`,
+        age: 30,
+        gender: 'female',
+        relationType: 'father',
+      },
+    },
+  });
+}
