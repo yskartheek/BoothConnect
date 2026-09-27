@@ -620,46 +620,44 @@ enum ValueSource {
   @@map("value_source")
 }
 
-enum FieldValueStatus {
-  proposed
-  verified
-  rejected
-
-  @@map("field_value_status")
-}
-
-/// One value of one field for one voter or household. Append-only: a change is
-/// a new row whose supersedes_id points at the value it replaces, so the full
-/// history (and who said what) is kept. is_current is maintained by a trigger.
+/// One value of one field for one voter or household. Volunteer edits become the
+/// current value immediately (spec v1.1, ADR-0003). Append-only: a change is a
+/// new row whose supersedes_id points at the value it replaces, so the full
+/// history (and who changed what) is kept. is_current is maintained by a trigger.
 model FieldValue {
-  id                 String           @id @default(uuid(7)) @db.Uuid
-  entityType         FieldEntity      @map("entity_type")
+  id                String      @id @default(uuid(7)) @db.Uuid
+  entityType        FieldEntity @map("entity_type")
   /// A voter or household id, depending on entity_type.
-  entityId           String           @map("entity_id") @db.Uuid
-  fieldDefinitionId  String           @map("field_definition_id") @db.Uuid
-  value              Json
-  sourceType         ValueSource      @map("source_type")
-  verificationStatus FieldValueStatus @default(proposed) @map("verification_status")
+  entityId          String      @map("entity_id") @db.Uuid
+  fieldDefinitionId String      @map("field_definition_id") @db.Uuid
+  value             Json
+  sourceType        ValueSource @map("source_type")
   /// The consent record covering this value (required for consent fields; FK added with the consent table).
-  consentId          String?          @map("consent_id") @db.Uuid
-  collectedById      String?          @map("collected_by") @db.Uuid
-  collectedAt        DateTime         @default(now()) @map("collected_at") @db.Timestamptz
+  consentId         String?     @map("consent_id") @db.Uuid
+  collectedById     String?     @map("collected_by") @db.Uuid
+  collectedAt       DateTime    @default(now()) @map("collected_at") @db.Timestamptz
   /// The value this one replaces.
-  supersedesId       String?          @unique @map("supersedes_id") @db.Uuid
+  supersedesId      String?     @unique @map("supersedes_id") @db.Uuid
   /// The value the client last saw when it made this change (conflict detection).
-  baseVersion        String?          @map("base_version") @db.Uuid
+  baseVersion       String?     @map("base_version") @db.Uuid
   /// False once another value supersedes this one.
-  isCurrent          Boolean          @default(true) @map("is_current")
-  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
+  isCurrent         Boolean     @default(true) @map("is_current")
+  /// Set when two offline edits of the same field collide: the value this one
+  /// conflicts with. Cleared when the volunteer chooses which value to keep.
+  conflictWithId    String?     @map("conflict_with_id") @db.Uuid
+  createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
 
   fieldDefinition FieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Restrict)
   collectedBy     AppUser?        @relation(fields: [collectedById], references: [id], onDelete: Restrict)
   supersedes      FieldValue?     @relation("FieldValueHistory", fields: [supersedesId], references: [id], onDelete: Restrict)
   supersededBy    FieldValue?     @relation("FieldValueHistory")
+  conflictWith    FieldValue?     @relation("FieldValueConflict", fields: [conflictWithId], references: [id], onDelete: Restrict)
+  conflictsWithMe FieldValue[]    @relation("FieldValueConflict")
 
-  /// "Current value(s) for each (entity, field)". Usually one; two stale edits
-  /// that conflict are both kept current until someone resolves them.
+  /// "Current value(s) for each (entity, field)". Usually one; two edits that
+  /// conflict are both current until the volunteer chooses one.
   @@index([entityType, entityId, fieldDefinitionId], map: "field_value_current_idx", where: raw("is_current"))
   @@index([fieldDefinitionId])
+  @@index([conflictWithId])
   @@map("field_value")
 }
