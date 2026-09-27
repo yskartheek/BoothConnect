@@ -5,7 +5,7 @@
 #
 # The roll-parser worker has the `roll-parser` profile, so it only runs when
 # asked for (see apps/roll-parser/README.md):
-#   docker compose -f infra/docker-compose.yml --profile roll-parser run --rm roll-parser check
+#   docker compose -f infra/docker-compose.yml --profile roll-parser up -d --build roll-parser
 #
 # Settings come from the repository-root .env (template: infra/env/.env.example)
 # when it exists. Every setting also has a development default, so this works
@@ -91,13 +91,32 @@ services:
         echo "Bucket $$S3_BUCKET_IMPORTS is ready"
 
   # Python worker that extracts voter rows from roll PDFs (apps/roll-parser).
-  # Not started by `pnpm infra:up`.
+  # Takes `extract-roll` jobs from Redis and reads/writes the import bucket.
+  # Not started by `pnpm infra:up`; see apps/roll-parser/README.md.
   roll-parser:
     profiles: ['roll-parser']
     build:
       context: ../apps/roll-parser
     image: boothconnect/roll-parser:dev
     pull_policy: build
+    restart: unless-stopped
+    command: ['worker']
+    environment:
+      REDIS_URL: redis://redis:6379
+      S3_ENDPOINT: http://minio:9000
+      S3_REGION: ${S3_REGION:-us-east-1}
+      S3_ACCESS_KEY_ID: ${S3_ACCESS_KEY_ID:-boothconnect}
+      S3_SECRET_ACCESS_KEY: ${S3_SECRET_ACCESS_KEY:-boothconnect-dev-secret}
+      S3_FORCE_PATH_STYLE: 'true'
+      ROLL_PARSER_CONCURRENCY: ${ROLL_PARSER_CONCURRENCY:-1}
+      ROLL_PARSER_TIMEOUT_SECONDS: ${ROLL_PARSER_TIMEOUT_SECONDS:-600}
+    ports:
+      - '${ROLL_PARSER_HEALTH_PORT:-8090}:8090'
+    depends_on:
+      redis:
+        condition: service_healthy
+      minio:
+        condition: service_healthy
 
 volumes:
   postgres-data:

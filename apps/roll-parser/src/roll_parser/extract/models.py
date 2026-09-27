@@ -6,7 +6,7 @@ drops the wrappers so a result can be compared with ground truth.
 
 from datetime import date
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from roll_parser.extract.fields import Field, Issue
 from roll_parser.model import (
@@ -17,11 +17,12 @@ from roll_parser.model import (
     RollHeader,
     Section,
     SummaryRow,
+    contract_config,
 )
 
 
 class _Model(BaseModel):
-    model_config = ConfigDict(frozen=True)
+    model_config = contract_config(frozen=True)
 
 
 class MissingValueError(ValueError):

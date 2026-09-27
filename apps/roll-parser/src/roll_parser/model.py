@@ -7,12 +7,31 @@ parser's own output wraps each value with its raw OCR text and confidence.
 
 from datetime import date
 from enum import StrEnum
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
+from pydantic.alias_generators import to_camel
+
+
+def contract_config(
+    *, frozen: bool = False, extra: Literal["allow", "ignore", "forbid"] = "ignore"
+) -> ConfigDict:
+    """JSON uses camelCase (the API is TypeScript); Python code uses snake_case.
+
+    Both spellings are accepted when reading; camelCase is written.
+    """
+    return ConfigDict(
+        alias_generator=to_camel,
+        validate_by_name=True,
+        validate_by_alias=True,
+        serialize_by_alias=True,
+        frozen=frozen,
+        extra=extra,
+    )
 
 
 class _Model(BaseModel):
-    model_config = ConfigDict(frozen=True, extra="forbid")
+    model_config = contract_config(frozen=True, extra="forbid")
 
 
 class Gender(StrEnum):

@@ -2,6 +2,8 @@
 
 from dataclasses import dataclass, field
 
+from pydantic.alias_generators import to_camel
+
 from roll_parser.extract.roll import ExtractedVoter, RollExtraction
 from roll_parser.model import RollTruth
 
@@ -48,7 +50,8 @@ def _value(row: ExtractedVoter, name: str) -> object:
 def _flagged(row: ExtractedVoter, name: str) -> bool:
     if name == "serial":
         return any(i.code.startswith("serial") for i in row.issues)
-    return any(i.field is not None and i.field.endswith(f".{name}") for i in row.issues)
+    path = to_camel(name)
+    return any(i.field is not None and i.field.endswith(f".{path}") for i in row.issues)
 
 
 def compare(extraction: RollExtraction, truth: RollTruth) -> Accuracy:
