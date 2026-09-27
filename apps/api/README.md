@@ -41,7 +41,7 @@ request. `Authorization` and `Cookie` headers are redacted.
 ```powershell
 pnpm infra:up                      # Postgres must be running
 pnpm --filter api db:deploy        # apply all migrations
-pnpm --filter api db:migrate       # after editing schema.prisma: create + apply a migration
+pnpm --filter api db:migrate       # after editing schema.prisma: create + apply a migration, regenerate the client
 pnpm --filter api db:seed          # load development seed data
 pnpm --filter api db:reset         # drop everything, re-apply migrations, seed (asks to confirm)
 pnpm --filter api db:studio        # browse the data in the browser
@@ -63,3 +63,11 @@ Conventions for every model:
   CommonJS, like the rest of the API.
 - `prisma.config.ts` loads `apps/api/.env`, then the repository-root `.env`,
   because Prisma 7 no longer reads `.env` files by itself.
+- Rules Prisma can't express (check constraints, triggers) are appended by
+  hand to the generated `migration.sql`, under a "Hand-written" comment.
+  Prisma ignores them when comparing the schema with the database, so they
+  don't show up as drift. Create the migration with
+  `pnpm --filter api exec prisma migrate dev --create-only --name <name>`,
+  add the SQL, then run `pnpm --filter api db:migrate`.
+- Integration tests run inside a transaction that is always rolled back
+  (`test/support/database.ts`), so they leave no data behind.

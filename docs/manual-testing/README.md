@@ -45,3 +45,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #12   | [SETUP.md and ADR-001 (technology stack)](12-setup-and-adr.md)                   | Ready to test   |
 | #92   | [Design: PDF roll import + hierarchical analytics](92-pdf-roll-import-design.md) | Ready to review |
 | #18   | [Prisma with UUIDv7 and timestamptz conventions](18-prisma-setup.md)             | Ready to test   |
+| #19   | [Schema: organization, program and geography tree](19-geography-schema.md)       | Ready to test   |
