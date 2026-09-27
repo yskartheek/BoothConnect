@@ -47,3 +47,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #18   | [Prisma with UUIDv7 and timestamptz conventions](18-prisma-setup.md)             | Ready to test   |
 | #19   | [Schema: organization, program and geography tree](19-geography-schema.md)       | Ready to test   |
 | #20   | [Schema: users, sessions and role assignments](20-users-sessions-roles.md)       | Ready to test   |
+| #21   | [Schema: roll imports](21-import-schema.md)                                      | Ready to test   |
