@@ -24,6 +24,7 @@ in [`docs/SETUP.md`](../../docs/SETUP.md#6-roll-parser-python-optional).
 ```powershell
 pnpm --filter roll-parser setup        # uv sync: create .venv, install packages
 pnpm --filter roll-parser check        # show Tesseract/PyMuPDF/OpenCV versions
+pnpm --filter roll-parser synth        # write synthetic roll PDFs (fake data)
 pnpm --filter roll-parser lint         # ruff check + ruff format --check
 pnpm --filter roll-parser format       # apply ruff format and safe fixes
 pnpm --filter roll-parser typecheck    # mypy --strict
@@ -32,6 +33,42 @@ pnpm --filter roll-parser test         # pytest
 
 Inside `apps/roll-parser` you can call the tools directly, for example
 `uv run pytest -k ocr` or `uv run roll-parser check`.
+
+### Synthetic rolls (fake data)
+
+Real rolls can't be committed, so the tests use generated ones in the same
+layout (Telangana S29 English): an image-only PDF plus a JSON file with the
+ground truth (header, printed totals, summary, and every voter entry with its
+page and box position).
+
+```powershell
+pnpm --filter roll-parser synth              # all presets, into apps/roll-parser/synthetic-rolls/
+pnpm --filter roll-parser synth small        # just one
+```
+
+| Preset          | What it is                                                                                                                                  |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `small`         | 5 pages, 42 entries in 2 sections, 1 auxiliary station, deleted/modified entries, third gender, long names. Committed in `tests/fixtures/`. |
+| `ac40`          | Shaped like the owner's sample: AC 40, Part 408, 23 pages, 571 electors, 2 sections. Generated during the tests.                            |
+| `ac40-degraded` | The same roll, blurred, slightly rotated, noisy and at JPEG quality 60.                                                                     |
+
+Names are a common first name plus a family name made up from syllables;
+place names and EPIC numbers are made up too. Every choice comes from a fixed
+seed, so the same preset always gives the same roll. Screenshots:
+[`docs/synthetic-roll/`](docs/synthetic-roll/).
+
+Assumptions to check against more real samples (see the design, §10): each
+section starts on a new page; deleted and modified entries show `DELETED` /
+`MODIFIED` where the photo placeholder normally is.
+
+If you change the generator, regenerate the committed fixture (a test fails
+until you do):
+
+```powershell
+cd apps/roll-parser
+uv run roll-parser synth small --out tests/fixtures
+git add -f tests/fixtures/small.pdf tests/fixtures/small.json
+```
 
 ### Docker
 

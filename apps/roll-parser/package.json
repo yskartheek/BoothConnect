@@ -6,6 +6,7 @@
   "scripts": {
     "setup": "uv sync --locked",
     "check": "uv run roll-parser check",
+    "synth": "uv run roll-parser synth --out synthetic-rolls",
     "lint": "uv run ruff check . && uv run ruff format --check .",
     "format": "uv run ruff check --fix . && uv run ruff format .",
     "typecheck": "uv run mypy",

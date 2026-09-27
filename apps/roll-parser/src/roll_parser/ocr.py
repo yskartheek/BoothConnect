@@ -39,3 +39,9 @@ def read_line(image: GrayImage, *, lang: str = "eng", whitelist: str | None = No
     if whitelist:
         config += f" -c tessedit_char_whitelist={whitelist}"
     return str(pytesseract.image_to_string(image, lang=lang, config=config)).strip()
+
+
+def read_block(image: GrayImage, *, lang: str = "eng") -> str:
+    """OCR an image holding a block of text lines."""
+    configure()
+    return str(pytesseract.image_to_string(image, lang=lang, config="--psm 6"))
