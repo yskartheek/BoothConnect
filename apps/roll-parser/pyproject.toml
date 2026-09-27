@@ -1,0 +1,69 @@
+[project]
+name = "roll-parser"
+version = "0.0.0"
+description = "BoothConnect worker that extracts voter rows from electoral-roll PDFs"
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+  "numpy>=2.4,<3",
+  "opencv-python-headless>=5.0,<6",
+  "pymupdf>=1.28,<2",
+  "pytesseract>=0.3.13,<0.4",
+]
+
+[project.scripts]
+roll-parser = "roll_parser.cli:main"
+
+[dependency-groups]
+dev = [
+  "mypy>=2.3,<3",
+  "pytest>=9.1,<10",
+  "ruff>=0.16,<0.17",
+]
+
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/roll_parser"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = ["src", "tests"]
+
+[tool.ruff.lint]
+select = [
+  "E",   # pycodestyle errors
+  "W",   # pycodestyle warnings
+  "F",   # pyflakes
+  "I",   # import sorting
+  "B",   # bugbear
+  "UP",  # pyupgrade
+  "SIM", # simplify
+  "RUF", # ruff-specific
+  "N",   # naming
+  "PTH", # pathlib over os.path
+  "S",   # bandit (security)
+]
+
+[tool.ruff.lint.per-file-ignores]
+# assert is how pytest checks things
+"tests/**" = ["S101"]
+
+[tool.mypy]
+strict = true
+python_version = "3.12"
+files = ["src", "tests"]
+# PyMuPDF ships type hints, but some constructors (Document, Matrix) lack them
+untyped_calls_exclude = ["pymupdf"]
+
+[[tool.mypy.overrides]]
+# No type information published for these packages
+module = ["pytesseract", "pytesseract.*"]
+ignore_missing_imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = ["--strict-markers", "-ra"]

@@ -1,0 +1,14 @@
+{
+  "name": "@boothconnect/roll-parser",
+  "version": "0.0.0",
+  "private": true,
+  "description": "BoothConnect roll-parser worker (Python). These scripts wrap uv so Turborepo can run them.",
+  "scripts": {
+    "setup": "uv sync --locked",
+    "check": "uv run roll-parser check",
+    "lint": "uv run ruff check . && uv run ruff format --check .",
+    "format": "uv run ruff check --fix . && uv run ruff format .",
+    "typecheck": "uv run mypy",
+    "test": "uv run pytest"
+  }
+}

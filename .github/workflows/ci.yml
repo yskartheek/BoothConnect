@@ -30,6 +30,7 @@ jobs:
       api: ${{ steps.filter.outputs.api == 'true' || github.event_name != 'pull_request' }}
       web: ${{ steps.filter.outputs.web == 'true' || github.event_name != 'pull_request' }}
       mobile: ${{ steps.filter.outputs.mobile == 'true' || github.event_name != 'pull_request' }}
+      roll-parser: ${{ steps.filter.outputs.roll-parser == 'true' || github.event_name != 'pull_request' }}
     steps:
       - uses: actions/checkout@v7
       - uses: dorny/paths-filter@v4
@@ -63,6 +64,9 @@ jobs:
             mobile:
               - .github/workflows/ci.yml
               - 'apps/mobile/**'
+            roll-parser:
+              - .github/workflows/ci.yml
+              - 'apps/roll-parser/**'
 
   js:
     name: JS (format, lint, typecheck, test, build)
@@ -79,8 +83,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
-      # The Flutter app has its own job below.
-      - run: pnpm turbo run lint typecheck test build --filter=!@boothconnect/mobile
+      # The Flutter app and the Python roll-parser have their own jobs below.
+      - run: pnpm turbo run lint typecheck test build --filter=!@boothconnect/mobile --filter=!@boothconnect/roll-parser
 
   api-integration:
     name: API integration (Postgres + Redis)
@@ -164,3 +168,33 @@ jobs:
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test
+
+  roll-parser:
+    name: Roll parser (lint, typecheck, test)
+    needs: changes
+    if: needs.changes.outputs.roll-parser == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      UV_VERSION: '0.12.19'
+    steps:
+      - uses: actions/checkout@v7
+      - name: Install Tesseract
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends tesseract-ocr tesseract-ocr-eng
+          tesseract --version
+      - name: Install uv
+        run: pipx install "uv==${UV_VERSION}"
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter roll-parser setup
+      - run: pnpm turbo run lint typecheck test --filter=@boothconnect/roll-parser
+      - name: Build the Docker image and run its self-check
+        run: |
+          docker build -t boothconnect/roll-parser:ci apps/roll-parser
+          docker run --rm boothconnect/roll-parser:ci check
