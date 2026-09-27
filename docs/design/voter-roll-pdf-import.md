@@ -268,8 +268,10 @@ Every node shows the same set of cards, computed for that node's subtree:
   - Only attributes printed in the roll (age, gender, household,
     revision changes) and field-work status are analysed.
   - **No inference of religion, caste, community or political leaning** —
-    not from names, relatives' names, addresses or anything else. The
-    restricted fields stay disabled (spec §7.3, plan §3).
+    not from names, relatives' names, addresses or anything else. Religion
+    and political affiliation stay disabled. Caste/community is only ever
+    what a volunteer records with the voter's consent (spec v1.1), and any
+    analytics on it are aggregated and thresholded.
   - The rest of spec §8.2 applies: the threshold also covers filters and
     intersections, small categories are combined, every card shows its
     definition and "updated at" time, and unknown/missing is shown separately
