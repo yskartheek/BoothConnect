@@ -11,7 +11,7 @@ run the workspace. That's a prerequisite for every later issue.
 
 ## Prerequisites (one time)
 
-1. Install **Node.js 20 LTS (20.19 or newer)** or Node 22: https://nodejs.org
+1. Install **Node.js 24 LTS (24.11 or newer)**: https://nodejs.org
 2. Turn on corepack, which provides the pnpm version pinned in `package.json`:
    ```powershell
    corepack enable
@@ -27,7 +27,7 @@ run the workspace. That's a prerequisite for every later issue.
    ```
 2. Check the versions:
    ```powershell
-   node -v      # expect v20.x or newer
+   node -v      # expect v24.11 or newer
    pnpm -v      # expect 10.33.0 (from packageManager)
    ```
 3. Install dependencies using the lockfile:
@@ -58,8 +58,9 @@ run the workspace. That's a prerequisite for every later issue.
   modified, run `git add --renormalize .` once.
 - **`corepack enable` on Windows** may need an Administrator shell, because it
   writes pnpm shims next to `node.exe`.
-- **Node version:** `engines.node` is `>=20.19` (raised in #14 for ESLint 10), and `.nvmrc` pins 20 for
-  nvm-windows users (`nvm use 20`). Node 22 also works (this issue was
-  built and checked on Node 22).
+- **Node version:** `engines.node` is `>=24.11` and `.nvmrc` pins 24 for
+  nvm-windows users (`nvm install 24`, then `nvm use 24`). It was `>=20.19`
+  until #9 raised it: Node 20 reached end of life in April 2026, and the API's
+  tests (NestJS 12 with Jest 30) need Node 24.9 or newer.
 - The `.gitkeep` files in the empty folders can be deleted once real content
   lands in those folders.
