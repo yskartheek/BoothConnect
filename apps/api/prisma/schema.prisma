@@ -77,6 +77,7 @@ model ElectionProgram {
   sourceVersions SourceVersion[]
   importBatches  ImportBatch[]
   importFiles    ImportFile[]
+  voters         Voter[]
 
   @@index([organizationId])
   @@map("election_program")
@@ -118,15 +119,19 @@ model GeographyNode {
   createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
-  program         ElectionProgram    @relation(fields: [programId], references: [id], onDelete: Restrict)
-  parent          GeographyNode?     @relation("GeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
-  children        GeographyNode[]    @relation("GeographyTree")
-  ancestors       GeographyClosure[] @relation("ClosureDescendant")
-  descendants     GeographyClosure[] @relation("ClosureAncestor")
-  roleAssignments RoleAssignment[]
-  sourceVersions  SourceVersion[]
-  importBatches   ImportBatch[]
-  importFiles     ImportFile[]
+  program             ElectionProgram    @relation(fields: [programId], references: [id], onDelete: Restrict)
+  parent              GeographyNode?     @relation("GeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children            GeographyNode[]    @relation("GeographyTree")
+  ancestors           GeographyClosure[] @relation("ClosureDescendant")
+  descendants         GeographyClosure[] @relation("ClosureAncestor")
+  roleAssignments     RoleAssignment[]
+  sourceVersions      SourceVersion[]
+  importBatches       ImportBatch[]
+  importFiles         ImportFile[]
+  householdsInPart    Household[]        @relation("HouseholdPart")
+  householdsAtStation Household[]        @relation("HouseholdStation")
+  votersInPart        Voter[]            @relation("VoterPart")
+  votersAtStation     Voter[]            @relation("VoterStation")
 
   @@unique([programId, parentId, code], map: "geography_node_sibling_code_key")
   // Top-level states have no parent, and NULLs never collide in a normal unique index.
@@ -278,6 +283,8 @@ model SourceVersion {
   previousVersion SourceVersion?  @relation("SourceVersionHistory", fields: [previousVersionId], references: [id], onDelete: Restrict)
   nextVersion     SourceVersion?  @relation("SourceVersionHistory")
   importFile      ImportFile?
+  households      Household[]
+  voters          Voter[]
 
   @@unique([partNodeId, checksum])
   @@index([programId])
@@ -385,6 +392,7 @@ model ImportFile {
   partNode      GeographyNode?    @relation(fields: [partNodeId], references: [id], onDelete: Restrict)
   sourceVersion SourceVersion?    @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
   rows          ImportRowResult[]
+  voters        Voter[]
 
   /// A file can only be live once per program; duplicates, rejected and failed
   /// uploads keep their row (with the same checksum) for the record.
@@ -434,4 +442,102 @@ model ImportRowResult {
   @@index([importFileId, status])
   @@index([importFileId, sectionNo, serialNo])
   @@map("import_row_result")
+}
+
+// ---------------------------------------------------------------------------
+// Households and voters
+// ---------------------------------------------------------------------------
+
+enum HouseholdStatus {
+  active
+  /// No voter in the latest revision of the part lists this house any more.
+  removed
+
+  @@map("household_status")
+}
+
+/// A house in a part, grouped from the roll's house numbers. Households outlive
+/// roll revisions, so visits and notes stay attached when a new revision arrives.
+model Household {
+  id                String          @id @default(uuid(7)) @db.Uuid
+  partId            String          @map("part_id") @db.Uuid
+  /// The station most of its voters vote at (main or auxiliary).
+  pollingStationId  String          @map("polling_station_id") @db.Uuid
+  /// House number normalised for grouping, e.g. "H NO 16-64" → "16-64".
+  houseKey          String          @map("house_key")
+  /// House number as printed in the roll.
+  displayAddress    String          @map("display_address")
+  structuredAddress Json            @default("{}") @map("structured_address")
+  /// The latest revision that listed this house.
+  sourceVersionId   String          @map("source_version_id") @db.Uuid
+  status            HouseholdStatus @default(active)
+  createdAt         DateTime        @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt         DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+
+  part           GeographyNode @relation("HouseholdPart", fields: [partId], references: [id], onDelete: Restrict)
+  pollingStation GeographyNode @relation("HouseholdStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
+  sourceVersion  SourceVersion @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  voters         Voter[]
+
+  @@unique([partId, houseKey])
+  @@index([pollingStationId, status])
+  @@map("household")
+}
+
+enum VerificationStatus {
+  unverified
+  /// Confirmed in person by a volunteer (or by an admin).
+  verified
+  /// Someone reported the entry as wrong; waiting for review.
+  disputed
+
+  @@map("verification_status")
+}
+
+enum VoterRecordStatus {
+  active
+  /// A newer revision of the part replaced this row.
+  superseded
+  /// Marked deleted in the roll, or removed by a later revision.
+  deleted
+
+  @@map("voter_record_status")
+}
+
+/// One elector as printed in one revision of a part's roll. `source_data` is the
+/// official record and never changes (a trigger enforces it); corrections live in
+/// field_value (#23).
+model Voter {
+  id                 String             @id @default(uuid(7)) @db.Uuid
+  programId          String             @map("program_id") @db.Uuid
+  householdId        String             @map("household_id") @db.Uuid
+  partId             String             @map("part_id") @db.Uuid
+  pollingStationId   String             @map("polling_station_id") @db.Uuid
+  sectionNo          Int                @map("section_no")
+  serialNo           Int                @map("serial_no")
+  /// EPIC number, e.g. XIZ5458518.
+  sourceVoterId      String             @map("source_voter_id")
+  /// As printed: name, relationType, relativeName, houseNumber, age, gender, plus rawText.
+  sourceData         Json               @map("source_data")
+  sourceVersionId    String             @map("source_version_id") @db.Uuid
+  importFileId       String             @map("import_file_id") @db.Uuid
+  verificationStatus VerificationStatus @default(unverified) @map("verification_status")
+  recordStatus       VoterRecordStatus  @default(active) @map("record_status")
+  createdAt          DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt          DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  program        ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+  household      Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  part           GeographyNode   @relation("VoterPart", fields: [partId], references: [id], onDelete: Restrict)
+  pollingStation GeographyNode   @relation("VoterStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
+  sourceVersion  SourceVersion   @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  importFile     ImportFile      @relation(fields: [importFileId], references: [id], onDelete: Restrict)
+
+  @@unique([programId, sourceVersionId, sourceVoterId])
+  @@unique([partId, sourceVersionId, serialNo])
+  @@index([pollingStationId, recordStatus])
+  @@index([partId, recordStatus])
+  @@index([householdId])
+  @@index([programId, sourceVoterId])
+  @@map("voter")
 }
