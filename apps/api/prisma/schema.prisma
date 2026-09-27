@@ -4,12 +4,141 @@
 // - Table and column names: snake_case via @@map / @map; model and field names: PascalCase / camelCase
 
 generator client {
-  provider     = "prisma-client"
-  output       = "../src/generated/prisma"
-  moduleFormat = "cjs"
-  runtime      = "nodejs"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  moduleFormat    = "cjs"
+  runtime         = "nodejs"
+  // Partial unique indexes (e.g. top-level geography codes); generally available in Prisma 8.
+  previewFeatures = ["partialIndexes"]
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// ---------------------------------------------------------------------------
+// Organization and election program
+// ---------------------------------------------------------------------------
+
+enum OrganizationStatus {
+  active
+  suspended
+
+  @@map("organization_status")
+}
+
+model Organization {
+  id              String             @id @default(uuid(7)) @db.Uuid
+  name            String
+  status          OrganizationStatus @default(active)
+  defaultLanguage String             @default("en") @map("default_language")
+  /// Organization-wide policy settings (e.g. analytics threshold); validated by the API.
+  policyConfig    Json               @default("{}") @map("policy_config")
+  createdAt       DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime           @updatedAt @map("updated_at") @db.Timestamptz
+
+  programs ElectionProgram[]
+
+  @@map("organization")
+}
+
+enum ElectionProgramType {
+  general_election
+  by_election
+  local_body_election
+  campaign
+
+  @@map("election_program_type")
+}
+
+enum ElectionProgramStatus {
+  draft
+  active
+  closed
+  archived
+
+  @@map("election_program_status")
+}
+
+model ElectionProgram {
+  id             String                @id @default(uuid(7)) @db.Uuid
+  organizationId String                @map("organization_id") @db.Uuid
+  name           String
+  type           ElectionProgramType
+  startDate      DateTime?             @map("start_date") @db.Date
+  endDate        DateTime?             @map("end_date") @db.Date
+  status         ElectionProgramStatus @default(draft)
+  createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz
+
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  geographyNodes GeographyNode[]
+
+  @@index([organizationId])
+  @@map("election_program")
+}
+
+// ---------------------------------------------------------------------------
+// Geography: State → PC → AC → Part → Polling Station
+// (docs/design/voter-roll-pdf-import.md §2)
+//
+// Enforced by triggers in the migration SQL (Prisma can't express them):
+// - a node's parent must be of the level directly above it (roots are states)
+// - parent, type and program can't change after insert
+// - geography_closure is filled automatically on insert
+// ---------------------------------------------------------------------------
+
+enum GeographyNodeType {
+  state
+  pc
+  ac
+  part
+  polling_station
+
+  @@map("geography_node_type")
+}
+
+model GeographyNode {
+  id          String            @id @default(uuid(7)) @db.Uuid
+  programId   String            @map("program_id") @db.Uuid
+  parentId    String?           @map("parent_id") @db.Uuid
+  type        GeographyNodeType
+  /// Official number: state code (S29), PC 6, AC 40, part 408, auxiliary station 408A.
+  code        String
+  name        String
+  /// Only for polling stations: an auxiliary station splitting its part.
+  isAuxiliary Boolean           @default(false) @map("is_auxiliary")
+  /// Reservation status, names by language; parts: sections, town, mandal, district, PIN;
+  /// stations: address, station type, and for auxiliary stations the sections or serial range covered.
+  metadata    Json              @default("{}")
+  createdAt   DateTime          @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt   DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+
+  program     ElectionProgram    @relation(fields: [programId], references: [id], onDelete: Restrict)
+  parent      GeographyNode?     @relation("GeographyTree", fields: [parentId], references: [id], onDelete: Restrict)
+  children    GeographyNode[]    @relation("GeographyTree")
+  ancestors   GeographyClosure[] @relation("ClosureDescendant")
+  descendants GeographyClosure[] @relation("ClosureAncestor")
+
+  @@unique([programId, parentId, code], map: "geography_node_sibling_code_key")
+  // Top-level states have no parent, and NULLs never collide in a normal unique index.
+  @@unique([programId, code], map: "geography_node_root_code_key", where: { parentId: null })
+  @@index([parentId])
+  @@index([programId, type])
+  @@map("geography_node")
+}
+
+/// Every (ancestor, descendant) pair, including each node with itself at depth 0.
+/// "All polling stations under AC 40" and "all ancestors of a station" are single queries.
+model GeographyClosure {
+  ancestorId   String @map("ancestor_id") @db.Uuid
+  descendantId String @map("descendant_id") @db.Uuid
+  depth        Int
+
+  ancestor   GeographyNode @relation("ClosureAncestor", fields: [ancestorId], references: [id], onDelete: Cascade)
+  descendant GeographyNode @relation("ClosureDescendant", fields: [descendantId], references: [id], onDelete: Cascade)
+
+  @@id([ancestorId, descendantId])
+  @@index([descendantId, depth])
+  @@map("geography_closure")
 }
