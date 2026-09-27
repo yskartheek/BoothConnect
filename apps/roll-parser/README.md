@@ -25,6 +25,7 @@ in [`docs/SETUP.md`](../../docs/SETUP.md#6-roll-parser-python-optional).
 pnpm --filter roll-parser sync        # uv sync: create .venv, install packages
 pnpm --filter roll-parser check        # show Tesseract/PyMuPDF/OpenCV versions
 pnpm --filter roll-parser synth        # write synthetic roll PDFs (fake data)
+pnpm --filter roll-parser exec uv run roll-parser header <roll.pdf>   # read a roll's header
 pnpm --filter roll-parser lint         # ruff check + ruff format --check
 pnpm --filter roll-parser format       # apply ruff format and safe fixes
 pnpm --filter roll-parser typecheck    # mypy --strict
@@ -33,6 +34,39 @@ pnpm --filter roll-parser test         # pytest
 
 Inside `apps/roll-parser` you can call the tools directly, for example
 `uv run pytest -k ocr` or `uv run roll-parser check`.
+
+### Reading a roll's cover and summary
+
+```powershell
+pnpm --filter roll-parser exec uv run roll-parser header C:\path\to\roll.pdf
+pnpm --filter roll-parser exec uv run roll-parser header C:\path\to\roll.pdf --json
+```
+
+Use the full path to the PDF: `pnpm --filter` runs the command inside
+`apps/roll-parser`. The first prints the page kinds, AC/PC/part, the printed totals and any
+issues; `--json` prints every field with its raw OCR text and confidence. It
+only reads the cover, the summary and the top strip of each page (to classify
+it); it never reads voter boxes or the maps/photos page, so the output holds
+no voter data.
+
+How it works (`src/roll_parser/extract/`):
+
+1. **Classify pages** (`pages.py`): OCR the top 12% of every page. "Section
+   No" → voter page, "ELECTORAL ROLL" → cover, "SUMMARY" → summary; anything
+   else is the maps/photos page and is skipped.
+2. **Cover** (`cover.py`): render at the page image's own resolution, remove
+   table borders (so Tesseract reads the totals table), OCR into lines with
+   word confidences, then find each `Label : value`. A value ends at the next
+   known label, because OCR often joins two columns into one line.
+3. **Summary** (`summary.py`): one row per roll type plus the Total row.
+4. **Checks** (`header.py`): every field present and read with confidence
+   ≥ 0.6; male + female + third gender = total; the serial range covers the
+   total; the summary rows add up to its Total row and to the cover; the
+   auxiliary station count matches the list. Errors mean the file needs
+   review; warnings are shown but don't block.
+
+Every value is a `Field`: `value` (or `null`), `raw` OCR text, and
+`confidence` (the lowest Tesseract word confidence in it, 0–1).
 
 ### Synthetic rolls (fake data)
 

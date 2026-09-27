@@ -22,7 +22,8 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #9                 | API starts; `/v1/health` responds in the browser                                     | Browser                   |
 | #10, #11           | Empty admin web page and empty Flutter app launch                                    | Browser, Android emulator |
 | #26                | Seeded database: State → PC → AC → parts/booths, users, households, voters           | Prisma Studio             |
-| #97, #98           | **Read a roll PDF locally**: run roll-parser on your own sample, compare totals      | Terminal                  |
+| #97                | **Read your own roll's cover**: AC/PC/part and printed totals from your sample       | Terminal                  |
+| #98                | **Read every voter row** of your sample and compare the counts with the totals       | Terminal                  |
 | #29–#33            | Sign in through the API with a dev one-time code and call `/v1/me`                   | curl / Postman / Bruno    |
 | #36–#39            | Browse households and voters through the API; check volunteer A can't see booth B    | curl / Postman            |
 | #41–#43            | Record a visit and sync through the API; try replays and conflicts                   | curl / Postman            |
@@ -49,3 +50,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #18   | [Prisma with UUIDv7 and timestamptz conventions](18-prisma-setup.md)              | Ready to test   |
 | #95   | [roll-parser scaffold (Python, Docker image, CI job)](95-roll-parser-scaffold.md) | Ready to test   |
 | #96   | [Synthetic roll PDF generator and fixtures](96-synthetic-rolls.md)                | Ready to test   |
+| #97   | [Cover and summary page parsing](97-cover-summary-parsing.md)                     | Ready to test   |
