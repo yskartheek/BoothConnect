@@ -49,3 +49,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #20   | [Schema: users, sessions and role assignments](20-users-sessions-roles.md)       | Ready to test   |
 | #21   | [Schema: roll imports](21-import-schema.md)                                      | Ready to test   |
 | #22   | [Schema: households and voters](22-household-voter.md)                           | Ready to test   |
+| #23   | [Schema: field definitions and values](23-field-values.md)                       | Ready to test   |

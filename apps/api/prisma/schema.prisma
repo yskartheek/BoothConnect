@@ -72,12 +72,13 @@ model ElectionProgram {
   createdAt      DateTime              @default(now()) @map("created_at") @db.Timestamptz
   updatedAt      DateTime              @updatedAt @map("updated_at") @db.Timestamptz
 
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  geographyNodes GeographyNode[]
-  sourceVersions SourceVersion[]
-  importBatches  ImportBatch[]
-  importFiles    ImportFile[]
-  voters         Voter[]
+  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  geographyNodes   GeographyNode[]
+  sourceVersions   SourceVersion[]
+  importBatches    ImportBatch[]
+  importFiles      ImportFile[]
+  voters           Voter[]
+  fieldDefinitions FieldDefinition[]
 
   @@index([organizationId])
   @@map("election_program")
@@ -198,6 +199,7 @@ model AppUser {
   uploadedBatches  ImportBatch[]     @relation("BatchUploadedBy")
   confirmedBatches ImportBatch[]     @relation("BatchConfirmedBy")
   correctedRows    ImportRowResult[]
+  collectedValues  FieldValue[]
 
   @@index([organizationId])
   @@map("app_user")
@@ -540,4 +542,112 @@ model Voter {
   @@index([householdId])
   @@index([programId, sourceVoterId])
   @@map("voter")
+}
+
+// ---------------------------------------------------------------------------
+// Configurable fields and their values (spec §7.3, plan §3)
+// ---------------------------------------------------------------------------
+
+enum FieldType {
+  text
+  number
+  boolean
+  date
+  phone
+  single_select
+  multi_select
+
+  @@map("field_type")
+}
+
+enum FieldEntity {
+  voter
+  household
+
+  @@map("field_entity")
+}
+
+/// A field that can be collected for voters or households. Restricted fields
+/// (caste/community, religion, political affiliation, precise location) are
+/// disabled by default; enabling one needs consent and a documented legal basis.
+model FieldDefinition {
+  id              String      @id @default(uuid(7)) @db.Uuid
+  programId       String      @map("program_id") @db.Uuid
+  /// Stable key used by the apps, e.g. "mobile_number", "preferred_language".
+  key             String
+  /// i18n key for the label shown in the apps.
+  labelKey        String      @map("label_key")
+  appliesTo       FieldEntity @map("applies_to")
+  type            FieldType
+  /// Allowed values for select fields: [{ value, labelKey }].
+  options         Json?
+  isRestricted    Boolean     @default(false) @map("is_restricted")
+  enabled         Boolean     @default(false)
+  requiresConsent Boolean     @default(false) @map("requires_consent")
+  /// Why the field is collected; shown in the collection notice.
+  purpose         String
+  /// Required before a restricted field can be enabled.
+  legalBasis      String?     @map("legal_basis")
+  createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+
+  program ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
+  values  FieldValue[]
+
+  @@unique([programId, key])
+  @@map("field_definition")
+}
+
+enum ValueSource {
+  official_import
+  voter_self_submitted
+  volunteer_collected
+  admin_corrected
+  derived
+
+  @@map("value_source")
+}
+
+enum FieldValueStatus {
+  proposed
+  verified
+  rejected
+
+  @@map("field_value_status")
+}
+
+/// One value of one field for one voter or household. Append-only: a change is
+/// a new row whose supersedes_id points at the value it replaces, so the full
+/// history (and who said what) is kept. is_current is maintained by a trigger.
+model FieldValue {
+  id                 String           @id @default(uuid(7)) @db.Uuid
+  entityType         FieldEntity      @map("entity_type")
+  /// A voter or household id, depending on entity_type.
+  entityId           String           @map("entity_id") @db.Uuid
+  fieldDefinitionId  String           @map("field_definition_id") @db.Uuid
+  value              Json
+  sourceType         ValueSource      @map("source_type")
+  verificationStatus FieldValueStatus @default(proposed) @map("verification_status")
+  /// The consent record covering this value (required for consent fields; FK added with the consent table).
+  consentId          String?          @map("consent_id") @db.Uuid
+  collectedById      String?          @map("collected_by") @db.Uuid
+  collectedAt        DateTime         @default(now()) @map("collected_at") @db.Timestamptz
+  /// The value this one replaces.
+  supersedesId       String?          @unique @map("supersedes_id") @db.Uuid
+  /// The value the client last saw when it made this change (conflict detection).
+  baseVersion        String?          @map("base_version") @db.Uuid
+  /// False once another value supersedes this one.
+  isCurrent          Boolean          @default(true) @map("is_current")
+  createdAt          DateTime         @default(now()) @map("created_at") @db.Timestamptz
+
+  fieldDefinition FieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Restrict)
+  collectedBy     AppUser?        @relation(fields: [collectedById], references: [id], onDelete: Restrict)
+  supersedes      FieldValue?     @relation("FieldValueHistory", fields: [supersedesId], references: [id], onDelete: Restrict)
+  supersededBy    FieldValue?     @relation("FieldValueHistory")
+
+  /// "Current value(s) for each (entity, field)". Usually one; two stale edits
+  /// that conflict are both kept current until someone resolves them.
+  @@index([entityType, entityId, fieldDefinitionId], map: "field_value_current_idx", where: raw("is_current"))
+  @@index([fieldDefinitionId])
+  @@map("field_value")
 }
