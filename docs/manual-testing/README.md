@@ -18,10 +18,11 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #13                | Repo installs; root scripts run (nothing to build yet)                               | Terminal                  |
 | #15, #16           | Postgres, Redis and MinIO start in Docker; MinIO console opens                       | Docker Desktop, browser   |
 | #95                | roll-parser installs; `check` shows Tesseract works (no PDF reading yet)             | Terminal, Docker Desktop  |
+| #96                | Generate synthetic roll PDFs and compare them with your real sample                  | Terminal, PDF viewer      |
 | #9                 | API starts; `/v1/health` responds in the browser                                     | Browser                   |
 | #10, #11           | Empty admin web page and empty Flutter app launch                                    | Browser, Android emulator |
 | #26                | Seeded database: State → PC → AC → parts/booths, users, households, voters           | Prisma Studio             |
-| #96–#98            | **Read a roll PDF locally**: run roll-parser on your own sample, compare totals      | Terminal                  |
+| #97, #98           | **Read a roll PDF locally**: run roll-parser on your own sample, compare totals      | Terminal                  |
 | #29–#33            | Sign in through the API with a dev one-time code and call `/v1/me`                   | curl / Postman / Bruno    |
 | #36–#39            | Browse households and voters through the API; check volunteer A can't see booth B    | curl / Postman            |
 | #41–#43            | Record a visit and sync through the API; try replays and conflicts                   | curl / Postman            |
@@ -52,3 +53,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #22   | [Schema: households and voters](22-household-voter.md)                            | Ready to test   |
 | #23   | [Schema: field definitions and values](23-field-values.md)                        | Ready to test   |
 | #95   | [roll-parser scaffold (Python, Docker image, CI job)](95-roll-parser-scaffold.md) | Ready to test   |
+| #96   | [Synthetic roll PDF generator and fixtures](96-synthetic-rolls.md)                | Ready to test   |
