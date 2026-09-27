@@ -6,6 +6,7 @@ NestJS 12 REST API. Every route is under `/v1`.
 pnpm infra:up                  # Postgres, Redis, MinIO (from the repo root)
 pnpm --filter api dev          # http://localhost:4000/v1/health, restarts on changes
 pnpm --filter api test         # unit + HTTP tests (no Docker needed)
+pnpm --filter api test:int     # integration tests against real Postgres + Redis
 pnpm --filter api build        # compile to dist/
 pnpm --filter api start        # run the compiled build
 ```

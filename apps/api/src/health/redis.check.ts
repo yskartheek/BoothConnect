@@ -14,9 +14,10 @@ export class RedisHealthCheck implements HealthCheck, OnModuleDestroy {
     // Connects in the background and keeps reconnecting if Redis goes away.
     this.client = new Redis(config.get('REDIS_URL', { infer: true }), {
       connectTimeout: 2000,
+      // A PING sent while (re)connecting waits for the connection, so the first
+      // check after startup doesn't fail. If Redis stays down, the command is
+      // rejected after one reconnect attempt (and HealthService times out anyway).
       maxRetriesPerRequest: 1,
-      // Fail fast while disconnected instead of queueing commands.
-      enableOfflineQueue: false,
     });
     // Connection errors surface through check(); without a listener ioredis
     // would log them as unhandled on every reconnect attempt.

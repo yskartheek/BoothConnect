@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:int": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --config jest.int.config.cjs",
     "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch"
   },
   "dependencies": {

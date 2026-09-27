@@ -40,3 +40,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #9    | [NestJS API skeleton with health endpoint](9-api-skeleton.md)             | Ready to test |
 | #10   | [Next.js admin-web skeleton](10-admin-web-skeleton.md)                    | Ready to test |
 | #11   | [Flutter mobile skeleton](11-mobile-skeleton.md)                          | Ready to test |
+| #17   | [GitHub Actions CI](17-ci.md)                                             | Ready to test |
