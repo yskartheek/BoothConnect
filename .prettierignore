@@ -5,8 +5,12 @@ pnpm-lock.yaml
 **/.next
 **/coverage
 **/.turbo
+# Python virtual environments (apps/roll-parser)
+**/.venv
 # Flutter code is formatted by `dart format`, not Prettier
 apps/mobile
 # Source planning documents are kept as authored
 VOTER_FIELD_OPERATIONS_APP_SPEC.md
 docs/IMPLEMENTATION_PLAN.md
+# Generated Prisma client
+**/src/generated

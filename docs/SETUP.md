@@ -71,6 +71,12 @@ pnpm infra:up                              # Postgres, Redis, MinIO
 `pnpm infra:up` ends with `Bucket boothconnect-imports is ready` once all three
 services are healthy. The first run downloads the Docker images.
 
+Create the database tables:
+
+```powershell
+pnpm --filter api db:deploy
+```
+
 Start the API:
 
 ```powershell
@@ -112,6 +118,8 @@ pnpm --filter mobile start      # Flutter app; start the Android emulator first
 | `pnpm build`                        | Production builds of the API and admin web                             |
 | `pnpm test:e2e`                     | Browser tests for the admin web                                        |
 | `pnpm --filter api test:int`        | API integration tests (needs `pnpm infra:up`)                          |
+| `pnpm --filter api db:deploy`       | Apply database migrations (needs `pnpm infra:up`)                      |
+| `pnpm --filter api db:seed`         | Load development seed data                                             |
 | `pnpm --filter <app> <script>`      | One app only; `<app>` is `api`, `admin-web`, `mobile` or `roll-parser` |
 
 Run `pnpm format`, `pnpm lint`, `pnpm typecheck` and `pnpm test` before
