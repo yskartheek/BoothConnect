@@ -76,6 +76,51 @@ def _header(pdf: Path, as_json: bool) -> int:
     return 0
 
 
+def _extract(pdf: Path, out: Path | None, truth: Path | None, workers: int | None) -> int:
+    """Read every voter row. Prints counts and issue codes only (no voter data);
+    the full result, which does contain voter data, goes to ``out``."""
+    from collections import Counter
+
+    from roll_parser.extract.roll import extract_roll
+
+    if not pdf.is_file():
+        print(f"No such file: {pdf}", file=sys.stderr)
+        return 1
+    result = extract_roll(pdf, workers=workers)
+    printed = result.header.printed_totals
+    c = result.extracted_totals
+    print(f"pages:     {result.page_count}, voter rows: {len(result.rows)}")
+    print(
+        f"extracted: {c.male} male / {c.female} female / {c.third_gender} third gender / "
+        f"{c.total} total (deleted entries excluded)"
+    )
+    if printed is not None:
+        p = printed.counts
+        print(
+            f"printed:   {p.male.value} male / {p.female.value} female / "
+            f"{p.third_gender.value} third gender / {p.total.value} total"
+        )
+    print(
+        f"quality:   {result.quality_score:.2f}"
+        + ("  (needs review)" if result.needs_review else "")
+    )
+    print(f"time:      {result.timings.total_seconds:.1f} s")
+    codes = Counter(i.code for i in [*result.header.issues, *result.issues])
+    rows = Counter(i.code for row in result.rows for i in row.issues)
+    print(f"file issues: {dict(codes) or 'none'}")
+    print(f"row issues:  {dict(rows) or 'none'} on {sum(1 for r in result.rows if r.issues)} rows")
+    if out is not None:
+        out.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+        print(f"full result (contains voter data, keep it private): {out}")
+    if truth is not None:
+        from roll_parser.model import RollTruth
+        from roll_parser.synthetic.accuracy import compare
+
+        expected = RollTruth.model_validate_json(truth.read_text(encoding="utf-8"))
+        print(compare(result, expected).report())
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="roll-parser", description=__doc__)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -94,6 +139,11 @@ def main(argv: list[str] | None = None) -> int:
     )
     header.add_argument("pdf", type=Path)
     header.add_argument("--json", action="store_true", help="print every field as JSON")
+    extract = commands.add_parser("extract", help="read every voter row of a roll PDF")
+    extract.add_argument("pdf", type=Path)
+    extract.add_argument("--out", type=Path, help="write the full result (with voter data) here")
+    extract.add_argument("--truth", type=Path, help="ground-truth JSON of a synthetic roll")
+    extract.add_argument("--workers", type=int, help="parallel processes (default: CPU count)")
 
     args = parser.parse_args(argv)
     if args.command == "check":
@@ -102,6 +152,8 @@ def main(argv: list[str] | None = None) -> int:
         return _synth(args.presets, args.out)
     if args.command == "header":
         return _header(args.pdf, args.json)
+    if args.command == "extract":
+        return _extract(args.pdf, args.out, args.truth, args.workers)
     return 2  # pragma: no cover  (argparse rejects unknown commands)
 
 

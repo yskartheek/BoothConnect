@@ -56,3 +56,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #95   | [roll-parser scaffold (Python, Docker image, CI job)](95-roll-parser-scaffold.md) | Ready to test   |
 | #96   | [Synthetic roll PDF generator and fixtures](96-synthetic-rolls.md)                | Ready to test   |
 | #97   | [Cover and summary page parsing](97-cover-summary-parsing.md)                     | Ready to test   |
+| #98   | [Voter-box extraction with confidence and normalisation](98-voter-boxes.md)       | Ready to test   |

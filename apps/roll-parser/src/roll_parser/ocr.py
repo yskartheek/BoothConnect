@@ -131,3 +131,141 @@ def read_lines(image: GrayImage, *, psm: int = 3, lang: str = "eng") -> list[Lin
                 continue
         rows.append([piece])
     return [_join(row) for row in rows]
+
+
+@dataclass(frozen=True)
+class PageWord:
+    """A word found anywhere on a page, with its pixel box."""
+
+    text: str
+    confidence: float  # 0-1
+    left: int
+    top: int
+    width: int
+    height: int
+
+    @property
+    def cx(self) -> float:
+        return self.left + self.width / 2
+
+    @property
+    def cy(self) -> float:
+        return self.top + self.height / 2
+
+
+# Names and ID numbers aren't dictionary words: without this, Tesseract
+# "corrects" them towards English (e.g. SAI -> SAL).
+NO_DICTIONARY = "-c load_system_dawg=0 -c load_freq_dawg=0"
+
+
+def read_words(
+    image: GrayImage,
+    *,
+    psm: int = 11,
+    lang: str = "eng",
+    dictionary: bool = True,
+    whitelist: str | None = None,
+) -> list[PageWord]:
+    """Every word on the image with its position (sparse text mode by default,
+    which finds text in grids of boxes better than page layout analysis)."""
+    configure()
+    config = f"--psm {psm}" if dictionary else f"--psm {psm} {NO_DICTIONARY}"
+    if whitelist:
+        config += f" -c tessedit_char_whitelist={whitelist}"
+    data = pytesseract.image_to_data(
+        image, lang=lang, config=config, output_type=pytesseract.Output.DICT
+    )
+    return [
+        PageWord(
+            str(text).strip(),
+            max(float(data["conf"][i]), 0.0) / 100,
+            int(data["left"][i]),
+            int(data["top"][i]),
+            int(data["width"][i]),
+            int(data["height"][i]),
+        )
+        for i, text in enumerate(data["text"])
+        if str(text).strip()
+    ]
+
+
+def line_from_words(words: list[PageWord]) -> Line:
+    """Join words (already in reading order) into one Line."""
+    joined: list[Word] = []
+    offset = 0
+    for w in words:
+        joined.append(Word(w.text, w.confidence, offset, offset + len(w.text)))
+        offset += len(w.text) + 1
+    if not words:
+        return Line("", (), 0, 0, 0)
+    return Line(
+        " ".join(w.text for w in words),
+        tuple(joined),
+        min(w.top for w in words),
+        max(w.top + w.height for w in words),
+        min(w.left for w in words),
+    )
+
+
+def read_words_scaled(
+    image: GrayImage, scale: float, *, psm: int = 11, dictionary: bool = True
+) -> list[PageWord]:
+    """:func:`read_words` on an enlarged copy; positions are in the original's pixels."""
+    if scale == 1:
+        return read_words(image, psm=psm, dictionary=dictionary)
+    import cv2
+
+    big = cv2.resize(image, None, fx=scale, fy=scale, interpolation=cv2.INTER_CUBIC)
+    return [
+        PageWord(
+            w.text,
+            w.confidence,
+            round(w.left / scale),
+            round(w.top / scale),
+            round(w.width / scale),
+            round(w.height / scale),
+        )
+        for w in read_words(big.astype(np.uint8), psm=psm, dictionary=dictionary)
+    ]
+
+
+STRIP_PAD = 12
+
+
+def read_strips(crops: list[GrayImage], *, whitelist: str, lang: str = "eng") -> list[Line]:
+    """OCR many small one-line crops with a single Tesseract call.
+
+    The crops are stacked vertically (with white space between) and read as a
+    block; each word is then given back to the crop it lies in. Returns one
+    Line per crop (empty when nothing was read).
+    """
+    import cv2
+
+    if not crops:
+        return []
+    width = max(c.shape[1] for c in crops) + 2 * STRIP_PAD
+    padded = []
+    bounds = []
+    y = 0
+    for crop in crops:
+        piece = cv2.copyMakeBorder(
+            crop,
+            STRIP_PAD,
+            STRIP_PAD,
+            STRIP_PAD,
+            width - crop.shape[1] - STRIP_PAD,
+            cv2.BORDER_CONSTANT,
+            value=255,
+        )
+        padded.append(piece)
+        bounds.append((y, y + piece.shape[0]))
+        y += piece.shape[0]
+    stack: GrayImage = np.vstack(padded).astype(np.uint8)
+    words = read_words(stack, psm=6, lang=lang, dictionary=False, whitelist=whitelist)
+    per_crop: list[list[PageWord]] = [[] for _ in crops]
+    for word in words:
+        for i, (top, bottom) in enumerate(bounds):
+            if top <= word.cy < bottom:
+                per_crop[i].append(word)
+                break
+    return [line_from_words(sorted(ws, key=lambda w: w.left)) for ws in per_crop]
