@@ -13,7 +13,8 @@ boothconnect/
 ├── apps/
 │   ├── api/                 NestJS REST API (/v1), OpenAPI generation
 │   ├── admin-web/           Next.js admin portal (App Router)
-│   └── mobile/              Flutter app (volunteer first; voter later)
+│   ├── mobile/              Flutter app (volunteer first; voter later)
+│   └── roll-parser/         Python worker: PDF electoral-roll extraction (ADR-0002)
 ├── packages/
 │   ├── api-client/          TS client generated from OpenAPI (used by admin-web)
 │   ├── design-tokens/       Single JSON source → CSS vars (web) + Dart ThemeData (mobile)
@@ -42,16 +43,17 @@ Tooling: pnpm + Turborepo for JS/TS, Prettier + ESLint, `flutter analyze` + `dar
 | `auth` | OTP sign-in (dev stub sends code to log), JWT access (15 min) + rotating refresh tokens, sessions table, revoke | ✅ |
 | `users` | Users, status (active/suspended), MFA state | ✅ |
 | `assignments` | RoleAssignment (role + geography node + validity window) | ✅ |
-| `geography` | Org → Program → Region → Constituency → Booth tree (closure table) | ✅ |
+| `geography` | Org → Program → State → PC → AC → Part → Polling Station tree (closure table); State/PC/AC master data; see [design](design/voter-roll-pdf-import.md) | ✅ |
 | `households` | Household records, scoped by booth | ✅ |
 | `voters` | Voter source data + FieldValue overlays (proposed/verified) | ✅ |
 | `field-definitions` | Configurable fields; restricted fields seeded **disabled** | ✅ |
 | `visits` | Append-only visits + outcomes, idempotency keys | ✅ |
 | `sync` | Batch push/pull for mobile, conflict detection | ✅ |
-| `imports` | CSV upload → map → validate → preview → confirm (queued job) | ✅ |
+| `imports` | PDF electoral rolls uploaded at any hierarchy level → extraction by `roll-parser` → validate against printed totals → review/correct → confirm ([design](design/voter-roll-pdf-import.md)) | ✅ |
+| `analytics` | Per-node metrics for every level with parent roll-ups and child comparison (`node_stats`), cohort ≥ 10 | ✅ |
 | `consent` | Consent records (purpose, notice version, method, withdrawal) | ✅ |
 | `audit` | Append-only, hash-chained audit events | ✅ |
-| `submissions`, `tasks`, `campaigns`, `notifications`, `analytics`, `exports` | — | Later milestones |
+| `submissions`, `tasks`, `campaigns`, `notifications`, `exports` | — | Later milestones |
 
 Cross-cutting (`apps/api/src/common`):
 
@@ -72,17 +74,23 @@ All IDs are UUIDv7 (opaque, sortable). Timestamps are `timestamptz` (UTC).
 ```text
 organization          id, name, status, default_language, policy_config jsonb
 election_program      id, organization_id, name, type, start_date, end_date, status
-geography_node        id, program_id, parent_id, type, code, name, metadata
+geography_node        id, program_id, parent_id, type (state|pc|ac|part|polling_station), code, name, metadata
 geography_closure     ancestor_id, descendant_id, depth        -- fast scope checks
 app_user              id, organization_id, name, phone, email, status, preferred_language, mfa_state
 session               id, user_id, device_id, refresh_hash, expires_at, revoked_at
 role_assignment       id, user_id, role, geography_node_id, valid_from, valid_until, granted_by
-source_version        id, program_id, label, published_on, checksum
-import_job            id, source_version_id, uploaded_by, file_ref, mapping jsonb, status, row_counts jsonb, checksum
-import_row_result     id, import_job_id, row_number, status(accepted|warning|rejected), messages jsonb
-household             id, booth_id, display_address, structured_address jsonb, source_version_id, status
-voter                 id, household_id, booth_id, source_voter_id, source_data jsonb (immutable),
-                      verification_status, record_status, import_job_id
+source_version        id, program_id, part_node_id, revision_type, label, published_on, checksum
+import_batch          id, program_id, target_node_id, uploaded_by, status, file_count, confirmed_by, confirmed_at
+import_file           id, batch_id, file_ref, checksum, page_count, detected_header jsonb, part_node_id,
+                      source_version_id, extraction_method, quality_score, printed_totals jsonb,
+                      extracted_totals jsonb, status, error jsonb
+import_row_result     id, import_file_id, page, box_index, status(accepted|warning|rejected), messages jsonb,
+                      field_confidence jsonb, corrected_values jsonb, corrected_by, corrected_at
+household             id, polling_station_id, display_address, structured_address jsonb, source_version_id, status
+voter                 id, household_id, part_id, polling_station_id, section_no, serial_no,
+                      source_voter_id (EPIC), source_data jsonb (immutable),
+                      verification_status, record_status, import_file_id
+node_stats            node_id, metrics jsonb, computed_at            -- per-node analytics, rebuilt on confirm
 field_definition      id, program_id, key, type, is_restricted, enabled, requires_consent, purpose
 field_value           id, entity_type, entity_id, field_definition_id, value jsonb, source_type,
                       verification_status, consent_id, collected_by, collected_at, supersedes_id, base_version
@@ -112,7 +120,8 @@ POST   /auth/otp/verify             { phone, code }       → tokens
 POST   /auth/refresh                                      → rotated tokens
 POST   /auth/logout
 GET    /me                                                → profile + active assignments
-GET    /geographies/:id/children                          (scoped)
+GET    /geographies?parentId&type&q                       (scoped; drives the level dropdowns)
+POST   /geographies, /geographies/imports                 admin: State/PC/AC master data
 GET    /households?boothId&q&status&cursor                (scoped, paginated)
 GET    /households/:id                                    (scoped; 404 outside scope)
 GET    /voters/:id                                        source + current values + provenance
@@ -120,12 +129,18 @@ POST   /visits                     Idempotency-Key        append visit + field c
 GET    /sync/pull?since=cursor                            assigned-booth delta for offline
 POST   /sync/push                  Idempotency-Key        batch of mutations → per-item result
                                                           (applied | duplicate | conflict | rejected)
-POST   /imports                    multipart CSV          → job (uploaded)
-PUT    /imports/:id/mapping                               → validation queued
-GET    /imports/:id/preview                               counts + row results (paged)
-POST   /imports/:id/confirm                               → commit to active dataset
-GET    /imports/:id/rejections.csv                        formula-injection-safe
-GET    /analytics/booth-progress?nodeId                   aggregate only, cohort ≥ 10
+POST   /imports/batches            { targetNodeId }       → batch (any hierarchy level)
+POST   /imports/batches/:id/files                         → presigned upload URLs (PDF / ZIP)
+POST   /imports/batches/:id/files/:fileId/complete        → extraction queued
+GET    /imports/batches/:id                               per-file status, counts, quality
+GET    /imports/files/:id/preview                         header, totals check, rows (paged)
+GET    /imports/files/:id/pages/:n                        page image for correction
+PATCH  /imports/files/:id/rows/:rowId                     correct or reject a row (audited)
+POST   /imports/files/:id/confirm, /imports/batches/:id/confirm   → commit to active dataset
+GET    /imports/files/:id/rejections.csv                  formula-injection-safe
+GET    /analytics/nodes/:id/summary                       any level; aggregate only, cohort ≥ 10
+GET    /analytics/nodes/:id/children?metric               child breakdown for parent analysis
+GET    /analytics/nodes/:id/revisions                     changes between roll revisions
 GET    /audit-events?actor&action&from&to                 admin only
 ```
 
@@ -145,7 +160,8 @@ GET    /audit-events?actor&action&from&to                 admin only
 ## 6. Admin web vertical slice (`apps/admin-web`)
 
 - Sign-in placeholder (OTP stub; MFA gate designed but stubbed)
-- **Import wizard:** upload, then map columns, then preview accepted/warning/rejected rows, then confirm
+- **Roll import:** pick the level with cascading dropdowns (State → PC → AC → Part), upload PDFs/ZIP, watch per-file extraction, review and correct rows beside the page image, then confirm
+- **Analytics explorer:** any node from State to polling station — its metrics, sibling/parent comparison, sortable children table, drill-down with breadcrumbs (thresholded)
 - **Booth progress:** assigned vs visited households and outcome breakdown (thresholded)
 - **Voter record view:** source vs proposed vs verified values with provenance
 - **Audit explorer:** filterable table
@@ -155,7 +171,7 @@ GET    /audit-events?actor&action&from&to                 admin only
 
 ## 7. Seed data
 
-One organization, one program, one state, one constituency and **two booths**. The second booth exists so cross-booth denial can be tested. Users: 1 admin, 2 volunteers (one per booth). Data: about 40 households and 120 synthetic voters (fake names, no real data). Restricted fields are present but disabled.
+One organization, one program, and a synthetic hierarchy: one state → one PC → one AC → two parts, each with one polling station (the **two booths**). The second booth exists so cross-booth denial can be tested. Users: 1 admin, 2 volunteers (one per booth). Data: about 40 households and 120 synthetic voters (fake names, no real data). Restricted fields are present but disabled.
 
 ---
 
@@ -165,7 +181,9 @@ One organization, one program, one state, one constituency and **two booths**. T
 |---|---|
 | Authorization | Volunteer A requesting booth B's household/voter by ID gets 404; list endpoints never return B's rows or counts |
 | Suspension | Suspended user's valid token gets 401 on the next request |
-| Import | Malformed, duplicate and unknown-booth rows are rejected; re-uploading the same checksum is flagged duplicate; nothing enters the active set before confirm |
+| Import | A PDF whose header is outside the chosen node is rejected; re-uploading the same checksum is flagged duplicate; totals mismatch or low confidence forces review; nothing enters the active set before confirm |
+| Extraction | `roll-parser` reaches the agreed field accuracy on the fixture roll pages (text-layer and OCR cases); photos are never stored |
+| Analytics | Parent metrics equal the sum of their children; groups < 10 (including via filters or subtraction) are suppressed |
 | CSV safety | Values starting with `= + - @` are neutralized in the rejection export |
 | Idempotency | The same `/visits` or `/sync/push` twice gives one visit, and the same response is returned |
 | Conflict | Two stale edits to the same field produce a conflict and neither value is lost |
@@ -200,4 +218,4 @@ Each step ends with its smallest relevant tests passing before moving on.
 
 ## 11. Open decisions (not blocking Milestone 1)
 
-Deployment country and applicable law · voter-list source format · identity-verification method · one app vs two · languages · minimum OS versions · hosting region · retention periods · analytics threshold (default 10) · tenancy model.
+Deployment country and applicable law · electoral-roll PDF format per state, OCR languages and permitted use (see [design §10](design/voter-roll-pdf-import.md#10-open-questions-need-answers-before-implementation)) · identity-verification method · one app vs two · languages · minimum OS versions · hosting region · retention periods · analytics threshold (default 10) · tenancy model.
