@@ -166,6 +166,8 @@ importers:
 
   apps/mobile: {}
 
+  apps/roll-parser: {}
+
   packages/eslint-config:
     dependencies:
       '@eslint/js':
