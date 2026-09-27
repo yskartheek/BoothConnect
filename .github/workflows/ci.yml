@@ -55,6 +55,7 @@ jobs:
             api:
               - *shared
               - 'apps/api/**'
+              - 'infra/**'
               - 'packages/eslint-config/**'
             web:
               - *shared
@@ -116,6 +117,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter api db:deploy
       - run: pnpm --filter api test:int
 
   web-e2e:

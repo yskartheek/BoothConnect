@@ -2,6 +2,7 @@ import nest from '@boothconnect/eslint-config/nest';
 
 export default [
   ...nest,
+  { ignores: ['src/generated/**'] },
   {
     // Jest matchers (expect.any) and supertest's server handle are typed `any`.
     files: ['**/*.spec.ts', '**/*.e2e-spec.ts', '**/*.int-spec.ts'],
