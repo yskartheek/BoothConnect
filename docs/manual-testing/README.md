@@ -35,3 +35,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | ----- | ------------------------------------------------------------------------- | ------------- |
 | #13   | [Initialize pnpm workspace and Turborepo](13-pnpm-workspace-turborepo.md) | Ready to test |
 | #14   | [Shared ESLint + Prettier config](14-eslint-prettier.md)                  | Ready to test |
+| #15   | [docker-compose for Postgres 16, Redis and MinIO](15-docker-compose.md)   | Ready to test |
