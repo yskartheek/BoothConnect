@@ -42,7 +42,7 @@ request. `Authorization` and `Cookie` headers are redacted.
 pnpm infra:up                      # Postgres must be running
 pnpm --filter api db:deploy        # apply all migrations
 pnpm --filter api db:migrate       # after editing schema.prisma: create + apply a migration, regenerate the client
-pnpm --filter api db:seed          # load development seed data
+pnpm --filter api db:seed          # load the synthetic demo data (safe to run again; src/database/seed)
 pnpm --filter api db:reset         # drop everything, re-apply migrations, seed (asks to confirm)
 pnpm --filter api db:studio        # browse the data in the browser
 pnpm --filter api db:generate      # regenerate the client (also runs on pnpm install)
