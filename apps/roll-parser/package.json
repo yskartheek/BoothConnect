@@ -4,7 +4,7 @@
   "private": true,
   "description": "BoothConnect roll-parser worker (Python). These scripts wrap uv so Turborepo can run them.",
   "scripts": {
-    "setup": "uv sync --locked",
+    "sync": "uv sync --locked",
     "check": "uv run roll-parser check",
     "synth": "uv run roll-parser synth --out synthetic-rolls",
     "lint": "uv run ruff check . && uv run ruff format --check .",

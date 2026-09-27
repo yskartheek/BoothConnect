@@ -193,7 +193,7 @@ ways to run it.
    under "Additional language data" in the installer.
 3. Install and check:
    ```powershell
-   pnpm --filter roll-parser setup    # creates apps/roll-parser/.venv
+   pnpm --filter roll-parser sync    # creates apps/roll-parser/.venv
    pnpm --filter roll-parser check    # prints the Tesseract, PyMuPDF and OpenCV versions
    pnpm --filter roll-parser test
    ```

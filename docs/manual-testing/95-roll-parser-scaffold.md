@@ -9,7 +9,7 @@
 - It doesn't read rolls yet. It has one command, `roll-parser check`, which
   prints the Tesseract, PyMuPDF and OpenCV versions, and smoke tests that
   render text into a PDF page and read it back with Tesseract.
-- `apps/roll-parser/package.json` wraps the Python tools (`setup`, `check`,
+- `apps/roll-parser/package.json` wraps the Python tools (`sync`, `check`,
   `lint`, `format`, `typecheck`, `test`), so `pnpm lint` / `pnpm typecheck` /
   `pnpm test` at the root include it, the same way as the Flutter app.
 - `apps/roll-parser/Dockerfile`: Ubuntu 24.04, Python 3.12, Tesseract 5.3.4
@@ -34,7 +34,7 @@ You can do **A** (Windows directly), **B** (Docker only), or both.
    uv --version
    $env:TESSERACT_CMD = "C:\Program Files\Tesseract-OCR\tesseract.exe"   # unless it's on PATH
    pnpm install --frozen-lockfile
-   pnpm --filter roll-parser setup
+   pnpm --filter roll-parser sync
    ```
    **Expect:** uv downloads Python 3.12 if you don't have it, then
    `Installed ... packages`. A new folder `apps/roll-parser/.venv` appears
