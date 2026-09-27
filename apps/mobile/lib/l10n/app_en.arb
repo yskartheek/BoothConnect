@@ -1,0 +1,15 @@
+{
+  "@@locale": "en",
+  "appTitle": "BoothConnect",
+  "@appTitle": {
+    "description": "App name, shown in the app bar and the OS task switcher."
+  },
+  "homeWelcome": "Welcome to BoothConnect",
+  "@homeWelcome": {
+    "description": "Heading on the placeholder home screen."
+  },
+  "homeComingSoon": "Sign-in and your assigned households will appear here.",
+  "@homeComingSoon": {
+    "description": "Body text on the placeholder home screen, shown until sign-in exists."
+  }
+}

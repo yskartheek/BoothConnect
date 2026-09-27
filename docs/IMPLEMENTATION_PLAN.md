@@ -193,7 +193,7 @@ Each step ends with its smallest relevant tests passing before moving on.
 
 ## 10. Local machine prerequisites (Windows)
 
-- **Node.js 20 LTS** + `corepack enable` (for pnpm)
+- **Node.js 24 LTS** + `corepack enable` (for pnpm)
 - **Flutter SDK** (stable) + Android Studio (Android emulator). iOS builds need a Mac.
 - **Docker Desktop** with the WSL 2 backend (runs Postgres/Redis/MinIO)
 - **Git**
