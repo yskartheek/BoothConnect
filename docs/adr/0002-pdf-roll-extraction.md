@@ -1,6 +1,6 @@
 # ADR-0002: PDF electoral-roll extraction in a Python worker
 
-- **Status:** Proposed
+- **Status:** Accepted (owner, 2026-09-27)
 - **Date:** 2026-09-27
 - **Deciders:** project owner
 - **Related:** #92, [design](../design/voter-roll-pdf-import.md), ADR-0001
@@ -46,9 +46,9 @@ Add a **roll-parser worker** written in **Python**, at `apps/roll-parser`:
 
 - A third language in the repo (TypeScript, Dart, now Python), with its own
   lint/test job in CI and its own Docker image.
-- Accuracy depends on the actual PDFs, so the first implementation step is a
-  spike on the user's sample PDFs, to measure text-layer vs OCR accuracy per
-  field before the parser is finalised.
+- Accuracy depends on the actual PDFs. A first spike on the owner's Telangana
+  sample (image-only, so OCR only) found 571/571 voter boxes and matched the
+  printed gender totals exactly; details in the design, §4a.
 - The interface (job in → rows with confidence out) allows switching the
   engine later, e.g. to a cloud OCR, without changing the API or the admin
   UI.

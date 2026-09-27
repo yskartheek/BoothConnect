@@ -18,20 +18,21 @@
      duplicates, new revisions, review, confirm)
    - §4: what is read from each PDF, and what isn't (photos)
    - §7: the analytics cards, and the parent/child comparison
-2. Answer the open questions in §10 in the PR, especially **question 1**:
-   attach 2–3 sample part PDFs (redacted is fine) and say which state they're
-   from.
+2. Check §4a (what your sample roll contains, and the OCR spike result) and
+   §10 (your answers, recorded as decisions).
 3. Look at the plan diff in the PR to see what changes for the existing
    issues.
 
 ## Pass criteria
 
-- You agree with the design, or you've left comments on what to change, and
-  §10 is answered.
+- You agree with the design, or you've left comments on what to change.
 
 ## Known issues and notes
 
-- **Extraction accuracy is unknown until we see real PDFs.** The first
-  implementation task is a spike on your sample files.
+- **Only one sample so far.** The spike matched the printed totals exactly on
+  it; supplementary rolls, Telugu rolls and parts with auxiliary stations
+  still need samples.
+- **Real roll PDFs must never be committed.** `.gitignore` now ignores
+  `*.pdf`.
 - **The existing issues (#19, #21, #26, #36, #44–#49, #71–#74) still describe
   the CSV import.** They'll be updated or replaced once the design is agreed.

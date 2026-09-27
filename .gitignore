@@ -42,3 +42,7 @@ next-env.d.ts
 playwright-report/
 test-results/
 blob-report/
+
+# Electoral-roll PDFs contain real personal data: never commit them.
+# Test fixtures must be synthetic and added with `git add -f`.
+*.pdf

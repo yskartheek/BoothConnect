@@ -11,4 +11,4 @@ To add one, copy [`0000-template.md`](0000-template.md) to
 | ADR                                 | Title                               | Status   |
 | ----------------------------------- | ----------------------------------- | -------- |
 | [0001](0001-technology-stack.md)    | Technology stack                    | Accepted |
-| [0002](0002-pdf-roll-extraction.md) | PDF roll extraction (Python worker) | Proposed |
+| [0002](0002-pdf-roll-extraction.md) | PDF roll extraction (Python worker) | Accepted |

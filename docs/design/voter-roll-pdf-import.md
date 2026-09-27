@@ -1,6 +1,6 @@
 # Design: PDF electoral-roll import and hierarchical analytics
 
-- **Status:** Draft for review (#92)
+- **Status:** Accepted with answers from the owner; sample analysed (#92)
 - **Replaces:** the CSV-only voter-list import in spec §7.2 and plan §2–§7; extends the dashboards in spec §8
 - **Decision record:** [ADR-0002](../adr/0002-pdf-roll-extraction.md)
 
@@ -35,8 +35,10 @@ State                                   e.g. Andhra Pradesh (S01)
   siblings. The display name and the language-specific names live in
   `metadata`.
 - **Part vs polling station.** The roll is published per Part, and a Part
-  normally has **one** polling station. Some Parts have auxiliary stations
-  (e.g. 117A) that split the Part by section or serial range. So:
+  normally has **one** polling station. Some Parts have **auxiliary stations**
+  (e.g. 117A) that split the Part by section or serial range; the cover page
+  prints "Number of Auxiliary Polling Stations in this part". Auxiliary
+  stations are **in scope**. So:
   - Every Part gets one main polling station, created automatically from the
     PDF header.
   - Auxiliary stations can be added under the Part. Voters are assigned to a
@@ -44,9 +46,9 @@ State                                   e.g. Andhra Pradesh (S01)
     station.
   - Volunteers are assigned at polling-station level, as today.
 - **Where the hierarchy comes from:**
-  - State, PC and AC are **master data**. They're loaded once from a small
-    CSV (code, name, parent code) or created in the admin UI. They rarely
-    change.
+  - State, PC and AC are **master data**, loaded by **uploading a CSV**
+    (code, name, reservation status, parent code), with the admin UI for
+    small fixes. They rarely change.
   - Parts and polling stations are **created from the PDF headers** during
     import, and shown to the admin for confirmation before they're saved.
 
@@ -123,8 +125,66 @@ the Redis queue (see ADR-0002 for why this is a separate Python service).
    position and confidence), then the same preview → correct → confirm flow as
    before.
 
-**Not extracted:** voter **photographs**. They are cropped out and never
-stored. The spec rules out biometric processing, and we don't need them.
+**Not extracted (confirmed by the owner):** voter **photographs** (the sample
+has only a "Photo Available" placeholder anyway) and the page-2 maps,
+building photos and GPS positions. The spec rules out biometric processing,
+and we don't need them.
+
+## 4a. What the sample roll looks like (Telangana, S29)
+
+The sample is `2026-EROLLGEN-S29-40-SIR-DraftRoll-Revision1-ENG`: AC 40
+Patancheru, PC 6 Medak, Part 408, draft roll of the Special Intensive
+Revision 2026, English, 23 pages, 571 electors.
+
+- **Image-only:** every page is one JPEG (about 1983 × 2806 px) with no text
+  layer, so **OCR is always needed** for this format. The images are
+  cleanly rendered text, not scans, which is why OCR accuracy is high.
+- **Page 1 (cover):** AC number/name/reservation, Part number, PC
+  number/name/reservation, year and type of revision, qualifying date,
+  publication date, sections list, main town/village, post office, police
+  station, mandal, district, PIN, polling station number/name/address, station
+  type (male/female/general), **number of auxiliary polling stations**, and
+  printed elector totals (serial range; male/female/third gender/total).
+- **Page 2 (maps and photos):** Nazri Naksha, Google map, building photos with
+  GPS overlay, CAD and key map. **Skipped entirely;** nothing is extracted.
+- **Pages 3 to N−1 (voters):** page header with AC, Part and "Section No and
+  Name". A 3 × 10 grid of boxes, 30 per page. Each box has the serial number
+  (in a small bordered box), the EPIC number (3 letters + 7 digits, e.g.
+  `XIZ5458518`; prefixes vary within a part), Name, relation
+  (`Fathers`/`Husbands`/`Mothers`/`Others` Name), House Number, Age, Gender.
+  Names can wrap onto a second line. The photo area only says "Photo
+  Available"; there is no image in it.
+- **Last page (summary):** elector totals by roll type (mother roll plus any
+  supplements), which must match the cover page.
+
+### OCR spike result (`docs/design/spikes/roll_ocr_spike.py`)
+
+Tesseract 5, pages rendered at 2×, OpenCV box detection, one thread:
+
+| Check                                 | Result                                                                                               |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| Voter boxes found                     | **571 / 571** (matches the printed total)                                                            |
+| Gender                                | 571 / 571; **287 M / 284 F** = printed totals                                                        |
+| Age, relation, relative, house number | 571 / 571 present                                                                                    |
+| Name                                  | 571 / 571 present; page 3 checked by eye: 30/30 correct except one character (`TALAR]` for `TALARI`) |
+| EPIC                                  | 569 / 571 valid after letter/digit correction (`X1Z` → `XIZ`); 2 unreadable, flagged                 |
+| Serial (from its own small box)       | Unreliable (38 disagreements with reading order)                                                     |
+| Time                                  | about 8 s per page on one core, so ~3 minutes per part; parallel workers needed                      |
+
+**Consequences for the parser:**
+
+- Take the **serial from reading order** (section by section, the boxes are in
+  serial order). OCR the serial box only as a cross-check, and send the file
+  to review if they disagree more than occasionally.
+- Correct EPIC letter/digit confusions by position (letters in the first 3,
+  digits in the last 7). Flag EPICs whose 3-letter prefix appears only once
+  in the part, since those are likely misreads.
+- Clean common name misreads (`]` → `I`, stray punctuation) and always keep
+  the raw OCR text next to the cleaned value.
+- The **totals check** (box count and gender split against the cover page) is
+  the main safety net, and it passed exactly on the sample.
+- Speed: OCR each box once (not three times), and run several workers in
+  parallel. The goal is under 1 minute per part.
 
 ## 5. Data model changes (plan §3)
 
@@ -241,14 +301,15 @@ case.
   retention period once confirmed (period to be decided).
 - Nothing is ever written back to the official roll (spec §3, non-goals).
 
-## 10. Open questions (need answers before implementation)
+## 10. Decisions (answered by the owner)
 
-1. **Sample PDFs.** Which state(s)? Please share 2–3 real part PDFs (or
-   redacted ones). The answer decides whether we can rely on the text layer
-   or must OCR, and which languages the OCR needs.
-2. **Master data.** Will you provide the State → PC → AC list as a CSV, or
-   should admins enter it in the UI?
-3. **Auxiliary polling stations.** Are they used in your area? If not, we
-   keep strictly one station per part and skip the assignment rules.
-4. **Photos.** Confirm we never extract voter photographs.
-5. **Retention.** How long should the uploaded PDFs be kept after confirm?
+1. **Sample PDFs:** one Telangana (S29) English SIR draft roll received and
+   analysed (§4a). It's image-only, so OCR is required. More samples
+   (supplementary rolls, a Telugu roll, a part with auxiliary stations)
+   will be needed to widen the test fixtures.
+2. **Master data:** the State → PC → AC list is **uploaded as a CSV**.
+3. **Auxiliary polling stations:** **used**, so they're in scope (§2).
+4. **Photos:** **never extracted.**
+5. **PDF retention:** **deferred.** PDFs are kept for now (private bucket);
+   the retention rule is decided and implemented later.
+6. **Python worker:** **approved** (ADR-0002 accepted).
