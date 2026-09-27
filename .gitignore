@@ -36,3 +36,9 @@ Thumbs.db
 .flutter-plugins-dependencies
 .packages
 *.iml
+
+# Next.js / Playwright
+next-env.d.ts
+playwright-report/
+test-results/
+blob-report/

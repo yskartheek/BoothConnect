@@ -38,3 +38,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #15   | [docker-compose for Postgres 16, Redis and MinIO](15-docker-compose.md)   | Ready to test |
 | #16   | [Environment-variable template (.env.example)](16-env-example.md)         | Ready to test |
 | #9    | [NestJS API skeleton with health endpoint](9-api-skeleton.md)             | Ready to test |
+| #10   | [Next.js admin-web skeleton](10-admin-web-skeleton.md)                    | Ready to test |
