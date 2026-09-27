@@ -7,6 +7,20 @@
 **Target platforms:** iOS, Android, and responsive web administration portal  
 **Primary users:** Booth volunteers, voters, administrators, and campaign managers  
 **Initial release:** Mobile-first MVP with field data collection, voter self-service, campaign management, and aggregate analytics
+**Revision:** 1.1 (2026-09-27). See "Product decisions in v1.1" below.
+
+### Product decisions in v1.1
+
+These decisions came from the product owner's review of the volunteer mockups (`docs/design/volunteer-app-mockups.html`). Where they conflict with anything later in this document, they take precedence.
+
+1. **No approval flow for volunteer edits.** Booth volunteers add, edit and update household and voter details directly. Their changes become the current value straight away. There is no proposed/verified step and no reviewer queue for volunteer edits.
+2. **Official data is still kept separately.** Imported official values are never overwritten. A volunteer edit is stored as the new current value, with its full history, next to the official value.
+3. **Conflicts are resolved by the volunteer.** If two people change the same detail while offline, the app shows both values and the volunteer picks one. Both values stay in the history. There is no escalation to a reviewer.
+4. **Volunteer-editable details.** For each member: name, age, gender, mobile, occupation (job type), caste/community, and additional info. For each household: structured address (house number, street, area/locality, PIN code, landmark) and location. Volunteers can also add households and members that aren't on the official list.
+5. **Caste/community is enabled, with consent.** The field stays hidden until the voter agrees, the consent is recorded, only authorised roles can see the value, and analytics on it are aggregated and thresholded (§8.2). The legal review in §22 must still be completed before launch.
+6. **Household location is captured with one tap.** It is taken once, when the volunteer taps "Use my current location", and stored with the household. The app never tracks volunteers in the background.
+7. **Both app stores.** The volunteer app ships on the Apple App Store and Google Play. It is built from one Flutter codebase that follows each platform's conventions.
+8. **Plain status words in the app.** Sync states are shown to volunteers as *On phone*, *Uploading*, *Uploaded* and *Choose value*.
 
 ---
 
@@ -69,10 +83,11 @@ The platform must work reliably in low-connectivity environments, protect sensit
 - View only assigned booth, part, household, and voter records.
 - Download assigned records for offline use.
 - Search and filter voters by name, voter ID, household, status, or address.
-- Open a household visit and verify each listed voter.
-- Update permitted fields and add structured notes.
+- Open a household visit and check each listed voter.
+- Add, edit and update household and voter details directly, without approval (v1.1).
+- Add households and members that aren't on the official list.
 - Record visit outcomes such as completed, unavailable, moved, follow-up required, or refused.
-- Capture location only after explicit permission and only when required.
+- Capture a household's location with one tap, only after explicit permission. There is no background tracking.
 - Create booth tasks and see assigned campaign activities.
 - Sync offline changes when connectivity returns.
 - View personal progress and booth-level aggregate progress.
@@ -82,7 +97,7 @@ The platform must work reliably in low-connectivity environments, protect sensit
 - Cannot export bulk personal data.
 - Cannot view voters outside assigned areas.
 - Cannot permanently delete voter records.
-- Cannot approve sensitive-data collection or create campaign targeting rules.
+- Cannot enable new sensitive fields or create campaign targeting rules.
 - Cannot overwrite official source fields without preserving their original values.
 
 ### 5.2 Voter
@@ -214,7 +229,7 @@ Administrators must be able to import voter records from CSV or another approved
 6. Store import job, source version, row-level result, and administrator identity.
 7. Preserve previous versions for audit and reconciliation.
 
-The application must label imported fields as **official/source data**. Field corrections are stored separately as proposed or verified values rather than destructively overwriting source data.
+The application must label imported fields as **official/source data**. Volunteer changes are stored separately as the current value, with history, rather than destructively overwriting source data (v1.1: there is no proposed/verified step).
 
 ### Acceptance criteria
 
@@ -229,11 +244,11 @@ The application must label imported fields as **official/source data**. Field co
 
 - Internal household ID
 - Display address
-- Address components
+- Address components: house number, street, area/locality, PIN code, landmark
 - Booth and geography assignment
-- Optional latitude and longitude with collection source and consent state
+- Optional latitude and longitude, captured with one tap, with accuracy, capture time, collection source and consent state
 - Number of listed voters
-- Number of verified residents/voters
+- Number of members checked in the latest visit
 - Primary contact preference, when voluntarily provided
 - Visit status
 - Last visit date
@@ -252,7 +267,7 @@ The application must label imported fields as **official/source data**. Field co
 - Source address
 - Booth and serial information
 
-**Potential field-verification fields:**
+**Volunteer-editable fields (v1.1):**
 
 - Current residence status
 - Corrected name or spelling
@@ -261,6 +276,7 @@ The application must label imported fields as **official/source data**. Field co
 - Contact number
 - Preferred language
 - Work type / occupation category
+- Caste/community (consent-gated, see below)
 - Availability or preferred contact time
 - Accessibility assistance requested
 - Communication opt-in status
@@ -269,11 +285,12 @@ The application must label imported fields as **official/source data**. Field co
 
 **Restricted configurable fields:**
 
-- Caste/community
 - Political affiliation or preference
 - Religion
 - Precise household coordinates
 - Other protected or highly sensitive information
+
+**Consent-gated field (v1.1): caste/community** is enabled. It stays hidden in the form until the voter agrees, the consent record is stored with the value, only authorised roles can view it, it is excluded from volunteer-facing exports, and analytics on it follow §8.2.
 
 Restricted fields must be disabled by default. Enabling any restricted field requires documented legal basis, privacy review, explicit purpose, collection notice, consent behavior, retention period, role access, export policy, and audit policy. Analytics involving these fields must meet minimum cohort-size and disclosure-control rules.
 
@@ -285,7 +302,6 @@ Every editable value must include:
 - Source type: official import, voter self-submission, volunteer collection, administrator correction, or derived
 - Collection timestamp
 - Collector or submitting user
-- Verification status
 - Consent record, when applicable
 - Previous value history
 
@@ -298,13 +314,12 @@ Every editable value must include:
 3. App shows known household members and previous visit status.
 4. Volunteer starts a visit and confirms the correct household.
 5. Volunteer records the household visit outcome.
-6. For each available voter, the volunteer verifies baseline details and requests optional information.
-7. App displays field-level purpose and consent notices where required.
-8. Volunteer reviews the changes with the respondent.
-9. Respondent provides confirmation through the approved method.
-10. App stores the visit locally if offline and queues it for sync.
-11. Backend validates changes and marks applicable records for review.
-12. Volunteer sees a successful sync or an actionable conflict/error state.
+6. Volunteer ticks which members they met, and edits any member's details directly.
+7. App displays field-level purpose and consent notices where required (for example, before caste/community).
+8. Volunteer saves the visit. It is stored on the phone straight away, with or without signal.
+9. App uploads queued changes automatically when online.
+10. Backend validates and applies the changes as current values (no approval step).
+11. Volunteer sees *Uploaded*, or *Choose value* when someone else changed the same detail.
 
 ### Visit outcomes
 
@@ -334,7 +349,7 @@ Every editable value must include:
 - Core list, search, household, voter, visit, and form features work offline.
 - Local mutations enter a durable sync queue.
 - Sync retries use bounded exponential backoff.
-- The interface shows offline, pending, syncing, synced, conflict, and failed states.
+- The interface shows offline, pending, syncing, synced, conflict, and failed states. Volunteers see these as *Offline*, *On phone*, *Uploading*, *Uploaded*, *Choose value* and *Not uploaded* (with the reason).
 - Server-side authorization is re-evaluated during sync.
 - Assignment revocation removes local access at the next online check and according to configured offline-expiry policy.
 - Form definitions and lookup values are versioned.
@@ -343,9 +358,9 @@ Every editable value must include:
 
 - Append-only events such as visits are merged.
 - Non-overlapping field changes are merged when safe.
-- Concurrent edits to the same field create a reviewable conflict.
+- Concurrent edits to the same field create a conflict that the volunteer resolves on the phone by choosing a value (v1.1). Both values are kept in the history.
 - Official source data is never silently overwritten.
-- A user must see and resolve or escalate conflicts; the app must not discard changes silently.
+- A user must see and resolve conflicts; the app must not discard changes silently.
 
 ### Acceptance criteria
 
@@ -466,12 +481,12 @@ Analytics must prioritize aggregate operational insight rather than individual p
 ### Data quality
 
 - Completeness by field and geography
-- Proposed changes awaiting review
+- Recent volunteer edits by booth
 - Duplicate candidates
 - Conflicting updates
 - Stale records
 - Import error trends
-- Source versus verified-data differences
+- Official versus current-value differences
 
 ### Demographic and community overview
 
@@ -499,7 +514,7 @@ Sensitive categories must remain unavailable unless explicitly approved. Even wh
 - Apply the threshold to filters and intersections, not only the initial chart.
 - Suppress or combine small categories.
 - Make metric definitions and update timestamps visible.
-- Label source, verified, self-submitted, and derived data.
+- Label official, volunteer-entered, self-submitted, and derived data.
 - Separate unknown/not collected from zero/none.
 - Log sensitive dashboard access and exports.
 - Default exports to aggregated data.
@@ -574,10 +589,11 @@ Primary floating action:
 - Household map, where approved
 - Household details
 - Start visit
-- Voter verification form
+- Member details form (all editable fields)
+- Household address and location
 - Consent confirmation
 - Visit summary
-- Conflict resolution
+- Conflict resolution (choose value)
 - Task list and task details
 - Campaign list and campaign brief
 - Notification center
@@ -740,6 +756,8 @@ Household
 - location_precision
 - location_source
 - location_consent_id
+- location_accuracy_m
+- location_captured_at
 - source_version_id
 - status
 
@@ -748,9 +766,9 @@ Voter
 - household_id
 - source_voter_id
 - source_data
-- current_verified_data
-- verification_status
+- current_data (latest values, volunteer edits applied)
 - record_status
+- origin (official_import | volunteer_added)
 
 FieldValue
 - id
@@ -759,7 +777,6 @@ FieldValue
 - field_definition_id
 - value_encrypted_or_typed
 - source_type
-- verification_status
 - consent_id
 - collected_by
 - collected_at
@@ -1170,7 +1187,8 @@ These are design assumptions and must be replaced by validated deployment foreca
 ### Epic C: Household Visit
 
 - As a volunteer, I can find a household and start a visit offline.
-- As a volunteer, I can verify voters and record optional information with the appropriate notice.
+- As a volunteer, I can edit any member's details and record optional information with the appropriate notice, without waiting for approval.
+- As a volunteer, I can add a household or member and capture the household's address and location.
 - As a volunteer, I can record refusal or follow-up without completing optional fields.
 - As a supervisor, I can see aggregate visit progress.
 
@@ -1178,7 +1196,7 @@ These are design assumptions and must be replaced by validated deployment foreca
 
 - As a volunteer, I can see whether changes are pending, synced, conflicted, or failed.
 - As a volunteer, I do not lose completed visits when the app restarts.
-- As a reviewer, I can resolve conflicting field changes.
+- As a volunteer, I can choose which value to keep when someone else changed the same detail.
 
 ### Epic E: Voter Self-Service
 
