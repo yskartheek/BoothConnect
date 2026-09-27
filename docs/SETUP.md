@@ -74,6 +74,7 @@ Create the database tables:
 
 ```powershell
 pnpm --filter api db:deploy
+pnpm --filter api db:seed       # synthetic demo data; safe to run again
 ```
 
 Start the API:
