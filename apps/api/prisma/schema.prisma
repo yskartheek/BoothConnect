@@ -192,17 +192,19 @@ model AppUser {
   createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  sessions          Session[]
-  roleAssignments   RoleAssignment[]  @relation("AssignedUser")
-  grantedRoles      RoleAssignment[]  @relation("GrantedBy")
-  uploadedBatches   ImportBatch[]     @relation("BatchUploadedBy")
-  confirmedBatches  ImportBatch[]     @relation("BatchConfirmedBy")
-  correctedRows     ImportRowResult[]
-  collectedValues   FieldValue[]
-  visits            Visit[]
-  capturedConsents  Consent[]         @relation("ConsentCapturedBy")
-  withdrawnConsents Consent[]         @relation("ConsentWithdrawnBy")
+  organization       Organization        @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sessions           Session[]
+  roleAssignments    RoleAssignment[]    @relation("AssignedUser")
+  grantedRoles       RoleAssignment[]    @relation("GrantedBy")
+  uploadedBatches    ImportBatch[]       @relation("BatchUploadedBy")
+  confirmedBatches   ImportBatch[]       @relation("BatchConfirmedBy")
+  correctedRows      ImportRowResult[]
+  collectedValues    FieldValue[]
+  visits             Visit[]
+  capturedConsents   Consent[]           @relation("ConsentCapturedBy")
+  withdrawnConsents  Consent[]           @relation("ConsentWithdrawnBy")
+  idempotencyRecords IdempotencyRecord[]
+  auditEvents        AuditEvent[]
 
   @@index([organizationId])
   @@map("app_user")
@@ -221,7 +223,8 @@ model Session {
   lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
 
-  user AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user        AppUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  auditEvents AuditEvent[]
 
   @@index([userId])
   @@map("session")
@@ -780,4 +783,73 @@ model Consent {
   @@index([subjectVoterId, purpose])
   @@index([subjectHouseholdId, purpose])
   @@map("consent")
+}
+
+// ---------------------------------------------------------------------------
+// Idempotency and audit
+// ---------------------------------------------------------------------------
+
+/// The stored response of a write made with an Idempotency-Key header, so a
+/// retried request (e.g. an upload repeated after a lost connection) gets the
+/// same response instead of being applied twice (plan §2).
+model IdempotencyRecord {
+  id          String   @id @default(uuid(7)) @db.Uuid
+  userId      String   @map("user_id") @db.Uuid
+  /// The Idempotency-Key header sent by the client.
+  key         String
+  /// SHA-256 of method + path + body; a reused key with a different request is rejected.
+  requestHash String   @map("request_hash")
+  statusCode  Int      @map("status_code")
+  response    Json
+  createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz
+  /// Records are kept long enough to cover offline phones retrying (cleanup job later).
+  expiresAt   DateTime @map("expires_at") @db.Timestamptz
+
+  user AppUser @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, key])
+  @@index([expiresAt])
+  @@map("idempotency_record")
+}
+
+enum AuditResult {
+  success
+  /// Refused by authorization (scope, role, suspended account, …).
+  denied
+  failure
+
+  @@map("audit_result")
+}
+
+/// Append-only, hash-chained audit log (spec §14, plan §2). The database fills
+/// seq, prev_hash and hash on insert, and refuses UPDATE, DELETE and TRUNCATE.
+/// Personal data must never be written to metadata (the API redacts it, #34).
+model AuditEvent {
+  id           String      @id @default(uuid(7)) @db.Uuid
+  /// Position in the chain; assigned by the database.
+  seq          BigInt      @unique @default(autoincrement())
+  /// Null for system events (imports running in a worker, scheduled jobs).
+  actorId      String?     @map("actor_id") @db.Uuid
+  sessionId    String?     @map("session_id") @db.Uuid
+  /// e.g. "auth.login", "import.confirm", "visit.create", "field_value.write".
+  action       String
+  resourceType String      @map("resource_type")
+  resourceId   String?     @map("resource_id")
+  result       AuditResult
+  /// Request ID from the X-Request-Id header, to join with the logs.
+  requestId    String?     @map("request_id")
+  at           DateTime    @default(now()) @db.Timestamptz
+  metadata     Json        @default("{}")
+  /// Hash of the previous event (null only for the first event).
+  prevHash     String?     @map("prev_hash")
+  /// SHA-256 over prev_hash and this event's contents; computed by the database.
+  hash         String      @unique @default("pending")
+
+  actor   AppUser? @relation(fields: [actorId], references: [id], onDelete: Restrict)
+  session Session? @relation(fields: [sessionId], references: [id], onDelete: Restrict)
+
+  @@index([actorId, at])
+  @@index([resourceType, resourceId])
+  @@index([action, at])
+  @@map("audit_event")
 }

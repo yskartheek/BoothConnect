@@ -55,4 +55,5 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #95   | [roll-parser scaffold (Python, Docker image, CI job)](95-roll-parser-scaffold.md) | Ready to test   |
 | #96   | [Synthetic roll PDF generator and fixtures](96-synthetic-rolls.md)                | Ready to test   |
 | #24   | [Schema: visits and consent](24-visit-consent.md)                                 | Ready to test   |
+| #25   | [Schema: idempotency and audit log](25-idempotency-audit.md)                      | Ready to test   |
 | #26   | [Development seed data](26-seed.md)                                               | Ready to test   |
