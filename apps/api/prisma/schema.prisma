@@ -192,14 +192,17 @@ model AppUser {
   createdAt         DateTime   @default(now()) @map("created_at") @db.Timestamptz
   updatedAt         DateTime   @updatedAt @map("updated_at") @db.Timestamptz
 
-  organization     Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
-  sessions         Session[]
-  roleAssignments  RoleAssignment[]  @relation("AssignedUser")
-  grantedRoles     RoleAssignment[]  @relation("GrantedBy")
-  uploadedBatches  ImportBatch[]     @relation("BatchUploadedBy")
-  confirmedBatches ImportBatch[]     @relation("BatchConfirmedBy")
-  correctedRows    ImportRowResult[]
-  collectedValues  FieldValue[]
+  organization      Organization      @relation(fields: [organizationId], references: [id], onDelete: Restrict)
+  sessions          Session[]
+  roleAssignments   RoleAssignment[]  @relation("AssignedUser")
+  grantedRoles      RoleAssignment[]  @relation("GrantedBy")
+  uploadedBatches   ImportBatch[]     @relation("BatchUploadedBy")
+  confirmedBatches  ImportBatch[]     @relation("BatchConfirmedBy")
+  correctedRows     ImportRowResult[]
+  collectedValues   FieldValue[]
+  visits            Visit[]
+  capturedConsents  Consent[]         @relation("ConsentCapturedBy")
+  withdrawnConsents Consent[]         @relation("ConsentWithdrawnBy")
 
   @@index([organizationId])
   @@map("app_user")
@@ -486,7 +489,7 @@ model Household {
   locationLng        Decimal?        @map("location_lng") @db.Decimal(9, 6)
   locationAccuracyM  Float?          @map("location_accuracy_m")
   locationCapturedAt DateTime?       @map("location_captured_at") @db.Timestamptz
-  /// Consent record for the location (foreign key added with the consent table).
+  /// Consent record for the location (purpose `household_location`).
   locationConsentId  String?         @map("location_consent_id") @db.Uuid
   origin             RecordOrigin    @default(official_import)
   /// The latest revision that listed this house; null for volunteer-added houses.
@@ -495,10 +498,13 @@ model Household {
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
 
-  part           GeographyNode  @relation("HouseholdPart", fields: [partId], references: [id], onDelete: Restrict)
-  pollingStation GeographyNode  @relation("HouseholdStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
-  sourceVersion  SourceVersion? @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
-  voters         Voter[]
+  part            GeographyNode  @relation("HouseholdPart", fields: [partId], references: [id], onDelete: Restrict)
+  pollingStation  GeographyNode  @relation("HouseholdStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
+  sourceVersion   SourceVersion? @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  voters          Voter[]
+  visits          Visit[]
+  consents        Consent[]
+  locationConsent Consent?       @relation("HouseholdLocationConsent", fields: [locationConsentId], references: [id], onDelete: Restrict)
 
   @@unique([partId, houseKey])
   @@index([pollingStationId, status])
@@ -546,6 +552,8 @@ model Voter {
   pollingStation GeographyNode   @relation("VoterStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
   sourceVersion  SourceVersion?  @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
   importFile     ImportFile?     @relation(fields: [importFileId], references: [id], onDelete: Restrict)
+  visitsMet      VisitMember[]
+  consents       Consent[]
 
   @@unique([programId, sourceVersionId, sourceVoterId])
   @@unique([partId, sourceVersionId, serialNo])
@@ -632,7 +640,7 @@ model FieldValue {
   fieldDefinitionId String      @map("field_definition_id") @db.Uuid
   value             Json
   sourceType        ValueSource @map("source_type")
-  /// The consent record covering this value (required for consent fields; FK added with the consent table).
+  /// The consent record covering this value (required for consent fields).
   consentId         String?     @map("consent_id") @db.Uuid
   collectedById     String?     @map("collected_by") @db.Uuid
   collectedAt       DateTime    @default(now()) @map("collected_at") @db.Timestamptz
@@ -649,6 +657,7 @@ model FieldValue {
 
   fieldDefinition FieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Restrict)
   collectedBy     AppUser?        @relation(fields: [collectedById], references: [id], onDelete: Restrict)
+  consent         Consent?        @relation(fields: [consentId], references: [id], onDelete: Restrict)
   supersedes      FieldValue?     @relation("FieldValueHistory", fields: [supersedesId], references: [id], onDelete: Restrict)
   supersededBy    FieldValue?     @relation("FieldValueHistory")
   conflictWith    FieldValue?     @relation("FieldValueConflict", fields: [conflictWithId], references: [id], onDelete: Restrict)
@@ -660,4 +669,115 @@ model FieldValue {
   @@index([fieldDefinitionId])
   @@index([conflictWithId])
   @@map("field_value")
+}
+
+// ---------------------------------------------------------------------------
+// Visits and consent (spec §7.4, v1.1)
+// ---------------------------------------------------------------------------
+
+enum VisitOutcome {
+  completed
+  partially_completed
+  no_one_available
+  refused
+  address_not_found
+  household_moved
+  /// Subject to approved handling; never changes the official roll.
+  voter_deceased
+  duplicate_or_incorrect_listing
+  follow_up_requested
+  unsafe_or_inaccessible
+
+  @@map("visit_outcome")
+}
+
+/// One household visit by a volunteer. Visits are immutable: a mistake is fixed
+/// by a new visit whose corrects_visit_id points at the wrong one (audited in #34).
+model Visit {
+  id              String       @id @default(uuid(7)) @db.Uuid
+  householdId     String       @map("household_id") @db.Uuid
+  volunteerId     String       @map("volunteer_id") @db.Uuid
+  startedAt       DateTime     @map("started_at") @db.Timestamptz
+  completedAt     DateTime?    @map("completed_at") @db.Timestamptz
+  outcome         VisitOutcome
+  /// Version of the visit form the app used, e.g. "2026.1".
+  formVersion     String       @map("form_version")
+  /// Generated on the phone; a repeated upload of the same visit is recognised by it.
+  clientId        String       @unique @map("client_id") @db.Uuid
+  /// Free text; the app warns against entering sensitive information.
+  notes           String?
+  correctsVisitId String?      @unique @map("corrects_visit_id") @db.Uuid
+  /// When the server received it (the phone may have been offline).
+  createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+
+  household     Household     @relation(fields: [householdId], references: [id], onDelete: Restrict)
+  volunteer     AppUser       @relation(fields: [volunteerId], references: [id], onDelete: Restrict)
+  correctsVisit Visit?        @relation("VisitCorrection", fields: [correctsVisitId], references: [id], onDelete: Restrict)
+  correctedBy   Visit?        @relation("VisitCorrection")
+  membersMet    VisitMember[]
+
+  @@index([householdId, startedAt])
+  @@index([volunteerId, startedAt])
+  @@map("visit")
+}
+
+/// The household members the volunteer met during a visit (spec v1.1).
+model VisitMember {
+  visitId String @map("visit_id") @db.Uuid
+  voterId String @map("voter_id") @db.Uuid
+
+  visit Visit @relation(fields: [visitId], references: [id], onDelete: Restrict)
+  voter Voter @relation(fields: [voterId], references: [id], onDelete: Restrict)
+
+  @@id([visitId, voterId])
+  @@index([voterId])
+  @@map("visit_member")
+}
+
+enum ConsentStatus {
+  granted
+  withdrawn
+
+  @@map("consent_status")
+}
+
+enum ConsentMethod {
+  /// Given to a volunteer in person, after the notice was read out or shown.
+  in_person_verbal
+  in_person_signed
+  /// Given by the voter in the voter app.
+  self_service
+
+  @@map("consent_method")
+}
+
+/// Consent from a household member (or, for the household location, the
+/// household) for one purpose. Withdrawal is recorded, never deleted; consent
+/// given again later is a new record.
+model Consent {
+  id                 String        @id @default(uuid(7)) @db.Uuid
+  /// Exactly one of the two subjects is set.
+  subjectVoterId     String?       @map("subject_voter_id") @db.Uuid
+  subjectHouseholdId String?       @map("subject_household_id") @db.Uuid
+  /// A field key (e.g. "caste_community") or "household_location".
+  purpose            String
+  /// Version of the notice shown when consent was given.
+  noticeVersion      String        @map("notice_version")
+  status             ConsentStatus @default(granted)
+  capturedMethod     ConsentMethod @map("captured_method")
+  capturedById       String?       @map("captured_by") @db.Uuid
+  capturedAt         DateTime      @default(now()) @map("captured_at") @db.Timestamptz
+  withdrawnAt        DateTime?     @map("withdrawn_at") @db.Timestamptz
+  withdrawnById      String?       @map("withdrawn_by") @db.Uuid
+
+  subjectVoter     Voter?       @relation(fields: [subjectVoterId], references: [id], onDelete: Restrict)
+  subjectHousehold Household?   @relation(fields: [subjectHouseholdId], references: [id], onDelete: Restrict)
+  capturedBy       AppUser?     @relation("ConsentCapturedBy", fields: [capturedById], references: [id], onDelete: Restrict)
+  withdrawnBy      AppUser?     @relation("ConsentWithdrawnBy", fields: [withdrawnById], references: [id], onDelete: Restrict)
+  fieldValues      FieldValue[]
+  locationOf       Household[]  @relation("HouseholdLocationConsent")
+
+  @@index([subjectVoterId, purpose])
+  @@index([subjectHouseholdId, purpose])
+  @@map("consent")
 }

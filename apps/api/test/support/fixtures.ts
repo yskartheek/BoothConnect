@@ -143,3 +143,17 @@ export function createVoter(
     },
   });
 }
+
+export function createConsent(
+  tx: Tx,
+  data: {
+    purpose: string;
+    subjectVoterId?: string;
+    subjectHouseholdId?: string;
+    capturedById?: string;
+  },
+) {
+  return tx.consent.create({
+    data: { ...data, noticeVersion: '2026.1', capturedMethod: 'in_person_verbal' },
+  });
+}
