@@ -56,6 +56,6 @@
   would break it. This is on purpose, and there's a test for it.
 - **Node 20.11–20.18 no longer works.** If `pnpm lint` fails with an engine
   error, update Node 20 to the latest patch release (`nvm install 20` on
-  nvm-windows).
+  nvm-windows). From #9 onwards the repo needs **Node 24 LTS** instead.
 - **VS Code:** install the ESLint and Prettier extensions, and set Prettier as
   the default formatter, to get format-on-save.
