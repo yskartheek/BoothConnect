@@ -422,10 +422,50 @@ partNumber, etag }] }` (`:fileId` is the upload's id) finishes it: the
    folders, hidden files and macOS metadata are ignored and anything else is
    listed in `skipped`. A PDF whose checksum matches a file already imported
    in the program is `duplicate` (with `duplicateOfId`) and isn't extracted;
-   the rest are `uploaded` and handed to the extraction queue (#45 connects
-   the roll-parser). Completing again returns the same files; a file that
+   the rest are handed to the roll-parser (status `extracting`, see below). Completing again returns the same files; a file that
    fails the checks is 422 and the upload stays `failed`. Audited as
    `import.upload.complete`.
+
+### Extraction (#45)
+
+New files go to the **roll-parser worker** (`apps/roll-parser`) as BullMQ
+`extract-roll` jobs on the `roll-extraction` queue (`ROLL_PARSER_QUEUE`,
+`ROLL_PARSER_QUEUE_PREFIX`), one per file, with the file's id as the job id,
+so a file is never queued twice. The contract is
+`docs/design/roll-parser-contract.md`; jobs retry transient errors 3 times with
+backoff. Files move `uploaded` → `extracting` → one of:
+
+| Status         | When                                                                                                                                                                                                                |
+| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `ready`        | header inside the batch's target, printed totals match the voters read, no row errors, and the worker didn't ask for review                                                                                         |
+| `needs_review` | totals missing or different, a row with an error (e.g. age out of range), or the worker's own `needsReview` (low confidence)                                                                                        |
+| `rejected`     | the cover page is for a place outside the batch's target (`header.outside_target`), unreadable (`header.incomplete`), its AC isn't in the master data (`header.ac_unknown`), or the PDF isn't a roll (`not_a_roll`) |
+| `failed`       | the worker couldn't read the PDF (`pdf_unreadable`, `pdf_encrypted`, …) or the job kept failing (`extraction_failed`)                                                                                               |
+
+For each result the API reads `result.v1.json` from the bucket and stores:
+
+- on `import_file`: `detected_header` (`{ header, matching, issues,
+pageImages, resultKey, workerVersion }`), `printed_totals`,
+  `extracted_totals`, `quality_score`, `page_count`, `extraction_method`,
+  `part_node_id` when the part already exists, `error` when rejected or
+  failed;
+- `matching`: the existing part (or `proposedPart` to create on confirm), the
+  main and auxiliary stations (existing `nodeId`, or null to create), and
+  `previousSourceVersionId` when the part already has a revision (confirming
+  makes a new source version after it);
+- one `import_row_result` per voter box: values and per-field confidence,
+  raw text, and the issues as `messages` (`warning` status if any). On top of
+  the worker's checks, the API flags an EPIC also listed in another part
+  (`epic.duplicate_elsewhere`) and an unknown gender.
+
+**Nothing is written to `household` or `voter`** until the file is confirmed
+(#47). Each result is audited (`import.file.extracted`, counts and codes
+only). The batch goes `processing` → `review` → `completed` (only
+duplicates or failures: back to `uploading`). Results arrive through BullMQ
+events; a sweep every `IMPORT_RESULTS_SWEEP_SECONDS` also picks up results the
+API missed (e.g. while it was down) and re-sends files that never reached the
+queue. A result is stored once, however often it is delivered, and its job
+is removed afterwards.
 
 Uploads are tracked in `import_upload` (the S3 multipart upload, declared
 size, status); `import_file.upload_id` links each file to the upload it came

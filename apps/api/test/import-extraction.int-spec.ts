@@ -1,7 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import { ConfigService } from '@nestjs/config';
-import { Queue } from 'bullmq';
+import { Queue, QueueEvents } from 'bullmq';
 
 import type { Env } from '../src/config/env';
 import {
@@ -24,11 +24,16 @@ import { fakePdf } from './support/files';
 // part 2 (station 2); the admin is assigned to AC 101.
 const ADMIN = '+919999900001';
 
+// Each test waits for real round trips through Redis and MinIO; under a full
+// parallel run that can take longer than Jest's default 5 s.
+jest.setTimeout(30_000);
+
 describe('roll extraction hand-off and results (real Postgres + Redis + MinIO)', () => {
   let t: TestApp;
   let admin: SignedIn;
   let worker: FakeRollParser;
   let queue: Queue;
+  let events: QueueEvents;
   const scenarios = new Map<string, Scenario>();
 
   const node = (type: 'state' | 'ac' | 'part', code: string) =>
@@ -63,7 +68,7 @@ describe('roll extraction hand-off and results (real Postgres + Redis + MinIO)',
   };
   /** Waits until the API has taken the file's result (or times out). */
   const settled = async (fileId: string) => {
-    for (let i = 0; i < 100; i += 1) {
+    for (let i = 0; i < 250; i += 1) {
       const file = await t.prisma.importFile.findUniqueOrThrow({ where: { id: fileId } });
       if (!['uploaded', 'extracting'].includes(file.status)) return file;
       await new Promise((resolve) => setTimeout(resolve, 100));
@@ -72,7 +77,7 @@ describe('roll extraction hand-off and results (real Postgres + Redis + MinIO)',
   };
   const rowsOf = (n: number, epics: string[] = []) =>
     Array.from({ length: n }, (_, i) => ({
-      gender: (i % 2 === 0 ? 'male' : 'female') as 'male' | 'female',
+      gender: i % 2 === 0 ? ('male' as const) : ('female' as const),
       ...(epics[i] ? { epic: epics[i] } : {}),
     }));
   const livingCounts = async () => ({
@@ -97,11 +102,16 @@ describe('roll extraction hand-off and results (real Postgres + Redis + MinIO)',
       secretAccessKey: config.get('S3_SECRET_ACCESS_KEY', { infer: true }),
     });
     queue = new Queue('roll-extraction', { connection: bullConnection(redisUrl), prefix: 'bull' });
+    events = new QueueEvents('roll-extraction', {
+      connection: bullConnection(redisUrl),
+      prefix: 'bull',
+    });
     admin = await loginAs(t, ADMIN);
   });
 
   afterAll(async () => {
     await worker?.close();
+    await events?.close();
     await queue?.close();
     await t?.close();
   });
@@ -341,20 +351,17 @@ describe('roll extraction hand-off and results (real Postgres + Redis + MinIO)',
         jobId: fileId,
       },
     );
-    await job.waitUntilFinished(
-      new (await import('bullmq')).QueueEvents('roll-extraction', {
-        connection: bullConnection(
-          t.app.get(ConfigService<Env, true>).get('REDIS_URL', { infer: true }),
-        ),
-        prefix: 'bull',
-      }),
-    );
-    await results.sweep();
+    await job.waitUntilFinished(events);
+    // The sweep and two late deliveries of the same result, all at once:
+    // exactly one of them stores it.
+    await Promise.all([results.sweep(), results.settle(fileId), results.settle(fileId)]);
     const swept = await settled(fileId);
     expect(swept.status).toBe('ready');
     expect(await t.prisma.importRowResult.count({ where: { importFileId: fileId } })).toBe(2);
-    // A second delivery of the same result changes nothing.
-    await results.settle(fileId);
-    expect(await t.prisma.importRowResult.count({ where: { importFileId: fileId } })).toBe(2);
+    expect(
+      await t.prisma.auditEvent.count({
+        where: { action: 'import.file.extracted', resourceId: fileId },
+      }),
+    ).toBe(2);
   });
 });
