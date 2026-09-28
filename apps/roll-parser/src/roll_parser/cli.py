@@ -181,6 +181,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     header.add_argument("pdf", type=Path)
     header.add_argument("--json", action="store_true", help="print every field as JSON")
+    commands.add_parser("worker", help="consume extract-roll jobs from Redis (settings from env)")
+    contract = commands.add_parser("contract", help="print or write the job/result JSON Schemas")
+    contract.add_argument("--write", action="store_true", help="write them to contract/")
     extract = commands.add_parser("extract", help="read every voter row of a roll PDF")
     extract.add_argument("pdf", type=Path)
     extract.add_argument("--out", type=Path, help="write the full result (with voter data) here")
@@ -201,6 +204,15 @@ def main(argv: list[str] | None = None) -> int:
         return _synth(args.presets, args.out)
     if args.command == "header":
         return _header(args.pdf, args.json)
+    if args.command == "worker":
+        from roll_parser.worker.main import main as worker_main
+
+        worker_main()
+        return 0
+    if args.command == "contract":
+        from roll_parser.worker.schemas import write_or_print
+
+        return write_or_print(write=args.write)
     if args.command == "extract":
         return _extract(args.pdf, args.out, args.truth, args.workers)
     if args.command == "id-crops":

@@ -190,7 +190,7 @@ def test_missing_field_is_an_error() -> None:
     header, _ = parse_cover(fake_lines(COVER.replace("Part No. : 408", "")))
     issues = _check_header(header, 1)
     assert [(i.code, i.severity, i.field) for i in issues] == [
-        ("field.missing", "error", "header.part_number")
+        ("field.missing", "error", "header.partNumber")
     ]
 
 

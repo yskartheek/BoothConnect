@@ -12,12 +12,13 @@ import time
 from collections import Counter
 from collections.abc import Iterable
 from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import TimeoutError as FuturesTimeoutError
 from dataclasses import dataclass, replace
 from pathlib import Path
 from typing import ClassVar
 
 import pymupdf
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel
 
 from roll_parser.extract.fields import Field, Issue, Severity
 from roll_parser.extract.header import LOW_CONFIDENCE, extract_header
@@ -39,7 +40,15 @@ from roll_parser.extract.voters import (
     split_box,
     top_strip,
 )
-from roll_parser.model import ElectorCounts, EntryMarker, Gender, PageKind, RelationType, VoterEntry
+from roll_parser.model import (
+    ElectorCounts,
+    EntryMarker,
+    Gender,
+    PageKind,
+    RelationType,
+    VoterEntry,
+    contract_config,
+)
 from roll_parser.ocr import Line, read_strips, read_words_scaled
 
 # Voter pages are enlarged before OCR: the box text is small (about 7.5 pt)
@@ -52,7 +61,7 @@ SERIAL_MISMATCH_LIMIT = 0.02
 class ExtractedVoter(BaseModel):
     """One voter box. Carries personal data: never log it."""
 
-    model_config = ConfigDict(frozen=True)
+    model_config = contract_config(frozen=True)
 
     page: int  # 1-based
     box_index: int  # 0-based, reading order on the page
@@ -103,6 +112,8 @@ class ExtractedVoter(BaseModel):
 
 
 class Timings(BaseModel):
+    model_config = contract_config()
+
     header_seconds: float
     voter_pages_seconds: float
     total_seconds: float
@@ -110,6 +121,8 @@ class Timings(BaseModel):
 
 class RollExtraction(BaseModel):
     """Everything extracted from one roll PDF."""
+
+    model_config = contract_config()
 
     page_count: int
     method: str = "ocr"
@@ -414,23 +427,61 @@ def quality_score(
     return round(score, 3)
 
 
-def extract_roll(pdf: Path, *, workers: int | None = None) -> RollExtraction:
+class ExtractionTimeoutError(Exception):
+    """The file took longer than the allowed time."""
+
+
+def _remaining(deadline: float | None) -> float | None:
+    if deadline is None:
+        return None
+    left = deadline - time.monotonic()
+    if left <= 0:
+        raise ExtractionTimeoutError
+    return left
+
+
+def _read_pages(
+    pdf: Path, pages: list[int], workers: int, deadline: float | None
+) -> list[PageRead]:
+    if workers == 1:
+        reads = []
+        for index in pages:
+            _remaining(deadline)
+            reads.append(read_voter_page(pdf, index))
+        return reads
+
+    # "spawn", not fork: forking a process that already runs OpenCV/PyMuPDF
+    # threads can deadlock. It's also what Windows does anyway.
+    context = multiprocessing.get_context("spawn")
+    pool = ProcessPoolExecutor(workers, mp_context=context, initializer=_limit_threads)
+    try:
+        results = pool.map(read_voter_page, [pdf] * len(pages), pages, timeout=_remaining(deadline))
+        return list(results)
+    except FuturesTimeoutError as err:
+        raise ExtractionTimeoutError from err
+    finally:
+        # On a timeout, pages not started yet are cancelled; pages being read
+        # finish first (a few seconds each)
+        pool.shutdown(wait=True, cancel_futures=True)
+
+
+def extract_roll(
+    pdf: Path, *, workers: int | None = None, timeout_seconds: float | None = None
+) -> RollExtraction:
+    """Read a whole roll. Raises :class:`ExtractionTimeoutError` if it takes
+    longer than ``timeout_seconds`` (checked between steps and while pages are
+    read), and PyMuPDF's errors if the file isn't a readable PDF."""
     started = time.perf_counter()
+    deadline = None if timeout_seconds is None else time.monotonic() + timeout_seconds
     with pymupdf.open(pdf) as doc:
         page_count = doc.page_count
         header = extract_header(doc)
     header_done = time.perf_counter()
+    _remaining(deadline)
 
     voter_pages = [i for i, kind in enumerate(header.pages) if kind is PageKind.VOTERS]
     workers = workers or min(os.cpu_count() or 1, len(voter_pages)) or 1
-    if workers == 1:
-        reads = [read_voter_page(pdf, i) for i in voter_pages]
-    else:
-        # "spawn", not fork: forking a process that already runs OpenCV/PyMuPDF
-        # threads can deadlock. It's also what Windows does anyway.
-        context = multiprocessing.get_context("spawn")
-        with ProcessPoolExecutor(workers, mp_context=context, initializer=_limit_threads) as pool:
-            reads = list(pool.map(read_voter_page, [pdf] * len(voter_pages), voter_pages))
+    reads = _read_pages(pdf, voter_pages, workers, deadline)
 
     start_serial = 1
     if header.printed_totals is not None and header.printed_totals.start_serial.value is not None:

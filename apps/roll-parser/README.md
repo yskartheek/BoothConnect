@@ -30,7 +30,9 @@ pnpm --filter roll-parser exec uv run roll-parser extract <roll.pdf>  # read eve
 pnpm --filter roll-parser lint         # ruff check + ruff format --check
 pnpm --filter roll-parser format       # apply ruff format and safe fixes
 pnpm --filter roll-parser typecheck    # mypy --strict
-pnpm --filter roll-parser test         # pytest
+pnpm --filter roll-parser test         # pytest (unit tests)
+pnpm --filter roll-parser test:int     # integration test (needs pnpm infra:up)
+pnpm --filter roll-parser worker       # run the queue worker
 ```
 
 Inside `apps/roll-parser` you can call the tools directly, for example
@@ -119,6 +121,34 @@ Husbands/Others Name`, `House Number`, `Age`, `Gender`); a colon that OCR
 8. **Parallel:** voter pages are read in separate processes (default: one per
    CPU). About 28 s for a 23-page part on 4 cores.
 
+### The queue worker
+
+```powershell
+pnpm infra:up                                              # Redis + MinIO
+pnpm --filter roll-parser worker                           # runs until Ctrl+C
+# or, in Docker:
+docker compose -f infra/docker-compose.yml --profile roll-parser up -d --build roll-parser
+```
+
+It takes `extract-roll` jobs from the `roll-extraction` queue (BullMQ),
+downloads the PDF from the private bucket, extracts it, and writes
+`result.v1.json` and page images next to it; the job's return value is a
+small summary. The whole contract (payload, result, failure codes, how it maps
+to the import tables) is in
+[`docs/design/roll-parser-contract.md`](../../docs/design/roll-parser-contract.md);
+JSON Schemas are in [`contract/`](contract/). After changing the contract
+models, run `uv run roll-parser contract --write` (a test fails until you
+do).
+
+- **Failures:** a broken or unsuitable file (corrupt, encrypted, not a roll,
+  too big, too slow, wrong checksum) completes the job with
+  `status: "failed"` and a reason code. Storage or network errors fail the job
+  in BullMQ so it's retried (`attempts`/`backoff` are set by the API).
+- **Health:** `GET http://localhost:8090/health` (Docker uses it too).
+- **Logs:** JSON lines, ids/counts/codes/timings only; the formatter drops any
+  field that isn't on its allow-list, so voter data can't end up in logs.
+- **Integration test** (needs `pnpm infra:up`): `pnpm --filter roll-parser test:int`.
+
 ### Synthetic rolls (fake data)
 
 Real rolls can't be committed, so the tests use generated ones in the same
@@ -163,6 +193,8 @@ docker compose -f infra/docker-compose.yml --profile roll-parser run --rm roll-p
 ```
 
 The service has the `roll-parser` profile, so `pnpm infra:up` doesn't start it.
+Its default command is the worker; `run --rm roll-parser check` still runs
+the self-check.
 The image is Ubuntu 24.04 with Python 3.12 and Tesseract 5.3.4 (English and
 Telugu), the same versions as the CI runner, and runs as a non-root user.
 

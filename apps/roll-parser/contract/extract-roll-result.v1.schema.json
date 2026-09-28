@@ -1,0 +1,754 @@
+{
+  "$defs": {
+    "ElectorCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "female": {
+          "title": "Female",
+          "type": "integer"
+        },
+        "male": {
+          "title": "Male",
+          "type": "integer"
+        },
+        "thirdGender": {
+          "title": "Thirdgender",
+          "type": "integer"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": ["male", "female", "thirdGender", "total"],
+      "title": "ElectorCounts",
+      "type": "object"
+    },
+    "EntryMarker": {
+      "description": "Printed on entries that aren't plain active electors.",
+      "enum": ["deleted", "modified"],
+      "title": "EntryMarker",
+      "type": "string"
+    },
+    "ExtractedCounts": {
+      "properties": {
+        "female": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "male": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "thirdGender": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "total": {
+          "$ref": "#/$defs/Field_int_"
+        }
+      },
+      "required": ["male", "female", "thirdGender", "total"],
+      "title": "ExtractedCounts",
+      "type": "object"
+    },
+    "ExtractedHeader": {
+      "properties": {
+        "acName": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "acNumber": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "acReservation": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "auxiliaryStationCount": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "auxiliaryStations": {
+          "items": {
+            "$ref": "#/$defs/ExtractedStation"
+          },
+          "title": "Auxiliarystations",
+          "type": "array"
+        },
+        "district": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "mainTown": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "mandal": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "partNumber": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "pcName": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "pcNumber": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "pcReservation": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "pinCode": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "policeStation": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "pollingStation": {
+          "$ref": "#/$defs/ExtractedStation"
+        },
+        "postOffice": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "publicationDate": {
+          "$ref": "#/$defs/Field_date_"
+        },
+        "qualifyingDate": {
+          "$ref": "#/$defs/Field_date_"
+        },
+        "revisionType": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "revisionYear": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "rollIdentification": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "sections": {
+          "items": {
+            "$ref": "#/$defs/ExtractedSection"
+          },
+          "title": "Sections",
+          "type": "array"
+        },
+        "stateCode": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "stateName": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "stationType": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "subdivision": {
+          "$ref": "#/$defs/Field_str_"
+        }
+      },
+      "required": [
+        "stateCode",
+        "stateName",
+        "acNumber",
+        "acName",
+        "acReservation",
+        "pcNumber",
+        "pcName",
+        "pcReservation",
+        "partNumber",
+        "revisionYear",
+        "revisionType",
+        "qualifyingDate",
+        "publicationDate",
+        "rollIdentification",
+        "sections",
+        "mainTown",
+        "postOffice",
+        "policeStation",
+        "mandal",
+        "subdivision",
+        "district",
+        "pinCode",
+        "pollingStation",
+        "stationType",
+        "auxiliaryStationCount",
+        "auxiliaryStations"
+      ],
+      "title": "ExtractedHeader",
+      "type": "object"
+    },
+    "ExtractedSection": {
+      "properties": {
+        "name": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "number": {
+          "$ref": "#/$defs/Field_int_"
+        }
+      },
+      "required": ["number", "name"],
+      "title": "ExtractedSection",
+      "type": "object"
+    },
+    "ExtractedStation": {
+      "properties": {
+        "address": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "name": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "number": {
+          "$ref": "#/$defs/Field_str_"
+        }
+      },
+      "required": ["number", "name", "address"],
+      "title": "ExtractedStation",
+      "type": "object"
+    },
+    "ExtractedSummary": {
+      "properties": {
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ExtractedSummaryRow"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "total": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExtractedCounts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["rows", "total"],
+      "title": "ExtractedSummary",
+      "type": "object"
+    },
+    "ExtractedSummaryRow": {
+      "properties": {
+        "counts": {
+          "$ref": "#/$defs/ExtractedCounts"
+        },
+        "rollType": {
+          "$ref": "#/$defs/Field_str_"
+        }
+      },
+      "required": ["rollType", "counts"],
+      "title": "ExtractedSummaryRow",
+      "type": "object"
+    },
+    "ExtractedTotals": {
+      "properties": {
+        "counts": {
+          "$ref": "#/$defs/ExtractedCounts"
+        },
+        "endSerial": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "startSerial": {
+          "$ref": "#/$defs/Field_int_"
+        }
+      },
+      "required": ["startSerial", "endSerial", "counts"],
+      "title": "ExtractedTotals",
+      "type": "object"
+    },
+    "ExtractedVoter": {
+      "description": "One voter box. Carries personal data: never log it.",
+      "properties": {
+        "age": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "boxIndex": {
+          "title": "Boxindex",
+          "type": "integer"
+        },
+        "epic": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "gender": {
+          "$ref": "#/$defs/Field_Gender_"
+        },
+        "houseNumber": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "marker": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/EntryMarker"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "name": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "page": {
+          "title": "Page",
+          "type": "integer"
+        },
+        "printedSerial": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "rawText": {
+          "title": "Rawtext",
+          "type": "string"
+        },
+        "relationType": {
+          "$ref": "#/$defs/Field_RelationType_"
+        },
+        "relativeName": {
+          "$ref": "#/$defs/Field_str_"
+        },
+        "sectionNumber": {
+          "$ref": "#/$defs/Field_int_"
+        },
+        "serial": {
+          "title": "Serial",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "page",
+        "boxIndex",
+        "sectionNumber",
+        "serial",
+        "printedSerial",
+        "epic",
+        "name",
+        "relationType",
+        "relativeName",
+        "houseNumber",
+        "age",
+        "gender",
+        "marker",
+        "rawText",
+        "issues"
+      ],
+      "title": "ExtractedVoter",
+      "type": "object"
+    },
+    "Field_Gender_": {
+      "properties": {
+        "confidence": {
+          "default": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "raw": {
+          "default": "",
+          "title": "Raw",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/Gender"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["value"],
+      "title": "Field[Gender]",
+      "type": "object"
+    },
+    "Field_RelationType_": {
+      "properties": {
+        "confidence": {
+          "default": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "raw": {
+          "default": "",
+          "title": "Raw",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/RelationType"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["value"],
+      "title": "Field[RelationType]",
+      "type": "object"
+    },
+    "Field_date_": {
+      "properties": {
+        "confidence": {
+          "default": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "raw": {
+          "default": "",
+          "title": "Raw",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "format": "date",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": ["value"],
+      "title": "Field[date]",
+      "type": "object"
+    },
+    "Field_int_": {
+      "properties": {
+        "confidence": {
+          "default": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "raw": {
+          "default": "",
+          "title": "Raw",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": ["value"],
+      "title": "Field[int]",
+      "type": "object"
+    },
+    "Field_str_": {
+      "properties": {
+        "confidence": {
+          "default": 0.0,
+          "title": "Confidence",
+          "type": "number"
+        },
+        "raw": {
+          "default": "",
+          "title": "Raw",
+          "type": "string"
+        },
+        "value": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "title": "Value"
+        }
+      },
+      "required": ["value"],
+      "title": "Field[str]",
+      "type": "object"
+    },
+    "Gender": {
+      "enum": ["male", "female", "third_gender"],
+      "title": "Gender",
+      "type": "string"
+    },
+    "HeaderExtraction": {
+      "description": "Everything outside the voter boxes: page kinds, cover and summary.",
+      "properties": {
+        "header": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExtractedHeader"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "pages": {
+          "items": {
+            "$ref": "#/$defs/PageKind"
+          },
+          "title": "Pages",
+          "type": "array"
+        },
+        "printedTotals": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExtractedTotals"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "summary": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ExtractedSummary"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        }
+      },
+      "required": ["pages", "header", "printedTotals", "summary", "issues"],
+      "title": "HeaderExtraction",
+      "type": "object"
+    },
+    "Issue": {
+      "description": "Something wrong or doubtful about the file. Never contains voter data.",
+      "properties": {
+        "code": {
+          "title": "Code",
+          "type": "string"
+        },
+        "field": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Field"
+        },
+        "message": {
+          "title": "Message",
+          "type": "string"
+        },
+        "page": {
+          "anyOf": [
+            {
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Page"
+        },
+        "severity": {
+          "$ref": "#/$defs/Severity"
+        }
+      },
+      "required": ["code", "severity", "message"],
+      "title": "Issue",
+      "type": "object"
+    },
+    "PageImage": {
+      "properties": {
+        "height": {
+          "title": "Height",
+          "type": "integer"
+        },
+        "key": {
+          "description": "Object key of the JPEG in the same bucket",
+          "title": "Key",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PageKind"
+        },
+        "page": {
+          "description": "1-based page number in the PDF",
+          "title": "Page",
+          "type": "integer"
+        },
+        "width": {
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": ["page", "kind", "key", "width", "height"],
+      "title": "PageImage",
+      "type": "object"
+    },
+    "PageKind": {
+      "enum": ["cover", "maps", "voters", "summary"],
+      "title": "PageKind",
+      "type": "string"
+    },
+    "RelationType": {
+      "enum": ["father", "mother", "husband", "other"],
+      "title": "RelationType",
+      "type": "string"
+    },
+    "RollExtraction": {
+      "description": "Everything extracted from one roll PDF.",
+      "properties": {
+        "extractedTotals": {
+          "$ref": "#/$defs/ElectorCounts"
+        },
+        "header": {
+          "$ref": "#/$defs/HeaderExtraction"
+        },
+        "issues": {
+          "items": {
+            "$ref": "#/$defs/Issue"
+          },
+          "title": "Issues",
+          "type": "array"
+        },
+        "method": {
+          "default": "ocr",
+          "title": "Method",
+          "type": "string"
+        },
+        "pageCount": {
+          "title": "Pagecount",
+          "type": "integer"
+        },
+        "qualityScore": {
+          "title": "Qualityscore",
+          "type": "number"
+        },
+        "rows": {
+          "items": {
+            "$ref": "#/$defs/ExtractedVoter"
+          },
+          "title": "Rows",
+          "type": "array"
+        },
+        "timings": {
+          "$ref": "#/$defs/Timings"
+        }
+      },
+      "required": [
+        "pageCount",
+        "header",
+        "rows",
+        "extractedTotals",
+        "qualityScore",
+        "issues",
+        "timings"
+      ],
+      "title": "RollExtraction",
+      "type": "object"
+    },
+    "Severity": {
+      "enum": ["error", "warning"],
+      "title": "Severity",
+      "type": "string"
+    },
+    "SourceFile": {
+      "properties": {
+        "bucket": {
+          "title": "Bucket",
+          "type": "string"
+        },
+        "key": {
+          "title": "Key",
+          "type": "string"
+        },
+        "sha256": {
+          "title": "Sha256",
+          "type": "string"
+        },
+        "sizeBytes": {
+          "title": "Sizebytes",
+          "type": "integer"
+        }
+      },
+      "required": ["bucket", "key", "sha256", "sizeBytes"],
+      "title": "SourceFile",
+      "type": "object"
+    },
+    "Timings": {
+      "properties": {
+        "headerSeconds": {
+          "title": "Headerseconds",
+          "type": "number"
+        },
+        "totalSeconds": {
+          "title": "Totalseconds",
+          "type": "number"
+        },
+        "voterPagesSeconds": {
+          "title": "Voterpagesseconds",
+          "type": "number"
+        }
+      },
+      "required": ["headerSeconds", "voterPagesSeconds", "totalSeconds"],
+      "title": "Timings",
+      "type": "object"
+    }
+  },
+  "description": "The full result, stored as JSON in the bucket. Contains voter data.",
+  "properties": {
+    "extraction": {
+      "$ref": "#/$defs/RollExtraction"
+    },
+    "importFileId": {
+      "title": "Importfileid",
+      "type": "string"
+    },
+    "method": {
+      "const": "ocr",
+      "default": "ocr",
+      "title": "Method",
+      "type": "string"
+    },
+    "pageImages": {
+      "items": {
+        "$ref": "#/$defs/PageImage"
+      },
+      "title": "Pageimages",
+      "type": "array"
+    },
+    "source": {
+      "$ref": "#/$defs/SourceFile"
+    },
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "workerVersion": {
+      "title": "Workerversion",
+      "type": "string"
+    }
+  },
+  "required": ["importFileId", "workerVersion", "source", "extraction", "pageImages"],
+  "title": "ResultDocument",
+  "type": "object"
+}

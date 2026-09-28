@@ -5,6 +5,8 @@ description = "BoothConnect worker that extracts voter rows from electoral-roll 
 readme = "README.md"
 requires-python = ">=3.12,<3.13"
 dependencies = [
+  "boto3>=1.43,<2",
+  "bullmq>=3.2,<4",
   "numpy>=2.4,<3",
   "opencv-python-headless>=5.0,<6",
   "pydantic>=2.13,<3",
@@ -17,6 +19,7 @@ roll-parser = "roll_parser.cli:main"
 
 [dependency-groups]
 dev = [
+  "boto3-stubs[s3]>=1.43,<2",
   "mypy>=2.3,<3",
   "pytest>=9.1,<10",
   "ruff>=0.16,<0.17",
@@ -65,9 +68,11 @@ untyped_calls_exclude = ["pymupdf"]
 
 [[tool.mypy.overrides]]
 # No type information published for these packages
-module = ["pytesseract", "pytesseract.*"]
+module = ["pytesseract", "pytesseract.*", "bullmq", "bullmq.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-addopts = ["--strict-markers", "-ra"]
+# Integration tests need Redis and MinIO: `pnpm --filter roll-parser test:int`
+addopts = ["--strict-markers", "-ra", "-m", "not integration"]
+markers = ["integration: needs Redis and MinIO running"]

@@ -1,6 +1,9 @@
 # roll-parser worker: Python 3.12 + Tesseract 5 (English, Telugu).
 #
-#   docker compose -f infra/docker-compose.yml --profile roll-parser build roll-parser
+#   docker compose -f infra/docker-compose.yml --profile roll-parser up -d --build roll-parser
+#
+# The default command is the queue worker; `check` (Tesseract self-test),
+# `extract <pdf>` and the other commands work too.
 #
 # Ubuntu 24.04 gives the same Tesseract (5.3.4) and Python (3.12) as the CI
 # runner, so OCR results in the image match the ones the tests check.
@@ -39,5 +42,10 @@ RUN uv sync --locked --no-dev
 RUN useradd --system --uid 10001 --no-create-home rollparser
 USER rollparser
 
+# /health answers 200 while the worker runs and Redis responds
+EXPOSE 8090
+HEALTHCHECK --interval=15s --timeout=5s --start-period=20s --retries=3 \
+    CMD ["python", "-c", "import sys, urllib.request; sys.exit(urllib.request.urlopen('http://127.0.0.1:8090/health', timeout=4).status != 200)"]
+
 ENTRYPOINT ["roll-parser"]
-CMD ["check"]
+CMD ["worker"]
