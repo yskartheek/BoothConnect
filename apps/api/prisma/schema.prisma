@@ -198,6 +198,7 @@ model AppUser {
   grantedRoles       RoleAssignment[]    @relation("GrantedBy")
   uploadedBatches    ImportBatch[]       @relation("BatchUploadedBy")
   confirmedBatches   ImportBatch[]       @relation("BatchConfirmedBy")
+  importUploads      ImportUpload[]      @relation("UploadCreatedBy")
   correctedRows      ImportRowResult[]
   collectedValues    FieldValue[]
   visits             Visit[]
@@ -332,6 +333,7 @@ model ImportBatch {
   uploadedBy  AppUser         @relation("BatchUploadedBy", fields: [uploadedById], references: [id], onDelete: Restrict)
   confirmedBy AppUser?        @relation("BatchConfirmedBy", fields: [confirmedById], references: [id], onDelete: Restrict)
   files       ImportFile[]
+  uploads     ImportUpload[]
 
   @@index([programId, createdAt])
   @@index([targetNodeId])
@@ -361,10 +363,58 @@ enum ExtractionMethod {
   @@map("extraction_method")
 }
 
+enum ImportUploadKind {
+  pdf
+  zip
+
+  @@map("import_upload_kind")
+}
+
+enum ImportUploadStatus {
+  /// Upload URLs handed out; the browser is uploading.
+  pending
+  /// Verified and turned into import_file rows.
+  completed
+  /// Size or content didn't check out; nothing was imported.
+  failed
+
+  @@map("import_upload_status")
+}
+
+/// One object the admin uploads into a batch: a roll PDF, or a ZIP of PDFs
+/// that becomes one import_file per PDF when completed (#44).
+model ImportUpload {
+  id           String             @id @default(uuid(7)) @db.Uuid
+  batchId      String             @map("batch_id") @db.Uuid
+  kind         ImportUploadKind
+  /// Object key in the private import bucket.
+  objectKey    String             @unique @map("object_key")
+  originalName String             @map("original_name")
+  /// Declared when the upload started; checked against the stored object.
+  sizeBytes    BigInt             @map("size_bytes")
+  /// The S3 multipart upload the browser sends parts to.
+  s3UploadId   String             @map("s3_upload_id")
+  status       ImportUploadStatus @default(pending)
+  /// Why it failed.
+  error        Json?
+  createdById  String             @map("created_by") @db.Uuid
+  createdAt    DateTime           @default(now()) @map("created_at") @db.Timestamptz
+  completedAt  DateTime?          @map("completed_at") @db.Timestamptz
+
+  batch     ImportBatch  @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  createdBy AppUser      @relation("UploadCreatedBy", fields: [createdById], references: [id], onDelete: Restrict)
+  files     ImportFile[]
+
+  @@index([batchId, status])
+  @@map("import_upload")
+}
+
 /// One roll PDF (one part) inside a batch.
 model ImportFile {
   id               String            @id @default(uuid(7)) @db.Uuid
   batchId          String            @map("batch_id") @db.Uuid
+  /// The upload it came from (the PDF itself, or the ZIP it was in).
+  uploadId         String?           @map("upload_id") @db.Uuid
   /// Denormalised from the batch so duplicate checks can be a unique index.
   programId        String            @map("program_id") @db.Uuid
   /// Object key in the private import bucket.
@@ -394,6 +444,7 @@ model ImportFile {
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
   batch         ImportBatch       @relation(fields: [batchId], references: [id], onDelete: Cascade)
+  upload        ImportUpload?     @relation(fields: [uploadId], references: [id], onDelete: SetNull)
   program       ElectionProgram   @relation(fields: [programId], references: [id], onDelete: Restrict)
   duplicateOf   ImportFile?       @relation("DuplicateOf", fields: [duplicateOfId], references: [id], onDelete: SetNull)
   duplicates    ImportFile[]      @relation("DuplicateOf")

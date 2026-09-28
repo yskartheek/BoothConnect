@@ -23,6 +23,15 @@ describe('validateEnv', () => {
       OTP_REQUEST_LIMIT: 3,
       OTP_REQUEST_WINDOW_SECONDS: 600,
       IDEMPOTENCY_TTL_SECONDS: 604800,
+      S3_ENDPOINT: 'http://localhost:9000',
+      S3_REGION: 'us-east-1',
+      S3_ACCESS_KEY_ID: 'boothconnect',
+      S3_SECRET_ACCESS_KEY: 'boothconnect-dev-secret',
+      S3_FORCE_PATH_STYLE: true,
+      S3_BUCKET_IMPORTS: 'boothconnect-imports',
+      IMPORT_MAX_PDF_BYTES: 104857600,
+      IMPORT_MAX_ZIP_BYTES: 2147483648,
+      IMPORT_UPLOAD_URL_TTL_SECONDS: 3600,
     });
   });
 
@@ -37,6 +46,7 @@ describe('validateEnv', () => {
       NODE_ENV: 'production',
       JWT_ACCESS_SECRET: 'a'.repeat(32),
       JWT_REFRESH_SECRET: 'b'.repeat(32),
+      S3_SECRET_ACCESS_KEY: 'c'.repeat(32),
     };
 
     it('accepts strong, distinct secrets', () => {
@@ -48,6 +58,7 @@ describe('validateEnv', () => {
       ['a short secret', { JWT_REFRESH_SECRET: 'short' }, 'JWT_REFRESH_SECRET'],
       ['the same secret twice', { JWT_REFRESH_SECRET: 'a'.repeat(32) }, 'JWT_REFRESH_SECRET'],
       ['OTP dev mode', { OTP_DEV_MODE: 'true' }, 'OTP_DEV_MODE'],
+      ['the development S3 secret', { S3_SECRET_ACCESS_KEY: undefined }, 'S3_SECRET_ACCESS_KEY'],
     ])('refuses %s', (_name, override, key) => {
       expect(() => validateEnv({ ...strong, ...override })).toThrow(key);
     });

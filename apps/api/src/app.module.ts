@@ -14,6 +14,7 @@ import { FieldValuesModule } from './field-values/field-values.module';
 import { GeographyModule } from './geography/geography.module';
 import { HealthModule } from './health/health.module';
 import { HouseholdsModule } from './households/households.module';
+import { ImportsModule } from './imports/imports.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { RedisModule } from './redis/redis.module';
 import { SyncModule } from './sync/sync.module';
@@ -47,6 +48,7 @@ import { VotersModule } from './voters/voters.module';
     VisitsModule,
     ConflictsModule,
     SyncModule,
+    ImportsModule,
   ],
 })
 export class AppModule {}

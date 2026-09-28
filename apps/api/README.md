@@ -6,7 +6,7 @@ NestJS 12 REST API. Every route is under `/v1`.
 pnpm infra:up                  # Postgres, Redis, MinIO (from the repo root)
 pnpm --filter api dev          # http://localhost:4000/v1/health, restarts on changes
 pnpm --filter api test         # unit + HTTP tests (no Docker needed)
-pnpm --filter api test:int     # integration tests against real Postgres + Redis
+pnpm --filter api test:int     # integration tests against real Postgres, Redis and MinIO
 pnpm --filter api build        # compile to dist/
 pnpm --filter api start        # run the compiled build
 ```
@@ -398,6 +398,38 @@ made (`household.create` `id`, `member.create` `id`, `consent.capture` `id`).
 Each item key is kept like an `Idempotency-Key` (`IDEMPOTENCY_TTL_SECONDS`) and
 locked while the item runs, so the same queue sent twice, even at the same
 time, stores everything once.
+
+## Roll imports: batches and uploads
+
+Admins only (anyone else gets 403), always inside their own area (404
+otherwise). Design: `docs/design/voter-roll-pdf-import.md` §3 and §6.
+
+1. `POST /v1/imports/batches { targetNodeId }` (`Idempotency-Key`) opens a
+   batch at a State, PC, AC or Part at or below the admin's assignment (a
+   polling station is 422). Audited as `import.batch.create`.
+2. `POST /v1/imports/batches/:id/files { files: [{ name, sizeBytes,
+contentType? }] }` (`Idempotency-Key`) returns one upload per file with
+   presigned **multipart** URLs into the private bucket (16 MiB parts). Only
+   `.pdf` and `.zip`, up to `IMPORT_MAX_PDF_BYTES` / `IMPORT_MAX_ZIP_BYTES`
+   (413 beyond). A part-level batch takes exactly one PDF, no ZIP. The browser
+   PUTs each part and keeps the returned `ETag`s. Audited as
+   `import.upload.start`.
+3. `POST /v1/imports/batches/:id/files/:fileId/complete { parts: [{
+partNumber, etag }] }` (`:fileId` is the upload's id) finishes it: the
+   object must have the declared size and be a PDF (or a readable ZIP), then
+   it is hashed (SHA-256) and becomes **one `import_file` per PDF**. A ZIP is
+   unpacked on the server, with limits on entries, PDF size and total size;
+   folders, hidden files and macOS metadata are ignored and anything else is
+   listed in `skipped`. A PDF whose checksum matches a file already imported
+   in the program is `duplicate` (with `duplicateOfId`) and isn't extracted;
+   the rest are `uploaded` and handed to the extraction queue (#45 connects
+   the roll-parser). Completing again returns the same files; a file that
+   fails the checks is 422 and the upload stays `failed`. Audited as
+   `import.upload.complete`.
+
+Uploads are tracked in `import_upload` (the S3 multipart upload, declared
+size, status); `import_file.upload_id` links each file to the upload it came
+from. The bucket is `S3_BUCKET_IMPORTS` and is never public.
 
 ## Audit log
 
