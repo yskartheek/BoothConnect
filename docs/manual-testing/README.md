@@ -69,3 +69,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #31   | [Suspended users lose access immediately](31-suspended-users.md)                     | Ready to test   |
 | #32   | [GET /v1/me: profile and active assignments](32-me.md)                               | Ready to test   |
 | #33   | [Geographic scope: users only see their own booths](33-geo-scope.md)                 | Ready to test   |
+| #34   | [Audit log for sign-in and sign-out](34-audit-log.md)                                | Ready to test   |

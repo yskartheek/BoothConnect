@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
+import { AuditModule } from './audit/audit.module';
 import { AuthModule } from './auth/auth.module';
 import { CommonModule } from './common/common.module';
 import { AppConfigModule } from './config/config.module';
@@ -26,6 +27,7 @@ import { UsersModule } from './users/users.module';
     CommonModule,
     DatabaseModule,
     RedisModule,
+    AuditModule,
     HealthModule,
     AuthModule,
     UsersModule,

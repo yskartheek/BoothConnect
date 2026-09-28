@@ -56,8 +56,11 @@ export class TokenService {
       .digest('hex');
   }
 
-  /** Creates a session for the device and returns its first token pair. */
-  async startSession(userId: string, deviceId: string): Promise<TokenPair> {
+  /** Creates a session for the device and returns its ID and first token pair. */
+  async startSession(
+    userId: string,
+    deviceId: string,
+  ): Promise<{ sessionId: string; tokens: TokenPair }> {
     const refreshToken = newRefreshToken();
     const session = await this.prisma.session.create({
       data: {
@@ -68,7 +71,8 @@ export class TokenService {
         lastUsedAt: new Date(),
       },
     });
-    return { ...(await this.accessToken(userId, session.id)), refreshToken };
+    const tokens = { ...(await this.accessToken(userId, session.id)), refreshToken };
+    return { sessionId: session.id, tokens };
   }
 
   /**
