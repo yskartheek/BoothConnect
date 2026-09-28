@@ -5,9 +5,11 @@
   "description": "Design tokens (liquid glass light/dark + reduced transparency): the single source for web CSS variables and Flutter ThemeData",
   "type": "module",
   "exports": {
-    "./tokens.json": "./tokens.json"
+    "./tokens.json": "./tokens.json",
+    "./tokens.css": "./dist/tokens.css"
   },
   "scripts": {
+    "build": "node scripts/build-css.js",
     "check:contrast": "node scripts/check-contrast.js",
     "lint": "eslint .",
     "test": "node scripts/check-contrast.js && node --test test/*.test.js"
