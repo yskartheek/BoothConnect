@@ -76,6 +76,93 @@ def _header(pdf: Path, as_json: bool) -> int:
     return 0
 
 
+def _extract(pdf: Path, out: Path | None, truth: Path | None, workers: int | None) -> int:
+    """Read every voter row. Prints counts and issue codes only (no voter data);
+    the full result, which does contain voter data, goes to ``out``."""
+    from collections import Counter
+
+    from roll_parser.extract.roll import extract_roll
+
+    if not pdf.is_file():
+        print(f"No such file: {pdf}", file=sys.stderr)
+        return 1
+    result = extract_roll(pdf, workers=workers)
+    printed = result.header.printed_totals
+    c = result.extracted_totals
+    print(f"pages:     {result.page_count}, voter rows: {len(result.rows)}")
+    print(
+        f"extracted: {c.male} male / {c.female} female / {c.third_gender} third gender / "
+        f"{c.total} total (deleted entries excluded)"
+    )
+    if printed is not None:
+        p = printed.counts
+        print(
+            f"printed:   {p.male.value} male / {p.female.value} female / "
+            f"{p.third_gender.value} third gender / {p.total.value} total"
+        )
+    print(
+        f"quality:   {result.quality_score:.2f}"
+        + ("  (needs review)" if result.needs_review else "")
+    )
+    print(f"time:      {result.timings.total_seconds:.1f} s")
+    codes = Counter(i.code for i in [*result.header.issues, *result.issues])
+    rows = Counter(i.code for row in result.rows for i in row.issues)
+    print(f"file issues: {dict(codes) or 'none'}")
+    print(f"row issues:  {dict(rows) or 'none'} on {sum(1 for r in result.rows if r.issues)} rows")
+    if out is not None:
+        out.write_text(result.model_dump_json(indent=2), encoding="utf-8")
+        print(f"full result (contains voter data, keep it private): {out}")
+    if truth is not None:
+        from roll_parser.model import RollTruth
+        from roll_parser.synthetic.accuracy import compare
+
+        expected = RollTruth.model_validate_json(truth.read_text(encoding="utf-8"))
+        print(compare(result, expected).report())
+    return 0
+
+
+def _id_crops(pdf: Path, page: int, out: Path) -> int:
+    """Write one image showing, for every box on a page, the top of the box
+    and the serial and EPIC crops the parser reads. For checking the crops on
+    a real roll: the image shows EPIC numbers, so keep it private."""
+    import cv2
+    import numpy as np
+    import pymupdf
+
+    from roll_parser.extract.images import render
+    from roll_parser.extract.voters import find_boxes, id_crops
+
+    with pymupdf.open(pdf) as doc:
+        if not 1 <= page <= doc.page_count:
+            print(f"Page {page} is outside 1-{doc.page_count}", file=sys.stderr)
+            return 1
+        image = render(doc[page - 1])
+    boxes = find_boxes(image)
+    if not boxes:
+        print(f"No voter boxes found on page {page}", file=sys.stderr)
+        return 1
+    width = max(b.w for b in boxes) + 8
+    pieces = []
+    missing = 0
+    for box in boxes:
+        serial, epic = id_crops(image, box)
+        missing += serial is None or epic is None
+        top = image[box.y : box.y + box.h // 3, box.x : box.x + box.w]
+        for piece in (top, serial, epic):
+            piece = piece if piece is not None else np.full((12, 60), 128, np.uint8)
+            piece = piece[:, : width - 8]
+            pieces.append(
+                cv2.copyMakeBorder(
+                    piece, 4, 4, 4, width - piece.shape[1] - 4, cv2.BORDER_CONSTANT, value=160
+                )
+            )
+    out.parent.mkdir(parents=True, exist_ok=True)
+    cv2.imwrite(str(out), np.vstack(pieces))
+    print(f"{len(boxes)} boxes; serial or EPIC not found in {missing}")
+    print(f"image (shows EPIC numbers, keep it private): {out}")
+    return 0
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="roll-parser", description=__doc__)
     parser.add_argument("--version", action="version", version=f"%(prog)s {__version__}")
@@ -86,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
         "presets",
         nargs="*",
         metavar="PRESET",
-        help="small, ac40 or ac40-degraded (default: all)",
+        help="small, small-framed, ac40 or ac40-degraded (default: all)",
     )
     synth.add_argument("--out", type=Path, default=Path("synthetic-rolls"), help="output folder")
     header = commands.add_parser(
@@ -94,6 +181,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     header.add_argument("pdf", type=Path)
     header.add_argument("--json", action="store_true", help="print every field as JSON")
+    extract = commands.add_parser("extract", help="read every voter row of a roll PDF")
+    extract.add_argument("pdf", type=Path)
+    extract.add_argument("--out", type=Path, help="write the full result (with voter data) here")
+    extract.add_argument("--truth", type=Path, help="ground-truth JSON of a synthetic roll")
+    extract.add_argument("--workers", type=int, help="parallel processes (default: CPU count)")
+
+    crops = commands.add_parser(
+        "id-crops", help="show the serial/EPIC crops read from one page's boxes (debugging)"
+    )
+    crops.add_argument("pdf", type=Path)
+    crops.add_argument("--page", type=int, default=3, help="1-based page number (default 3)")
+    crops.add_argument("--out", type=Path, required=True, help="PNG to write (keep it private)")
 
     args = parser.parse_args(argv)
     if args.command == "check":
@@ -102,6 +201,10 @@ def main(argv: list[str] | None = None) -> int:
         return _synth(args.presets, args.out)
     if args.command == "header":
         return _header(args.pdf, args.json)
+    if args.command == "extract":
+        return _extract(args.pdf, args.out, args.truth, args.workers)
+    if args.command == "id-crops":
+        return _id_crops(args.pdf, args.page, args.out)
     return 2  # pragma: no cover  (argparse rejects unknown commands)
 
 

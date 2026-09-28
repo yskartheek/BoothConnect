@@ -59,3 +59,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #25   | [Schema: idempotency and audit log](25-idempotency-audit.md)                      | Ready to test   |
 | #26   | [Development seed data](26-seed.md)                                               | Ready to test   |
 | #97   | [Cover and summary page parsing](97-cover-summary-parsing.md)                     | Ready to test   |
+| #98   | [Voter-box extraction with confidence and normalisation](98-voter-boxes.md)       | Ready to test   |

@@ -36,6 +36,15 @@ PRESETS = {
             degradation=Degradation(jpeg_quality=75),  # keeps the committed file small
         ),
         Preset(
+            name="small-framed",
+            description=(
+                "Like small, with the serial frame in the box corner and the EPIC framed: "
+                "a different geometry for the serial/EPIC row."
+            ),
+            spec=RollSpec(seed=2, section_sizes=[24, 18], box_style="framed"),
+            degradation=Degradation(jpeg_quality=75, blur_sigma=0.5, noise_sigma=4),
+        ),
+        Preset(
             name="ac40",
             description="Like the owner's AC 40 sample: 23 pages, 571 electors, 2 sections.",
             spec=RollSpec(seed=40, section_sizes=[300, 271], rare_epic_prefixes=2),

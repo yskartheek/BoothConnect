@@ -23,7 +23,7 @@ __all__ = [
 def build(spec: RollSpec, degradation: Degradation | None = None) -> tuple[bytes, RollTruth]:
     """Image-only roll PDF and its ground truth."""
     truth = generate(spec)
-    doc = rasterise(draw_vector(truth), degradation, seed=spec.seed)
+    doc = rasterise(draw_vector(truth, spec.box_style), degradation, seed=spec.seed)
     return doc.tobytes(garbage=3, deflate=True), truth
 
 

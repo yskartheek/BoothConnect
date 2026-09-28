@@ -8,6 +8,7 @@ JPEG quality) to test the parser's robustness.
 
 import random
 from datetime import date
+from typing import Literal
 
 import cv2
 import numpy as np
@@ -21,6 +22,12 @@ from roll_parser.synthetic.data import GENDER_LABELS, RELATION_LABELS
 BLACK = (0.0, 0.0, 0.0)
 GREY = (0.55, 0.55, 0.55)
 LIGHT = (0.85, 0.85, 0.85)
+
+
+# How a box's serial/EPIC row is drawn: "plain" as in the spike, "framed" with
+# the serial frame in the box's corner and a frame round the EPIC (a different
+# geometry, to check the parser doesn't depend on fixed positions)
+BoxStyle = Literal["plain", "framed"]
 
 
 class Degradation(BaseModel):
@@ -268,23 +275,31 @@ def _draw_maps(page: pymupdf.Page, truth: RollTruth) -> None:
         _text(page, rect.x0 + w / 2, rect.y1 - 10, label, size=9, bold=True, align="center")
 
 
-def _draw_voter_box(page: pymupdf.Page, voter: VoterEntry) -> None:
+def _draw_voter_box(page: pymupdf.Page, voter: VoterEntry, style: BoxStyle) -> None:
     r = layout.box_rect(voter.box_index)
     w = r.width
     page.draw_rect(r, color=BLACK, width=0.8)
 
-    serial_box = pymupdf.Rect(r.x0 + 0.05 * w, r.y0 + 2, r.x0 + 0.30 * w, r.y0 + 13)
+    if style == "framed":
+        # Serial frame sharing the box's top-left corner; the EPIC in a frame too
+        serial_box = pymupdf.Rect(r.x0, r.y0, r.x0 + 0.2 * w, r.y0 + 13)
+        epic_box = pymupdf.Rect(r.x0 + 0.52 * w, r.y0 + 2, r.x0 + 0.97 * w, r.y0 + 14)
+        page.draw_rect(epic_box, color=BLACK, width=0.6)
+        epic_x, epic_y, epic_align = epic_box.x0 + epic_box.width / 2, epic_box.y1 - 3, "center"
+    else:
+        serial_box = pymupdf.Rect(r.x0 + 0.05 * w, r.y0 + 2, r.x0 + 0.30 * w, r.y0 + 13)
+        epic_x, epic_y, epic_align = r.x0 + 0.96 * w, r.y0 + 11, "right"
     page.draw_rect(serial_box, color=BLACK, width=0.6)
     _text(
         page,
         serial_box.x0 + serial_box.width / 2,
-        serial_box.y1 - 2.5,
+        serial_box.y1 - (3 if style == "framed" else 2.5),
         str(voter.serial),
         size=8,
         bold=True,
         align="center",
     )
-    _text(page, r.x0 + 0.96 * w, r.y0 + 11, voter.epic, size=8.5, bold=True, align="right")
+    _text(page, epic_x, epic_y, voter.epic, size=8.5, bold=True, align=epic_align)
 
     photo = pymupdf.Rect(
         r.x0 + layout.PHOTO_LEFT * w, r.y0 + 0.2 * r.height, r.x0 + 0.97 * w, r.y1 - 0.05 * r.height
@@ -314,7 +329,7 @@ def _draw_voter_box(page: pymupdf.Page, voter: VoterEntry) -> None:
 
 
 def _draw_voter_page(
-    page: pymupdf.Page, truth: RollTruth, number: int, voters: list[VoterEntry]
+    page: pymupdf.Page, truth: RollTruth, number: int, voters: list[VoterEntry], style: BoxStyle
 ) -> None:
     h = truth.header
     left = layout.MARGIN_X + 4
@@ -343,7 +358,7 @@ def _draw_voter_page(
         bold=True,
     )
     for voter in voters:
-        _draw_voter_box(page, voter)
+        _draw_voter_box(page, voter, style)
     _draw_footer(page, truth, number)
 
 
@@ -380,7 +395,7 @@ def _draw_footer(page: pymupdf.Page, truth: RollTruth, number: int) -> None:
     )
 
 
-def draw_vector(truth: RollTruth) -> pymupdf.Document:
+def draw_vector(truth: RollTruth, box_style: BoxStyle = "plain") -> pymupdf.Document:
     """Lay out the roll as a PDF with a text layer."""
     doc = pymupdf.open()
     by_page: dict[int, list[VoterEntry]] = {}
@@ -394,7 +409,7 @@ def draw_vector(truth: RollTruth) -> pymupdf.Document:
         elif kind == "maps":
             _draw_maps(page, truth)
         elif kind == "voters":
-            _draw_voter_page(page, truth, number, by_page[number])
+            _draw_voter_page(page, truth, number, by_page[number], box_style)
         else:
             _draw_summary(page, truth, number)
     return doc
