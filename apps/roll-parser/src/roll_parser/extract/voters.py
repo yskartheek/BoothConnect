@@ -204,14 +204,17 @@ def id_crops(image: GrayImage, box: Box) -> tuple[GrayImage | None, GrayImage | 
         top, left = max(top - pad, 0), max(left - pad, 0)
         return clean[top : bottom + pad, left : right + pad]
 
-    # The EPIC is the rightmost group long enough to be one; the serial is the
-    # leftmost group before it, if that starts in the left half
-    epic_at = max((i for i, g in enumerate(groups) if len(g) >= 4), default=None)
-    if epic_at is None:
-        return None, None
-    before = groups[:epic_at]
-    serial = crop(before[0]) if before and before[0][0].x < region.shape[1] / 2 else None
-    return serial, crop(groups[epic_at])
+    # The serial is the first group if it starts in the left half and more
+    # follows; the EPIC is everything after it (an EPIC printed with a gap,
+    # e.g. between letters and digits, stays whole)
+    if len(groups) > 1 and groups[0][0].x < region.shape[1] / 2:
+        serial_group, rest = groups[0], groups[1:]
+    else:
+        serial_group, rest = None, groups
+    epic_glyphs = [g for group in rest for g in group]
+    if len(epic_glyphs) < 4:
+        return (crop(serial_group) if serial_group else None), None
+    return (crop(serial_group) if serial_group else None), crop(epic_glyphs)
 
 
 def _reading_order(words: list[PageWord]) -> list[PageWord]:

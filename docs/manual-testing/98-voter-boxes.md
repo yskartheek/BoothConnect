@@ -88,7 +88,7 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
    ```powershell
    pnpm --filter roll-parser test
    ```
-   **Expect:** `67 passed`, in about 3 minutes (it extracts two 23-page rolls).
+   **Expect:** `69 passed`, in about 3 minutes (it extracts two 23-page rolls).
 
 ## Pass criteria
 
@@ -101,8 +101,13 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
   totals were exact, but most printed serials disagreed with reading order
   and EPIC confidence was about 0.5. The fixed crops were catching something
   besides the ID (a frame, a border or a clipped neighbour). The crops are now
-  found from the glyphs themselves (see above); please re-run step 1 and, if
-  serials still disagree, step 2's `id-crops`.
+  found from the glyphs themselves (see above). Second run: serial
+  mismatches fell from 419 to 8, but 522 EPICs came out too short
+  (`epic.invalid`): on your layout the glyph crop cut the EPIC. The EPIC crop
+  now takes everything after the serial, and the fixed strip is read as well;
+  each box keeps whichever reading is a valid EPIC. Please re-run step 1; if
+  `epic.invalid` is still high, run step 2's `id-crops` and describe the EPIC
+  crops (no numbers).
 - **Warnings on correct values:** about 1 row in 10 gets a low-confidence
   warning, mostly on ages that were read correctly (Tesseract gives short
   numbers low confidence). These are warnings, not errors; they don't send the

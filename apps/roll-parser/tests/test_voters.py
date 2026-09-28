@@ -208,3 +208,19 @@ def test_id_crops_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) ->
     assert main(["id-crops", str(FIXTURES / "small.pdf"), "--page", "3", "--out", str(out)]) == 0
     assert "24 boxes; serial or EPIC not found in 0" in capsys.readouterr().out
     assert out.stat().st_size > 0
+
+
+def test_the_valid_epic_reading_is_kept() -> None:
+    """The glyph crop and the fixed strip are both read; a reading that cut
+    the EPIC short loses to one that holds all 10 characters."""
+    from roll_parser.extract.roll import _best_epic
+    from roll_parser.ocr import Line, PageWord, line_from_words
+
+    def line(text: str) -> Line:
+        return (
+            line_from_words([PageWord(text, 0.9, 0, 0, 10, 10)]) if text else Line("", (), 0, 0, 0)
+        )
+
+    assert _best_epic([line("1234567"), line("ABC1234567")]).text == "ABC1234567"
+    assert _best_epic([line("ABC1234567"), line("XYZ7654321")]).text == "ABC1234567"
+    assert _best_epic([line(""), line("ABC12345")]).text == "ABC12345"  # flagged later
