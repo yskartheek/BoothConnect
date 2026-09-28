@@ -73,3 +73,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #35   | [Safe retries with an Idempotency-Key](35-idempotency.md)                            | Ready to test   |
 | #36   | [Geography dropdowns (State → PC → AC → Part → Booth)](36-geographies.md)            | Ready to test   |
 | #37   | [Households list (scoped, search, visit status, pages)](37-households-list.md)       | Ready to test   |
+| #38   | [Household details (members and last visit)](38-household-detail.md)                 | Ready to test   |

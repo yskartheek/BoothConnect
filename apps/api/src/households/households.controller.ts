@@ -1,10 +1,11 @@
-import { Controller, Get, Query } from '@nestjs/common';
+import { Controller, Get, Param, ParseUUIDPipe, Query } from '@nestjs/common';
 import { IsIn, IsOptional, IsString, IsUUID, MaxLength } from 'class-validator';
 
 import { CurrentScope } from '../authz/decorators';
 import type { Scope } from '../authz/scope.service';
 import { type Page, PageQuery } from '../common/pagination';
 import {
+  type HouseholdDetail,
   type HouseholdSummary,
   HouseholdsService,
   VISIT_STATUSES,
@@ -38,5 +39,13 @@ export class HouseholdsController {
     @Query() query: ListHouseholdsQuery,
   ): Promise<Page<HouseholdSummary>> {
     return this.households.list(scope, query);
+  }
+
+  @Get(':id')
+  get(
+    @CurrentScope() scope: Scope,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<HouseholdDetail> {
+    return this.households.get(scope, id);
   }
 }
