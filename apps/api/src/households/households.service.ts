@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 
 import type { Scope } from '../authz/scope.service';
+import { foundInScope, inScope } from '../authz/scoped-query';
 import {
   DEFAULT_PAGE_SIZE,
   decodeCursor,
@@ -10,7 +11,12 @@ import {
   toPage,
 } from '../common/pagination';
 import { PrismaService } from '../database/prisma.service';
-import { Prisma, type RecordOrigin, type VisitOutcome } from '../generated/prisma/client';
+import {
+  type HouseholdStatus,
+  Prisma,
+  type RecordOrigin,
+  type VisitOutcome,
+} from '../generated/prisma/client';
 
 /** Visit status, from the household's latest effective visit (spec §7.3). */
 export const VISIT_STATUSES = ['not_visited', 'visited', 'follow_up'] as const;
@@ -27,6 +33,61 @@ export interface HouseholdSummary {
   voterCount: number;
   lastVisit: { outcome: VisitOutcome; startedAt: Date } | null;
 }
+
+/** A member as shown on the household screen: current values over the roll's. */
+export interface MemberSummary {
+  id: string;
+  origin: RecordOrigin;
+  sectionNo: number | null;
+  serialNo: number | null;
+  /** EPIC number; null for volunteer-added members. */
+  epicNumber: string | null;
+  name: string | null;
+  age: number | null;
+  gender: string | null;
+  relationType: string | null;
+  relativeName: string | null;
+  /** Two offline edits of one of this member's fields collided (plan §4). */
+  hasConflict: boolean;
+}
+
+export interface HouseholdDetail {
+  id: string;
+  partId: string;
+  pollingStationId: string;
+  displayAddress: string;
+  houseKey: string;
+  structuredAddress: Prisma.JsonValue;
+  /** Captured with consent; null when there is none. */
+  location: { lat: number; lng: number; accuracyM: number | null; capturedAt: Date | null } | null;
+  origin: RecordOrigin;
+  status: HouseholdStatus;
+  /** Active members, in roll order; volunteer-added members last. */
+  members: MemberSummary[];
+  /** The latest visit that no later visit corrects. */
+  lastVisit: {
+    id: string;
+    outcome: VisitOutcome;
+    startedAt: Date;
+    completedAt: Date | null;
+    volunteerId: string;
+    memberIdsMet: string[];
+  } | null;
+}
+
+/** Summary fields a volunteer may have updated; restricted fields never appear here. */
+const SUMMARY_FIELDS = ['name', 'age', 'gender'] as const;
+type SummaryField = (typeof SUMMARY_FIELDS)[number];
+
+interface SourceData {
+  name?: unknown;
+  age?: unknown;
+  gender?: unknown;
+  relationType?: unknown;
+  relativeName?: unknown;
+}
+const text = (value: unknown): string | null => (typeof value === 'string' ? value : null);
+const num = (value: unknown): number | null => (typeof value === 'number' ? value : null);
 
 export interface ListHouseholdsQuery {
   boothId?: string;
@@ -107,6 +168,100 @@ export class HouseholdsService {
             ? { outcome: lastVisitOutcome, startedAt: lastVisitAt }
             : null,
       })),
+    };
+  }
+  /** One household with its members and last visit; 404 outside the scope. */
+  async get(scope: Scope, id: string): Promise<HouseholdDetail> {
+    const household = foundInScope(
+      await this.prisma.household.findFirst({ where: { id, ...inScope(scope) } }),
+      'Household',
+    );
+
+    const [voters, lastVisit] = await Promise.all([
+      this.prisma.voter.findMany({
+        where: { householdId: id, recordStatus: 'active' },
+        orderBy: [
+          { sectionNo: { sort: 'asc', nulls: 'last' } },
+          { serialNo: { sort: 'asc', nulls: 'last' } },
+          { createdAt: 'asc' },
+          { id: 'asc' },
+        ],
+      }),
+      this.prisma.visit.findFirst({
+        where: { householdId: id, correctedBy: { is: null } },
+        orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+        include: { membersMet: { select: { voterId: true }, orderBy: { voterId: 'asc' } } },
+      }),
+    ]);
+
+    const values = await this.prisma.fieldValue.findMany({
+      where: {
+        entityType: 'voter',
+        entityId: { in: voters.map((voter) => voter.id) },
+        isCurrent: true,
+      },
+      select: {
+        entityId: true,
+        value: true,
+        conflictWithId: true,
+        fieldDefinition: { select: { key: true } },
+      },
+      // Later values win below; ties (a conflict) resolve to the newest.
+      orderBy: [{ collectedAt: 'asc' }, { id: 'asc' }],
+    });
+    const current = new Map<string, Partial<Record<SummaryField, unknown>>>();
+    const conflicted = new Set<string>();
+    for (const row of values) {
+      if (row.conflictWithId) conflicted.add(row.entityId);
+      const key = row.fieldDefinition.key as SummaryField;
+      if (!SUMMARY_FIELDS.includes(key)) continue;
+      current.set(row.entityId, { ...current.get(row.entityId), [key]: row.value });
+    }
+
+    return {
+      id: household.id,
+      partId: household.partId,
+      pollingStationId: household.pollingStationId,
+      displayAddress: household.displayAddress,
+      houseKey: household.houseKey,
+      structuredAddress: household.structuredAddress,
+      location:
+        household.locationLat !== null && household.locationLng !== null
+          ? {
+              lat: household.locationLat.toNumber(),
+              lng: household.locationLng.toNumber(),
+              accuracyM: household.locationAccuracyM,
+              capturedAt: household.locationCapturedAt,
+            }
+          : null,
+      origin: household.origin,
+      status: household.status,
+      members: voters.map((voter) => {
+        const source = (voter.sourceData ?? {}) as SourceData;
+        const edited = current.get(voter.id) ?? {};
+        const pick = (key: SummaryField) => (key in edited ? edited[key] : source[key]);
+        return {
+          id: voter.id,
+          origin: voter.origin,
+          sectionNo: voter.sectionNo,
+          serialNo: voter.serialNo,
+          epicNumber: voter.sourceVoterId,
+          name: text(pick('name')),
+          age: num(pick('age')),
+          gender: text(pick('gender')),
+          relationType: text(source.relationType),
+          relativeName: text(source.relativeName),
+          hasConflict: conflicted.has(voter.id),
+        };
+      }),
+      lastVisit: lastVisit && {
+        id: lastVisit.id,
+        outcome: lastVisit.outcome,
+        startedAt: lastVisit.startedAt,
+        completedAt: lastVisit.completedAt,
+        volunteerId: lastVisit.volunteerId,
+        memberIdsMet: lastVisit.membersMet.map((member) => member.voterId),
+      },
     };
   }
 }

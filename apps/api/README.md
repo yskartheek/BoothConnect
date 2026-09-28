@@ -158,6 +158,20 @@ exactly like an empty booth: no totals, nothing to tell them apart.
 - Each item has `voterCount` (active members) and `lastVisit`
   (`{ outcome, startedAt }` or null).
 
+`GET /v1/households/:id` returns one household: address (display and
+structured), location (captured with consent, or null), status, its active
+**members** and its **last visit**. A household outside the caller's scope
+gets the same 404 as a missing ID.
+
+- Members come in roll order (section, serial), volunteer-added members last.
+  `name`, `age` and `gender` show the current value a volunteer entered, else
+  the roll's; `relationType` and `relativeName` are the roll's. Nothing else,
+  and no restricted field, is in the summary (full details: `GET /v1/voters/:id`).
+  `hasConflict` is true while two offline edits of one of the member's fields
+  wait for the volunteer to choose.
+- `lastVisit` is the latest visit that no later visit corrects:
+  `{ id, outcome, startedAt, completedAt, volunteerId, memberIdsMet }`, or null.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it
