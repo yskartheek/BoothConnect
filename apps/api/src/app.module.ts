@@ -11,6 +11,7 @@ import { loggerParams } from './config/logger';
 import { DatabaseModule } from './database/database.module';
 import { GeographyModule } from './geography/geography.module';
 import { HealthModule } from './health/health.module';
+import { HouseholdsModule } from './households/households.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './users/users.module';
@@ -35,6 +36,7 @@ import { UsersModule } from './users/users.module';
     AuthModule,
     UsersModule,
     GeographyModule,
+    HouseholdsModule,
   ],
 })
 export class AppModule {}

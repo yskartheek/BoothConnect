@@ -142,6 +142,22 @@ below it.
   `{ items, nextCursor }`, `limit` default 50, max 200 (`src/common/pagination.ts`).
   Pages stay stable when rows are added elsewhere in the list.
 
+## Households
+
+`GET /v1/households?boothId=&q=&status=&limit=&cursor=` lists **active**
+households at the caller's booths (all of them, or one `boothId`), ordered by
+ID with a keyset cursor. A `boothId` outside the scope gives an empty page,
+exactly like an empty booth: no totals, nothing to tell them apart.
+
+- `q`: part of the address, the start of the house number, a member's name
+  (from the roll, or the current value a volunteer entered) or the start of
+  an EPIC number.
+- `status` is the **visit status** (spec §7.3), from the latest visit that
+  no later visit corrects: `not_visited`, `visited` or `follow_up` (latest
+  outcome `follow_up_requested`).
+- Each item has `voterCount` (active members) and `lastVisit`
+  (`{ outcome, startedAt }` or null).
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it
