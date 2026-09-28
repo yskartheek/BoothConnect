@@ -15,6 +15,7 @@ import { HealthModule } from './health/health.module';
 import { HouseholdsModule } from './households/households.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { RedisModule } from './redis/redis.module';
+import { SyncModule } from './sync/sync.module';
 import { UsersModule } from './users/users.module';
 import { VisitsModule } from './visits/visits.module';
 import { VotersModule } from './voters/voters.module';
@@ -43,6 +44,7 @@ import { VotersModule } from './voters/voters.module';
     HouseholdsModule,
     VotersModule,
     VisitsModule,
+    SyncModule,
   ],
 })
 export class AppModule {}
