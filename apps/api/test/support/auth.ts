@@ -23,7 +23,7 @@ export async function loginAs(
   const user = await t.prisma.appUser.findFirstOrThrow({
     where: who.startsWith('+') ? { phone: who } : { id: who },
   });
-  const tokens = await t.app.get(TokenService).startSession(user.id, deviceId);
+  const { tokens } = await t.app.get(TokenService).startSession(user.id, deviceId);
   const http = request
     .agent(t.app.getHttpServer())
     .set('Authorization', `Bearer ${tokens.accessToken}`);

@@ -127,6 +127,29 @@ below it.
 - The guards run in order: access token (401) → scope and roles (403);
   `@Public()` routes skip both.
 
+## Audit log
+
+`audit_event` is append-only and hash-chained **by the database**: on insert it
+assigns `seq`, links the event to the previous one and computes
+`hash = sha256(prev_hash | event)` under an advisory lock, and it refuses
+UPDATE, DELETE and TRUNCATE. The API only inserts:
+
+- `AuditService.record({ action, resourceType, resourceId, result, actorId,
+sessionId, requestId, metadata })`. `metadata` is **redacted** first
+  (`src/audit/redact.ts`): credentials, codes, tokens and personal data (names,
+  phones, addresses, EPIC numbers, ages, locations…) by key, and phone- and
+  token-shaped strings anywhere. The log says who did what to which record,
+  never the data itself.
+- `@Audited({ action, resourceType })` on a route records `success`, or
+  `failure` with the error code, for every call.
+- Recorded so far: `auth.login` (success, and failure with the reason; never
+  the phone or code) and `auth.logout`.
+- `AuditService.verifyChain()` (SQL `audit_verify_chain()`) returns null
+  when the chain is intact, otherwise the `seq` of the first broken event.
+- `seq` values have gaps (the column default and the trigger both draw from
+  the sequence). That's expected: integrity comes from the hash chain, which
+  `verifyChain()` checks, not from consecutive numbers.
+
 ## Database (Prisma 7)
 
 ```powershell

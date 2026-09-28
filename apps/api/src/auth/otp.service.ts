@@ -87,7 +87,11 @@ export class OtpService {
   }
 
   /** Checks the code and, if right, starts a session for the device. */
-  async verify(phone: string, code: string, deviceId: string): Promise<TokenPair> {
+  async verify(
+    phone: string,
+    code: string,
+    deviceId: string,
+  ): Promise<{ userId: string; sessionId: string; tokens: TokenPair }> {
     const key = otpKey(phone);
     const counted = (await this.redis.eval(COUNT_ATTEMPT, 1, key)) as [string, number] | null;
     if (!counted) throw invalid();
@@ -115,8 +119,8 @@ export class OtpService {
     const user = await this.prisma.appUser.findUnique({ where: { phone } });
     if (user?.status !== 'active') throw invalid();
 
-    const tokens = await this.tokens.startSession(user.id, deviceId);
+    const { sessionId, tokens } = await this.tokens.startSession(user.id, deviceId);
     await this.prisma.appUser.update({ where: { id: user.id }, data: { lastLoginAt: new Date() } });
-    return tokens;
+    return { userId: user.id, sessionId, tokens };
   }
 }
