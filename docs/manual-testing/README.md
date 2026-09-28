@@ -75,3 +75,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #37   | [Households list (scoped, search, visit status, pages)](37-households-list.md)       | Ready to test   |
 | #38   | [Household details (members and last visit)](38-household-detail.md)                 | Ready to test   |
 | #39   | [Member details (official values, current values, history)](39-voter-detail.md)      | Ready to test   |
+| #40   | [Saving member details (edits, conflicts, rejections)](40-field-value-writes.md)     | Ready to test   |
