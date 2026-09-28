@@ -127,6 +127,21 @@ below it.
 - The guards run in order: access token (401) → scope and roles (403);
   `@Public()` routes skip both.
 
+## Geography and pagination
+
+- `GET /v1/geographies?parentId=&type=&q=&limit=&cursor=` lists the direct
+  children of a node (or the top level), and `GET /v1/geographies/:id`
+  returns a node with its `path` from the top. A node is visible when it's
+  one of the caller's assigned nodes, **below** one, or **above** one (the
+  path to it). Another booth or part at the same level is not visible, and
+  asking for it by ID is 404.
+- Children are ordered **naturally** by code (`length(code), code, id`: 1, 2,
+  10, 408; "1A" after "9"). `q` matches the start of the code or part of the
+  name; `%` and `_` are literal.
+- Lists are paginated with an opaque **keyset cursor**:
+  `{ items, nextCursor }`, `limit` default 50, max 200 (`src/common/pagination.ts`).
+  Pages stay stable when rows are added elsewhere in the list.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it
