@@ -135,6 +135,7 @@ describe('GeoScopeGuard and scoped queries (real Postgres)', () => {
       await expect(scopes.resolve(nobody.id)).resolves.toEqual({
         userId: nobody.id,
         roles: [],
+        nodeIds: [],
         boothIds: [],
       });
 

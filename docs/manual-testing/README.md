@@ -71,3 +71,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #33   | [Geographic scope: users only see their own booths](33-geo-scope.md)                 | Ready to test   |
 | #34   | [Audit log for sign-in and sign-out](34-audit-log.md)                                | Ready to test   |
 | #35   | [Safe retries with an Idempotency-Key](35-idempotency.md)                            | Ready to test   |
+| #36   | [Geography dropdowns (State → PC → AC → Part → Booth)](36-geographies.md)            | Ready to test   |

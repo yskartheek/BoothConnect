@@ -9,6 +9,7 @@ import { AppConfigModule } from './config/config.module';
 import type { Env } from './config/env';
 import { loggerParams } from './config/logger';
 import { DatabaseModule } from './database/database.module';
+import { GeographyModule } from './geography/geography.module';
 import { HealthModule } from './health/health.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { RedisModule } from './redis/redis.module';
@@ -33,6 +34,7 @@ import { UsersModule } from './users/users.module';
     HealthModule,
     AuthModule,
     UsersModule,
+    GeographyModule,
   ],
 })
 export class AppModule {}

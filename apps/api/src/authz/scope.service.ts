@@ -8,6 +8,8 @@ export interface Scope {
   userId: string;
   /** Roles held in at least one active assignment. */
   roles: Role[];
+  /** The geography nodes of the active assignments (any level). */
+  nodeIds: string[];
   /**
    * Every polling station (booth) under any of the caller's assigned nodes,
    * main and auxiliary. Booth-level data is visible only for these IDs.
@@ -33,11 +35,12 @@ export class ScopeService {
       },
       select: { role: true, geographyNodeId: true },
     });
-    if (assignments.length === 0) return { userId, roles: [], boothIds: [] };
+    if (assignments.length === 0) return { userId, roles: [], nodeIds: [], boothIds: [] };
 
+    const nodeIds = [...new Set(assignments.map((a) => a.geographyNodeId))];
     const booths = await this.prisma.geographyClosure.findMany({
       where: {
-        ancestorId: { in: [...new Set(assignments.map((a) => a.geographyNodeId))] },
+        ancestorId: { in: nodeIds },
         descendant: { type: 'polling_station' },
       },
       select: { descendantId: true },
@@ -45,6 +48,7 @@ export class ScopeService {
     return {
       userId,
       roles: [...new Set(assignments.map((a) => a.role))],
+      nodeIds,
       boothIds: [...new Set(booths.map((row) => row.descendantId))],
     };
   }
