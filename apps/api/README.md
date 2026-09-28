@@ -150,6 +150,27 @@ sessionId, requestId, metadata })`. `metadata` is **redacted** first
   the sequence). That's expected: integrity comes from the hash chain, which
   `verifyChain()` checks, not from consecutive numbers.
 
+## Idempotent writes
+
+Writes that a phone may retry (sync, visits, uploads) are marked
+`@Idempotent()`. The client sends `Idempotency-Key: <uuid>`, one per logical
+operation and the same for every retry of it.
+
+- **A retry of a completed request** (same user, key, method, path and body;
+  the body compared with key order ignored) gets the **stored response** back,
+  with the original status and `Idempotency-Replayed: true`. The write doesn't
+  run again.
+- **The same key with a different request** → 422 `IDEMPOTENCY_KEY_REUSED`.
+- **A duplicate while the first is still running** waits (up to 5 s) for
+  its result and replays it. If the first fails or is still running → 409
+  `IDEMPOTENCY_IN_PROGRESS`; retry later. A Redis lock per user and key makes
+  sure only one runs.
+- **Failed requests aren't stored**, so a retry can succeed.
+- Missing or malformed key (8–128 of `A–Z a–z 0–9 - _`) → 400
+  `IDEMPOTENCY_KEY_REQUIRED`.
+- Responses are kept `IDEMPOTENCY_TTL_SECONDS` (default 7 days) in
+  `idempotency_record`; a cleanup job for expired rows comes later.
+
 ## Database (Prisma 7)
 
 ```powershell
