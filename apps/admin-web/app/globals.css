@@ -1,16 +1,70 @@
-/* Placeholder styles until the design tokens package (Epic 5) provides the theme. */
-:root {
-  color-scheme: light dark;
-  font-family: system-ui, sans-serif;
-  line-height: 1.5;
-}
-
+/* App-wide styles. Colours, sizes and motion come from @boothconnect/design-tokens (--bc-*). */
 body {
   margin: 0;
+  min-height: 100vh;
+  font: var(--bc-text-body);
+  color: var(--bc-color-text);
+  background:
+    radial-gradient(circle at 15% 10%, var(--bc-color-backdrop-tint-a), transparent 55%),
+    radial-gradient(circle at 85% 90%, var(--bc-color-backdrop-tint-b), transparent 55%),
+    var(--bc-color-background);
 }
 
 main {
+  display: grid;
+  gap: var(--bc-space-lg);
   max-width: 40rem;
   margin: 0 auto;
-  padding: 3rem 1rem;
+  padding: var(--bc-space-xxl) var(--bc-space-md);
+}
+
+h1 {
+  font: var(--bc-text-display);
+  margin: 0 0 var(--bc-space-xs);
+}
+
+p {
+  margin: 0;
+  color: var(--bc-color-text-muted);
+}
+
+/* Liquid-glass surface: translucent and blurred, or opaque with reduced transparency. */
+.glass {
+  padding: var(--bc-space-lg);
+  border: 1px solid var(--bc-glass-border);
+  border-radius: var(--bc-radius-large);
+  background: var(--bc-glass-fill);
+  box-shadow:
+    inset 0 1px 0 var(--bc-glass-highlight),
+    var(--bc-elevation-medium);
+  backdrop-filter: blur(var(--bc-glass-blur));
+  transition: background-color var(--bc-duration-standard) var(--bc-easing-standard);
+}
+
+:focus-visible {
+  outline: 2px solid var(--bc-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.appearance {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bc-space-sm);
+  margin: 0;
+  padding: var(--bc-space-md);
+  border: 1px solid var(--bc-color-border);
+  border-radius: var(--bc-radius-medium);
+  background: var(--bc-color-surface);
+  font: var(--bc-text-body-small);
+}
+
+.appearance legend {
+  font: var(--bc-text-label);
+}
+
+.appearance select,
+.appearance input {
+  min-height: var(--bc-touch-target-ios);
+  font: inherit;
 }

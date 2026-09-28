@@ -17,6 +17,9 @@ importers:
 
   apps/admin-web:
     dependencies:
+      '@boothconnect/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
       next:
         specifier: ^16.3.6
         version: 16.3.6(@playwright/test@1.63.0)(@types/node@24.19.0)(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
@@ -182,6 +185,21 @@ importers:
   apps/mobile: {}
 
   apps/roll-parser: {}
+
+  packages/design-tokens:
+    devDependencies:
+      '@boothconnect/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      eslint:
+        specifier: ^10.11.0
+        version: 10.11.0(jiti@2.7.0)
+      globals:
+        specifier: ^17.12.0
+        version: 17.12.0
+      typescript:
+        specifier: ~6.0.3
+        version: 6.0.3
 
   packages/eslint-config:
     dependencies:
