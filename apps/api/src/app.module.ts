@@ -16,6 +16,7 @@ import { HouseholdsModule } from './households/households.module';
 import { IdempotencyModule } from './idempotency/idempotency.module';
 import { RedisModule } from './redis/redis.module';
 import { UsersModule } from './users/users.module';
+import { VisitsModule } from './visits/visits.module';
 import { VotersModule } from './voters/voters.module';
 
 @Module({
@@ -41,6 +42,7 @@ import { VotersModule } from './voters/voters.module';
     FieldValuesModule,
     HouseholdsModule,
     VotersModule,
+    VisitsModule,
   ],
 })
 export class AppModule {}

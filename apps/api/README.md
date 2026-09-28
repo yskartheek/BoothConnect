@@ -214,6 +214,62 @@ Value rules: `text` up to 2000 characters (not blank), `number` finite,
 `boolean`, `date` as a real `YYYY-MM-DD`, `phone` in E.164, `single_select` /
 `multi_select` from the field's options. Clearing a field isn't supported yet.
 
+## Visits
+
+`POST /v1/visits` (volunteers and admins, `Idempotency-Key` required) records
+one visit to a household in the caller's scope (else 404):
+
+```json
+{
+  "clientId": "uuid made on the phone",
+  "householdId": "…",
+  "startedAt": "2026-09-20T10:00:00Z",
+  "completedAt": "2026-09-20T10:15:00Z",
+  "outcome": "completed",
+  "formVersion": "2026.1",
+  "notes": "optional, no sensitive details",
+  "memberIdsMet": ["voter id", "…"],
+  "consents": [
+    {
+      "ref": "c1",
+      "voterId": "…",
+      "purpose": "caste_community",
+      "noticeVersion": "2026.1",
+      "method": "in_person_verbal"
+    }
+  ],
+  "fieldChanges": [
+    {
+      "entityType": "voter",
+      "entityId": "…",
+      "fieldKey": "caste_community",
+      "value": "…",
+      "baseVersion": null,
+      "consentRef": "c1"
+    }
+  ]
+}
+```
+
+- The visit, the members met, the consents, the field changes (through the
+  field-value service) and the `visit.create` audit event are stored in **one
+  transaction**: all or nothing.
+- The answer (201) has the visit, `consents` (`{ref, id}` for each one
+  created) and `fieldChanges`, one `applied | conflict | rejected` result per
+  change in request order. A rejected or conflicting change doesn't stop the
+  visit. Field changes may only touch this household and its members
+  (otherwise `rejected`, `NOT_FOUND`).
+- A consent without `voterId` is for the household (e.g. `household_location`).
+  A change refers to a consent from the same visit by `consentRef`, or to an
+  earlier one by `consentId`.
+- The same `clientId` is never stored twice. A retry with the same key gets
+  the stored response (`Idempotency-Replayed: true`); a retry under a new key
+  gets the stored visit with `duplicate: true`, and nothing is applied again.
+  A `clientId` used by another volunteer or household is 409.
+- 422 `UNPROCESSABLE` for times in the future (more than 10 minutes ahead),
+  `completedAt` before `startedAt`, members met or consent subjects outside
+  the household, duplicate consent refs, or an unknown `consentRef`.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it

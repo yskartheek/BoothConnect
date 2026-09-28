@@ -29,8 +29,9 @@ export interface AuditEntry {
 export class AuditService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async record(entry: AuditEntry): Promise<void> {
-    await this.prisma.auditEvent.create({
+  /** Pass `tx` to record the event in the same transaction as the change it describes. */
+  async record(entry: AuditEntry, tx: Prisma.TransactionClient = this.prisma): Promise<void> {
+    await tx.auditEvent.create({
       data: {
         action: entry.action,
         resourceType: entry.resourceType,
