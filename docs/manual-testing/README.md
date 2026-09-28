@@ -83,3 +83,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #53   | [Design tokens (light/dark glass + reduced transparency)](53-design-tokens.md)                  | Ready to test   |
 | #54   | [Design tokens as CSS variables in the admin web](54-css-variables.md)                          | Ready to test   |
 | #55   | [Design tokens as the Flutter theme (+ opaque glass fallback)](55-flutter-theme.md)             | Ready to test   |
+| #56   | [Shared strings package (English + Telugu)](56-i18n.md)                                         | Ready to test   |

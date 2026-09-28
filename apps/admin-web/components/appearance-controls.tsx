@@ -2,6 +2,8 @@
 
 import { useEffect, useId, useState } from 'react';
 
+import { t } from '@/lib/i18n';
+
 export type ThemeChoice = 'system' | 'light' | 'dark';
 
 /**
@@ -27,16 +29,16 @@ export function AppearanceControls() {
 
   return (
     <fieldset className="appearance">
-      <legend>Appearance</legend>
-      <label htmlFor={themeId}>Theme</label>
+      <legend>{t('appearance.legend')}</legend>
+      <label htmlFor={themeId}>{t('appearance.theme')}</label>
       <select
         id={themeId}
         value={theme}
         onChange={(event) => setTheme(event.target.value as ThemeChoice)}
       >
-        <option value="system">Same as system</option>
-        <option value="light">Light</option>
-        <option value="dark">Dark</option>
+        <option value="system">{t('appearance.themeSystem')}</option>
+        <option value="light">{t('appearance.themeLight')}</option>
+        <option value="dark">{t('appearance.themeDark')}</option>
       </select>
       <label>
         <input
@@ -44,7 +46,7 @@ export function AppearanceControls() {
           checked={reduceTransparency}
           onChange={(event) => setReduceTransparency(event.target.checked)}
         />
-        Reduce transparency
+        {t('appearance.reduceTransparency')}
       </label>
     </fieldset>
   );

@@ -4,7 +4,7 @@
   "private": true,
   "description": "BoothConnect admin portal (Next.js)",
   "scripts": {
-    "dev": "pnpm --filter @boothconnect/design-tokens build && next dev --port 3000",
+    "dev": "pnpm --filter @boothconnect/design-tokens --filter @boothconnect/i18n build && next dev --port 3000",
     "build": "next build",
     "start": "next start --port 3000",
     "lint": "eslint .",
@@ -15,6 +15,7 @@
   },
   "dependencies": {
     "@boothconnect/design-tokens": "workspace:*",
+    "@boothconnect/i18n": "workspace:*",
     "next": "^16.3.6",
     "react": "^19.3.0",
     "react-dom": "^19.3.0"

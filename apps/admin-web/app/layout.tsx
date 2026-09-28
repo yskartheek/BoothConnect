@@ -4,9 +4,11 @@ import type { ReactNode } from 'react';
 import '@boothconnect/design-tokens/tokens.css';
 import './globals.css';
 
+import { t } from '@/lib/i18n';
+
 export const metadata: Metadata = {
-  title: 'BoothConnect Admin',
-  description: 'Administration portal for BoothConnect field operations',
+  title: t('appTitle'),
+  description: t('appDescription'),
   robots: { index: false, follow: false },
 };
 
