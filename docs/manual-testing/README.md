@@ -25,6 +25,7 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #97                | **Read your own roll's cover**: AC/PC/part and printed totals from your sample       | Terminal                  |
 | #98                | **Read every voter row** of your sample and compare the counts with the totals       | Terminal                  |
 | #99                | roll-parser worker takes jobs from Redis; results and page images appear in MinIO    | Docker Desktop, browser   |
+| #28                | [Structured error format, request IDs and validation](28-errors-validation.md)       | Ready to test             |
 | #29–#33            | Sign in through the API with a dev one-time code and call `/v1/me`                   | curl / Postman / Bruno    |
 | #36–#39            | Browse households and voters through the API; check volunteer A can't see booth B    | curl / Postman            |
 | #41–#43            | Record a visit and sync through the API; try replays and conflicts                   | curl / Postman            |

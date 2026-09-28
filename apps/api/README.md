@@ -18,6 +18,7 @@ pnpm --filter api start        # run the compiled build
 | `src/main.ts`        | Bootstrap: logger, `configureApp`, listen on `API_PORT`          |
 | `src/app.setup.ts`   | Global prefix, CORS, shutdown hooks (shared with the HTTP tests) |
 | `src/config/`        | Environment validation (zod) and logging setup                   |
+| `src/common/`        | Error format, validation pipe and other cross-cutting pieces     |
 | `src/health/`        | `GET /v1/health`: checks the database and Redis, 200 or 503      |
 | `test/*.e2e-spec.ts` | HTTP tests against the real app wiring, external services faked  |
 
@@ -35,6 +36,31 @@ request gets an ID: a well-formed `X-Request-Id` header from the caller is
 kept, otherwise a UUID is generated. The ID is returned in the
 `X-Request-Id` response header and attached to every log line of that
 request. `Authorization` and `Cookie` headers are redacted.
+
+## Errors and validation
+
+Every error response has the same shape, whatever went wrong:
+
+```json
+{
+  "requestId": "3f1c…",
+  "code": "VALIDATION_FAILED",
+  "message": "Request validation failed",
+  "details": [{ "field": "address.pinCode", "errors": ["pinCode must be …"] }]
+}
+```
+
+- `requestId` matches the `X-Request-Id` header and the log lines.
+- Clients branch on `code` (`src/common/errors/error-codes.ts`), never on
+  `message`. Codes are never renamed.
+- 5xx responses never contain stack traces or error messages. The details go
+  to the log (with the request ID), not to the client.
+- Request bodies are validated with class-validator DTOs. Unknown properties
+  are a 400, not silently dropped, and submitted values are never echoed back.
+- Throw `AppException(status, code, message, details?)` for errors a client
+  should act on. Prisma's unique-violation (`P2002` → 409
+  `UNIQUE_VIOLATION`), foreign-key (`P2003` → 409) and not-found
+  (`P2025` → 404) errors are mapped automatically.
 
 ## Database (Prisma 7)
 
