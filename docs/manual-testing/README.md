@@ -72,3 +72,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #34   | [Audit log for sign-in and sign-out](34-audit-log.md)                                | Ready to test   |
 | #35   | [Safe retries with an Idempotency-Key](35-idempotency.md)                            | Ready to test   |
 | #36   | [Geography dropdowns (State → PC → AC → Part → Booth)](36-geographies.md)            | Ready to test   |
+| #37   | [Households list (scoped, search, visit status, pages)](37-households-list.md)       | Ready to test   |
