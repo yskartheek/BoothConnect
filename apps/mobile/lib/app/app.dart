@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
+import '../theme/glass_system_settings.dart';
 import 'router.dart';
 
 class BoothConnectApp extends ConsumerWidget {
@@ -14,6 +15,8 @@ class BoothConnectApp extends ConsumerWidget {
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      builder: (context, child) =>
+          SystemGlassSettings(child: child ?? const SizedBox.shrink()),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),

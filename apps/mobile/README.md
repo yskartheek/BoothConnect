@@ -54,3 +54,8 @@ and commit the updated file. CI fails if you forget.
 - `GlassSurface` is the liquid-glass panel. It turns opaque, with no blur,
   when a `GlassSettings` above it has `reduceTransparency` or `lowEndDevice`
   set, or when high contrast is on (reported by iOS only).
+- `SystemGlassSettings` (in `MaterialApp.builder`) fills that `GlassSettings`
+  from the phone through the `boothconnect/glass_settings` platform channel:
+  iOS Reduce Transparency / Low Power Mode, and on Android window blur
+  availability, low-RAM devices and battery saver. The native side is in
+  `android/.../GlassSettingsStreamHandler.kt` and `ios/Runner/AppDelegate.swift`.
