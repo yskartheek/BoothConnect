@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 
+import { CommonModule } from './common/common.module';
 import { AppConfigModule } from './config/config.module';
 import type { Env } from './config/env';
 import { loggerParams } from './config/logger';
@@ -19,6 +20,7 @@ import { HealthModule } from './health/health.module';
           LOG_LEVEL: config.get('LOG_LEVEL', { infer: true }),
         }),
     }),
+    CommonModule,
     DatabaseModule,
     HealthModule,
   ],
