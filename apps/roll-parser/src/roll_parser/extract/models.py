@@ -55,6 +55,9 @@ class ExtractedStation(_Model):
         )
 
 
+OPTIONAL_HEADER_FIELDS = frozenset({"subdivision"})
+
+
 class ExtractedHeader(_Model):
     state_code: Field[str]
     state_name: Field[str]
@@ -75,6 +78,7 @@ class ExtractedHeader(_Model):
     post_office: Field[str]
     police_station: Field[str]
     mandal: Field[str]
+    subdivision: Field[str]  # not on every cover; missing isn't an error
     district: Field[str]
     pin_code: Field[str]
     polling_station: ExtractedStation
@@ -92,7 +96,8 @@ class ExtractedHeader(_Model):
 
     def values(self) -> RollHeader:
         data: dict[str, object] = {
-            name: _v(field, name) for name, field in self.scalar_fields().items()
+            name: field.value if name in OPTIONAL_HEADER_FIELDS else _v(field, name)
+            for name, field in self.scalar_fields().items()
         }
         data["sections"] = [s.values() for s in self.sections]
         data["polling_station"] = self.polling_station.values()

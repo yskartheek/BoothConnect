@@ -6,6 +6,7 @@ from roll_parser.extract.cover import parse_cover
 from roll_parser.extract.fields import Field, Issue, Severity
 from roll_parser.extract.images import remove_rules, render
 from roll_parser.extract.models import (
+    OPTIONAL_HEADER_FIELDS,
     ExtractedCounts,
     ExtractedHeader,
     ExtractedSummary,
@@ -51,6 +52,8 @@ def _check_field[T](field: Field[T], path: str, page: int) -> list[Issue]:
 def _check_header(header: ExtractedHeader, page: int) -> list[Issue]:
     issues: list[Issue] = []
     for name, field in header.scalar_fields().items():
+        if name in OPTIONAL_HEADER_FIELDS and field.value is None:
+            continue
         issues += _check_field(field, f"header.{name}", page)
     for name in ("number", "name", "address"):
         issues += _check_field(

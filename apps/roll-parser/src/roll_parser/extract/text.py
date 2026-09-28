@@ -7,8 +7,10 @@ from datetime import date
 from roll_parser.extract.fields import Field
 from roll_parser.ocr import Line
 
-# OCR sometimes reads ':' as ';', and '-' as an en dash
-SEP = r"\s*[:;]\s*"
+# OCR sometimes reads ':' as ';' or '>', and '-' as an en dash
+SEP = r"\s*[:;>]\s*"
+# For labels printed in a table column, without a colon
+OPT_SEP = r"\s*[:;>]?\s*"
 DASH = r"[-\u2013]"
 
 # Letters Tesseract confuses with digits, inside a field that must be a number
@@ -46,11 +48,21 @@ def as_text(raw: str) -> str | None:
 
 
 class LabelledValues:
-    """Looks up ``Label : value`` pairs; a value ends at the next known label."""
+    """Looks up ``Label : value`` pairs; a value ends at the next known label.
+
+    Each label is a regular expression that includes its separator (``SEP``
+    or ``OPT_SEP``), so ``Mandal :`` is a label but ``Mandal Parishad`` isn't.
+    """
 
     def __init__(self, lines: Sequence[Line], labels: Sequence[str]) -> None:
         self.lines = lines
-        self.any_label = re.compile("|".join(f"(?:{label}){SEP}" for label in labels), re.I)
+        self.any_label = re.compile("|".join(f"(?:{label})" for label in labels), re.I)
+
+    def before_label(self, index: int) -> tuple[int, bool]:
+        """Where line ``index``'s own text ends, and whether a label follows."""
+        line = self.lines[index]
+        m = self.any_label.search(line.text)
+        return (m.start(), True) if m else (len(line.text), False)
 
     def find[T](
         self,
@@ -58,13 +70,18 @@ class LabelledValues:
         convert: Callable[[str], T | None],
         *,
         continuation: bool = False,
+        below: bool = False,
+        stop: str | None = None,
     ) -> tuple[Field[T], int | None]:
         """The value after ``label`` and the index of the line it's on.
 
-        With ``continuation``, following lines that have no label of their
-        own are appended (for addresses that wrap).
+        With ``below``, a label with nothing after it takes its value from the
+        next line (tables where the value sits under the label). With
+        ``continuation``, following lines that have no label of their own are
+        appended (for values that wrap), up to a numbered heading or a line
+        matching ``stop``.
         """
-        pattern = re.compile(f"(?:{label}){SEP}", re.I)
+        pattern = re.compile(label, re.I)
         for index, line in enumerate(self.lines):
             m = pattern.search(line.text)
             if not m:
@@ -73,17 +90,26 @@ class LabelledValues:
             nxt = self.any_label.search(line.text, start)
             end = nxt.start() if nxt else len(line.text)
             field = span_field(line, start, end, convert)
-            if continuation and not nxt:
-                field = self._with_continuation(field, index, convert)
+            labelled = nxt is not None
+            if not field.raw and below and index + 1 < len(self.lines):
+                index += 1
+                end, labelled = self.before_label(index)
+                field = span_field(self.lines[index], 0, end, convert)
+            if continuation and field.raw and not labelled:
+                field = self._with_continuation(field, index, convert, stop)
             return field, index
         return Field.missing(), None
 
     def _with_continuation[T](
-        self, field: Field[T], index: int, convert: Callable[[str], T | None]
+        self, field: Field[T], index: int, convert: Callable[[str], T | None], stop: str | None
     ) -> Field[T]:
         raw, confidence = field.raw, field.confidence
         for line in self.lines[index + 1 :]:
-            if self.any_label.search(line.text) or re.match(r"^\d+\.\s", line.text):
+            if (
+                self.any_label.search(line.text)
+                or re.match(r"^\d+\.\s", line.text)
+                or (stop and re.search(stop, line.text, re.I))
+            ):
                 break
             raw = f"{raw} {line.text}"
             confidence = min(confidence, line.confidence(0, len(line.text)))

@@ -56,8 +56,11 @@ How it works (`src/roll_parser/extract/`):
    else is the maps/photos page and is skipped.
 2. **Cover** (`cover.py`): render at the page image's own resolution, remove
    table borders (so Tesseract reads the totals table), OCR into lines with
-   word confidences, then find each `Label : value`. A value ends at the next
-   known label, because OCR often joins two columns into one line.
+   word confidences, then find each `Label : value` (the revision table has
+   no colons). A value ends at the next known label, because OCR often joins
+   two columns into one line; a label with nothing after it takes the value
+   on the next line, and wrapped values are joined. The labels match the
+   owner's 2026 sample cover.
 3. **Summary** (`summary.py`): one row per roll type plus the Total row.
 4. **Checks** (`header.py`): every field present and read with confidence
    ≥ 0.6; male + female + third gender = total; the serial range covers the

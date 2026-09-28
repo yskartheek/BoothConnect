@@ -2,7 +2,7 @@
   "format": "telangana-s29-english",
   "header": {
     "state_code": "S29",
-    "state_name": "TELANGANA",
+    "state_name": "Telangana",
     "ac_number": 40,
     "ac_name": "PATANCHERU",
     "ac_reservation": "GENERAL",
@@ -11,10 +11,10 @@
     "pc_reservation": "GEN",
     "part_number": 408,
     "revision_year": 2026,
-    "revision_type": "Special Intensive Revision",
-    "qualifying_date": "2026-01-01",
-    "publication_date": "2026-02-10",
-    "roll_identification": "Draft Roll",
+    "revision_type": "Special Intensive Revision 2026",
+    "qualifying_date": "2026-10-01",
+    "publication_date": "2026-08-17",
+    "roll_identification": "Draft Electoral Roll of Special Intensive Revision, 2026",
     "sections": [
       {
         "number": 1,
@@ -25,24 +25,25 @@
         "name": "PAVA NAGAR"
       }
     ],
-    "main_town": "YANEKO BASTI",
-    "post_office": "YANEKO BASTI",
+    "main_town": "RUME NAGAR",
+    "post_office": "RUME NAGAR",
     "police_station": "DDIRUPA GUDA",
     "mandal": "RAGUCHE NAGAR",
+    "subdivision": "SANGAREDDY",
     "district": "SANGAREDDY",
     "pin_code": "504109",
     "polling_station": {
       "number": "408",
-      "name": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR",
-      "address": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR, ROOM NO 1, YANEKO BASTI"
+      "name": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR",
+      "address": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR, Room No 1"
     },
-    "station_type": "General",
+    "station_type": "GENERAL",
     "auxiliary_station_count": 1,
     "auxiliary_stations": [
       {
         "number": "408A",
-        "name": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR ROOM NO 2",
-        "address": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR, ROOM NO 2, YANEKO BASTI"
+        "name": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR, Room No 2",
+        "address": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR, Room No 2"
       }
     ]
   },
@@ -67,7 +68,13 @@
       }
     }
   ],
-  "pages": ["cover", "maps", "voters", "voters", "summary"],
+  "pages": [
+    "cover",
+    "maps",
+    "voters",
+    "voters",
+    "summary"
+  ],
   "voters": [
     {
       "serial": 1,
