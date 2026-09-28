@@ -49,7 +49,7 @@ from roll_parser.model import (
     VoterEntry,
     contract_config,
 )
-from roll_parser.ocr import read_strips, read_words_scaled
+from roll_parser.ocr import Line, read_strips, read_words_scaled
 
 # Voter pages are enlarged before OCR: the box text is small (about 7.5 pt)
 OCR_SCALE = float(os.environ.get("ROLL_PARSER_OCR_SCALE", "1"))
@@ -160,6 +160,19 @@ def _limit_threads() -> None:
 EPIC_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
 
 
+def _best_epic(candidates: list[Line]) -> Line:
+    """The first reading that is a clean 10-character EPIC, else the first
+    that normalises to one, else the first non-empty one."""
+    readable = [c for c in candidates if c.text]
+    for line in readable:
+        if len(epic_chars(line.text)) == 10 and normalise_epic(line.text):
+            return line
+    for line in readable:
+        if normalise_epic(line.text):
+            return line
+    return readable[0] if readable else candidates[0]
+
+
 def read_voter_page(pdf: Path, index: int) -> PageRead:
     """Three Tesseract calls per page: the whole page in sparse-text mode, then
     every box's EPIC strip, then every serial box, each stacked into one image
@@ -177,16 +190,16 @@ def read_voter_page(pdf: Path, index: int) -> PageRead:
     )
 
     texts = [split_box(b, words) for b in boxes]
-    # The ID crops are cut from the box's top row; a box where the row isn't
-    # found falls back to the fixed strips
+    # The ID crops are cut from the box's top row. The EPIC is also read from
+    # the fixed strip, and whichever reading is a valid EPIC is kept (glyph
+    # crop first), so an unusual layout can't make it worse than the strip.
     ids = [id_crops(image, b) for b in boxes]
-    epics = read_strips(
-        [
-            e if e is not None else top_strip(clean, b, SERIAL_RIGHT, 1.0)
-            for (_, e), b in zip(ids, boxes, strict=True)
-        ],
+    strips = [top_strip(clean, b, SERIAL_RIGHT, 1.0) for b in boxes]
+    glyph_epics = read_strips(
+        [e if e is not None else s for (_, e), s in zip(ids, strips, strict=True)],
         whitelist=EPIC_CHARS,
     )
+    strip_epics = read_strips(strips, whitelist=EPIC_CHARS)
     serials = read_strips(
         [
             s if s is not None else remove_box_lines(top_strip(image, b, SERIAL_LEFT, SERIAL_RIGHT))
@@ -195,8 +208,12 @@ def read_voter_page(pdf: Path, index: int) -> PageRead:
         whitelist="0123456789",
     )
     texts = [
-        replace(t, serial=serial if serial.text else t.serial, epic=epic if epic.text else t.epic)
-        for t, serial, epic in zip(texts, serials, epics, strict=True)
+        replace(
+            t,
+            serial=serial if serial.text else t.serial,
+            epic=_best_epic([glyph, strip, t.epic]),
+        )
+        for t, serial, glyph, strip in zip(texts, serials, glyph_epics, strip_epics, strict=True)
     ]
     return PageRead(page=index + 1, section=section, boxes=texts)
 
