@@ -42,8 +42,14 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
    PC:      6 MEDAK (GEN)
    part:    408, sections: <n>, auxiliary stations: 0
    totals:  287 male / 284 female / 0 third gender / 571 total
-   issues:  0
+   issues:  2
+     [warning] field.low_confidence: header.sections[1].number read with low confidence (0.00)
+     [warning] field.low_confidence: header.sections[1].name read with low confidence (0.00)
    ```
+   (Confirmed on the sample: the two warnings are real. Section 2's line
+   shares a baseline with the right-hand column and Tesseract gives it
+   confidence 0; warnings don't block. What matters is that there are no
+   `[error]` lines.)
    The output holds no voter data (it never reads the voter boxes), so it's
    safe to paste into a PR comment. **Please post it on the PR**, especially
    if a line differs or there are issues listed: the synthetic rolls use my
