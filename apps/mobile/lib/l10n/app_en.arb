@@ -11,5 +11,189 @@
   "homeComingSoon": "Sign-in and your assigned households will appear here.",
   "@homeComingSoon": {
     "description": "Body text on the placeholder home screen, shown until sign-in exists."
+  },
+  "visitOutcomeCompleted": "Met the family",
+  "@visitOutcomeCompleted": {
+    "description": "Visit outcome (API: completed)."
+  },
+  "visitOutcomePartiallyCompleted": "Met some members",
+  "@visitOutcomePartiallyCompleted": {
+    "description": "Visit outcome (API: partially_completed)."
+  },
+  "visitOutcomeNoOneAvailable": "No one home",
+  "@visitOutcomeNoOneAvailable": {
+    "description": "Visit outcome (API: no_one_available)."
+  },
+  "visitOutcomeRefused": "Refused",
+  "@visitOutcomeRefused": {
+    "description": "Visit outcome (API: refused)."
+  },
+  "visitOutcomeAddressNotFound": "Address not found",
+  "@visitOutcomeAddressNotFound": {
+    "description": "Visit outcome (API: address_not_found)."
+  },
+  "visitOutcomeHouseholdMoved": "Family has moved",
+  "@visitOutcomeHouseholdMoved": {
+    "description": "Visit outcome (API: household_moved)."
+  },
+  "visitOutcomeVoterDeceased": "Voter has passed away",
+  "@visitOutcomeVoterDeceased": {
+    "description": "Visit outcome (API: voter_deceased). Use respectful wording."
+  },
+  "visitOutcomeDuplicateOrIncorrectListing": "Duplicate or wrong entry",
+  "@visitOutcomeDuplicateOrIncorrectListing": {
+    "description": "Visit outcome (API: duplicate_or_incorrect_listing)."
+  },
+  "visitOutcomeFollowUpRequested": "Come back later",
+  "@visitOutcomeFollowUpRequested": {
+    "description": "Visit outcome (API: follow_up_requested)."
+  },
+  "visitOutcomeUnsafeOrInaccessible": "Couldn't reach safely",
+  "@visitOutcomeUnsafeOrInaccessible": {
+    "description": "Visit outcome (API: unsafe_or_inaccessible)."
+  },
+  "syncStatePending": "On phone",
+  "@syncStatePending": {
+    "description": "Saved on the phone, not uploaded yet."
+  },
+  "syncStateSyncing": "Uploading",
+  "@syncStateSyncing": {
+    "description": "Upload in progress."
+  },
+  "syncStateSynced": "Uploaded",
+  "@syncStateSynced": {
+    "description": "The server has it."
+  },
+  "syncStateConflict": "Choose value",
+  "@syncStateConflict": {
+    "description": "Someone else changed the same value; the volunteer must pick one."
+  },
+  "syncStateFailed": "Not uploaded",
+  "@syncStateFailed": {
+    "description": "Upload failed and needs attention."
+  },
+  "errorValidationFailed": "Some details aren't right. Fix the marked fields.",
+  "@errorValidationFailed": {
+    "description": "API error code VALIDATION_FAILED."
+  },
+  "errorMalformedJson": "Something went wrong sending this. Try again.",
+  "@errorMalformedJson": {
+    "description": "API error code MALFORMED_JSON."
+  },
+  "errorBadRequest": "Something went wrong sending this. Try again.",
+  "@errorBadRequest": {
+    "description": "API error code BAD_REQUEST."
+  },
+  "errorUnauthenticated": "Your session has ended. Sign in again.",
+  "@errorUnauthenticated": {
+    "description": "API error code UNAUTHENTICATED."
+  },
+  "errorForbidden": "You don't have permission to see or change this.",
+  "@errorForbidden": {
+    "description": "API error code FORBIDDEN."
+  },
+  "errorNotFound": "This couldn't be found. It may have been removed.",
+  "@errorNotFound": {
+    "description": "API error code NOT_FOUND."
+  },
+  "errorMethodNotAllowed": "Something went wrong sending this. Try again.",
+  "@errorMethodNotAllowed": {
+    "description": "API error code METHOD_NOT_ALLOWED."
+  },
+  "errorConflict": "Someone else changed this. Choose which value to keep.",
+  "@errorConflict": {
+    "description": "API error code CONFLICT."
+  },
+  "errorUniqueViolation": "This already exists.",
+  "@errorUniqueViolation": {
+    "description": "API error code UNIQUE_VIOLATION."
+  },
+  "errorForeignKeyViolation": "A linked record no longer exists.",
+  "@errorForeignKeyViolation": {
+    "description": "API error code FOREIGN_KEY_VIOLATION."
+  },
+  "errorPayloadTooLarge": "This is too large. Try a smaller file.",
+  "@errorPayloadTooLarge": {
+    "description": "API error code PAYLOAD_TOO_LARGE."
+  },
+  "errorUnsupportedMediaType": "This file type isn't supported.",
+  "@errorUnsupportedMediaType": {
+    "description": "API error code UNSUPPORTED_MEDIA_TYPE."
+  },
+  "errorUnprocessable": "This change can't be saved. Check the details.",
+  "@errorUnprocessable": {
+    "description": "API error code UNPROCESSABLE."
+  },
+  "errorRateLimited": "Too many attempts. Wait a moment and try again.",
+  "@errorRateLimited": {
+    "description": "API error code RATE_LIMITED."
+  },
+  "errorOtpInvalid": "That code is wrong or has expired.",
+  "@errorOtpInvalid": {
+    "description": "API error code OTP_INVALID (sign-in code)."
+  },
+  "errorOtpLocked": "Too many wrong codes. Wait a while, then ask for a new code.",
+  "@errorOtpLocked": {
+    "description": "API error code OTP_LOCKED."
+  },
+  "errorIdempotencyKeyRequired": "Something went wrong in the app. Try again.",
+  "@errorIdempotencyKeyRequired": {
+    "description": "API error code IDEMPOTENCY_KEY_REQUIRED (an app bug)."
+  },
+  "errorIdempotencyKeyReused": "Something went wrong in the app. Try again.",
+  "@errorIdempotencyKeyReused": {
+    "description": "API error code IDEMPOTENCY_KEY_REUSED (an app bug)."
+  },
+  "errorIdempotencyInProgress": "This is still being sent. Wait a moment.",
+  "@errorIdempotencyInProgress": {
+    "description": "API error code IDEMPOTENCY_IN_PROGRESS."
+  },
+  "errorFieldUnknown": "This field isn't available any more.",
+  "@errorFieldUnknown": {
+    "description": "API error code FIELD_UNKNOWN."
+  },
+  "errorFieldDisabled": "This field isn't available any more.",
+  "@errorFieldDisabled": {
+    "description": "API error code FIELD_DISABLED."
+  },
+  "errorConsentRequired": "The voter's agreement is needed to save this.",
+  "@errorConsentRequired": {
+    "description": "API error code CONSENT_REQUIRED."
+  },
+  "errorInvalidValue": "This value isn't allowed.",
+  "@errorInvalidValue": {
+    "description": "API error code INVALID_VALUE."
+  },
+  "errorBaseVersionInvalid": "This record has changed. Open it again and retry.",
+  "@errorBaseVersionInvalid": {
+    "description": "API error code BASE_VERSION_INVALID."
+  },
+  "errorInternalError": "Something went wrong. Try again.",
+  "@errorInternalError": {
+    "description": "API error code INTERNAL_ERROR."
+  },
+  "errorServiceUnavailable": "The server isn't available. Your work is saved on the phone.",
+  "@errorServiceUnavailable": {
+    "description": "API error code SERVICE_UNAVAILABLE."
+  },
+  "consentCasteTitle": "Caste / community (optional)",
+  "@consentCasteTitle": {
+    "description": "Heading above the consent-gated caste field."
+  },
+  "consentCasteNotice": "Sharing caste or community is optional. If the voter agrees, only authorised staff can see it, it is left out of volunteer lists, and it is only used in grouped statistics that don't identify anyone. The voter can withdraw their agreement at any time.",
+  "@consentCasteNotice": {
+    "description": "DRAFT, pending legal review (spec §22). Read out or shown to the voter before the caste field appears."
+  },
+  "consentCasteAgree": "Voter agrees to share this",
+  "@consentCasteAgree": {
+    "description": "Button: records consent and shows the field."
+  },
+  "consentCasteDecline": "Voter doesn't want to share",
+  "@consentCasteDecline": {
+    "description": "Button: keeps the field hidden."
+  },
+  "consentWithdraw": "Withdraw agreement",
+  "@consentWithdraw": {
+    "description": "Action that withdraws a recorded consent."
   }
 }

@@ -51,6 +51,9 @@ jobs:
               - 'packages/**'
               # Checked against tokens.json by the design-tokens tests.
               - 'apps/mobile/lib/theme/tokens.g.dart'
+              # Checked against packages/i18n/locales by the i18n tests.
+              - 'apps/mobile/lib/l10n/*.arb'
+              - 'apps/mobile/lib/l10n/shared_labels.g.dart'
               - '**/*.md'
               - '**/*.json'
               - '**/*.{yml,yaml}'

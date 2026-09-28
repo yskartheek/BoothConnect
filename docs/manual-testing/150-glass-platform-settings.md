@@ -26,7 +26,7 @@
    pnpm --filter mobile lint
    pnpm --filter mobile test
    ```
-   **Expect:** `No issues found!` and `All tests passed!` (14 tests). The test
+   **Expect:** `No issues found!` and `All tests passed!` (18 once #56 is in, 14 before). The test
    `app glass follows the phone reduce-transparency setting` covers this
    issue's acceptance criterion.
 3. Start the Android emulator (API 31 or newer) and run the app:

@@ -1,0 +1,145 @@
+{
+  "mobile.appTitle": "BoothConnect",
+  "@mobile.appTitle": { "description": "App name, shown in the app bar and the OS task switcher." },
+  "mobile.homeWelcome": "Welcome to BoothConnect",
+  "@mobile.homeWelcome": { "description": "Heading on the placeholder home screen." },
+  "mobile.homeComingSoon": "Sign-in and your assigned households will appear here.",
+  "@mobile.homeComingSoon": {
+    "description": "Body text on the placeholder home screen, shown until sign-in exists."
+  },
+
+  "web.appTitle": "BoothConnect Admin",
+  "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },
+  "web.appDescription": "Administration portal for BoothConnect field operations",
+  "@web.appDescription": { "description": "HTML meta description of the admin portal." },
+  "web.welcome.message": "Sign-in is not available yet. This is the admin portal skeleton.",
+  "@web.welcome.message": { "description": "Shown under the title until sign-in exists." },
+  "web.appearance.legend": "Appearance",
+  "@web.appearance.legend": { "description": "Heading of the theme and transparency controls." },
+  "web.appearance.theme": "Theme",
+  "@web.appearance.theme": { "description": "Label of the light/dark theme dropdown." },
+  "web.appearance.themeSystem": "Same as system",
+  "@web.appearance.themeSystem": { "description": "Theme option: follow the computer's setting." },
+  "web.appearance.themeLight": "Light",
+  "@web.appearance.themeLight": { "description": "Theme option." },
+  "web.appearance.themeDark": "Dark",
+  "@web.appearance.themeDark": { "description": "Theme option." },
+  "web.appearance.reduceTransparency": "Reduce transparency",
+  "@web.appearance.reduceTransparency": {
+    "description": "Checkbox that makes glass panels solid."
+  },
+
+  "visitOutcome.completed": "Met the family",
+  "@visitOutcome.completed": { "description": "Visit outcome (API: completed)." },
+  "visitOutcome.partially_completed": "Met some members",
+  "@visitOutcome.partially_completed": {
+    "description": "Visit outcome (API: partially_completed)."
+  },
+  "visitOutcome.no_one_available": "No one home",
+  "@visitOutcome.no_one_available": { "description": "Visit outcome (API: no_one_available)." },
+  "visitOutcome.refused": "Refused",
+  "@visitOutcome.refused": { "description": "Visit outcome (API: refused)." },
+  "visitOutcome.address_not_found": "Address not found",
+  "@visitOutcome.address_not_found": { "description": "Visit outcome (API: address_not_found)." },
+  "visitOutcome.household_moved": "Family has moved",
+  "@visitOutcome.household_moved": { "description": "Visit outcome (API: household_moved)." },
+  "visitOutcome.voter_deceased": "Voter has passed away",
+  "@visitOutcome.voter_deceased": {
+    "description": "Visit outcome (API: voter_deceased). Use respectful wording."
+  },
+  "visitOutcome.duplicate_or_incorrect_listing": "Duplicate or wrong entry",
+  "@visitOutcome.duplicate_or_incorrect_listing": {
+    "description": "Visit outcome (API: duplicate_or_incorrect_listing)."
+  },
+  "visitOutcome.follow_up_requested": "Come back later",
+  "@visitOutcome.follow_up_requested": {
+    "description": "Visit outcome (API: follow_up_requested)."
+  },
+  "visitOutcome.unsafe_or_inaccessible": "Couldn't reach safely",
+  "@visitOutcome.unsafe_or_inaccessible": {
+    "description": "Visit outcome (API: unsafe_or_inaccessible)."
+  },
+
+  "syncState.pending": "On phone",
+  "@syncState.pending": { "description": "Saved on the phone, not uploaded yet." },
+  "syncState.syncing": "Uploading",
+  "@syncState.syncing": { "description": "Upload in progress." },
+  "syncState.synced": "Uploaded",
+  "@syncState.synced": { "description": "The server has it." },
+  "syncState.conflict": "Choose value",
+  "@syncState.conflict": {
+    "description": "Someone else changed the same value; the volunteer must pick one."
+  },
+  "syncState.failed": "Not uploaded",
+  "@syncState.failed": { "description": "Upload failed and needs attention." },
+
+  "error.VALIDATION_FAILED": "Some details aren't right. Fix the marked fields.",
+  "@error.VALIDATION_FAILED": { "description": "API error code VALIDATION_FAILED." },
+  "error.MALFORMED_JSON": "Something went wrong sending this. Try again.",
+  "@error.MALFORMED_JSON": { "description": "API error code MALFORMED_JSON." },
+  "error.BAD_REQUEST": "Something went wrong sending this. Try again.",
+  "@error.BAD_REQUEST": { "description": "API error code BAD_REQUEST." },
+  "error.UNAUTHENTICATED": "Your session has ended. Sign in again.",
+  "@error.UNAUTHENTICATED": { "description": "API error code UNAUTHENTICATED." },
+  "error.FORBIDDEN": "You don't have permission to see or change this.",
+  "@error.FORBIDDEN": { "description": "API error code FORBIDDEN." },
+  "error.NOT_FOUND": "This couldn't be found. It may have been removed.",
+  "@error.NOT_FOUND": { "description": "API error code NOT_FOUND." },
+  "error.METHOD_NOT_ALLOWED": "Something went wrong sending this. Try again.",
+  "@error.METHOD_NOT_ALLOWED": { "description": "API error code METHOD_NOT_ALLOWED." },
+  "error.CONFLICT": "Someone else changed this. Choose which value to keep.",
+  "@error.CONFLICT": { "description": "API error code CONFLICT." },
+  "error.UNIQUE_VIOLATION": "This already exists.",
+  "@error.UNIQUE_VIOLATION": { "description": "API error code UNIQUE_VIOLATION." },
+  "error.FOREIGN_KEY_VIOLATION": "A linked record no longer exists.",
+  "@error.FOREIGN_KEY_VIOLATION": { "description": "API error code FOREIGN_KEY_VIOLATION." },
+  "error.PAYLOAD_TOO_LARGE": "This is too large. Try a smaller file.",
+  "@error.PAYLOAD_TOO_LARGE": { "description": "API error code PAYLOAD_TOO_LARGE." },
+  "error.UNSUPPORTED_MEDIA_TYPE": "This file type isn't supported.",
+  "@error.UNSUPPORTED_MEDIA_TYPE": { "description": "API error code UNSUPPORTED_MEDIA_TYPE." },
+  "error.UNPROCESSABLE": "This change can't be saved. Check the details.",
+  "@error.UNPROCESSABLE": { "description": "API error code UNPROCESSABLE." },
+  "error.RATE_LIMITED": "Too many attempts. Wait a moment and try again.",
+  "@error.RATE_LIMITED": { "description": "API error code RATE_LIMITED." },
+  "error.OTP_INVALID": "That code is wrong or has expired.",
+  "@error.OTP_INVALID": { "description": "API error code OTP_INVALID (sign-in code)." },
+  "error.OTP_LOCKED": "Too many wrong codes. Wait a while, then ask for a new code.",
+  "@error.OTP_LOCKED": { "description": "API error code OTP_LOCKED." },
+  "error.IDEMPOTENCY_KEY_REQUIRED": "Something went wrong in the app. Try again.",
+  "@error.IDEMPOTENCY_KEY_REQUIRED": {
+    "description": "API error code IDEMPOTENCY_KEY_REQUIRED (an app bug)."
+  },
+  "error.IDEMPOTENCY_KEY_REUSED": "Something went wrong in the app. Try again.",
+  "@error.IDEMPOTENCY_KEY_REUSED": {
+    "description": "API error code IDEMPOTENCY_KEY_REUSED (an app bug)."
+  },
+  "error.IDEMPOTENCY_IN_PROGRESS": "This is still being sent. Wait a moment.",
+  "@error.IDEMPOTENCY_IN_PROGRESS": { "description": "API error code IDEMPOTENCY_IN_PROGRESS." },
+  "error.FIELD_UNKNOWN": "This field isn't available any more.",
+  "@error.FIELD_UNKNOWN": { "description": "API error code FIELD_UNKNOWN." },
+  "error.FIELD_DISABLED": "This field isn't available any more.",
+  "@error.FIELD_DISABLED": { "description": "API error code FIELD_DISABLED." },
+  "error.CONSENT_REQUIRED": "The voter's agreement is needed to save this.",
+  "@error.CONSENT_REQUIRED": { "description": "API error code CONSENT_REQUIRED." },
+  "error.INVALID_VALUE": "This value isn't allowed.",
+  "@error.INVALID_VALUE": { "description": "API error code INVALID_VALUE." },
+  "error.BASE_VERSION_INVALID": "This record has changed. Open it again and retry.",
+  "@error.BASE_VERSION_INVALID": { "description": "API error code BASE_VERSION_INVALID." },
+  "error.INTERNAL_ERROR": "Something went wrong. Try again.",
+  "@error.INTERNAL_ERROR": { "description": "API error code INTERNAL_ERROR." },
+  "error.SERVICE_UNAVAILABLE": "The server isn't available. Your work is saved on the phone.",
+  "@error.SERVICE_UNAVAILABLE": { "description": "API error code SERVICE_UNAVAILABLE." },
+
+  "consent.caste.title": "Caste / community (optional)",
+  "@consent.caste.title": { "description": "Heading above the consent-gated caste field." },
+  "consent.caste.notice": "Sharing caste or community is optional. If the voter agrees, only authorised staff can see it, it is left out of volunteer lists, and it is only used in grouped statistics that don't identify anyone. The voter can withdraw their agreement at any time.",
+  "@consent.caste.notice": {
+    "description": "DRAFT, pending legal review (spec §22). Read out or shown to the voter before the caste field appears."
+  },
+  "consent.caste.agree": "Voter agrees to share this",
+  "@consent.caste.agree": { "description": "Button: records consent and shows the field." },
+  "consent.caste.decline": "Voter doesn't want to share",
+  "@consent.caste.decline": { "description": "Button: keeps the field hidden." },
+  "consent.withdraw": "Withdraw agreement",
+  "@consent.withdraw": { "description": "Action that withdraws a recorded consent." }
+}

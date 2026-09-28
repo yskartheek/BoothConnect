@@ -18,10 +18,14 @@ pnpm --filter mobile format         # apply dart format
 | `lib/app/`              | `MaterialApp.router`, theme and the go_router routes        |
 | `lib/features/<name>/`  | One folder per feature (screens, providers, widgets)        |
 | `lib/theme/`            | `AppTheme`, `GlassSurface`, generated `tokens.g.dart`       |
-| `lib/l10n/*.arb`        | UI strings. `AppLocalizations` is generated from them       |
+| `lib/l10n/`             | Generated ARB files + `shared_labels.g.dart` (don't edit)   |
 | `test/`                 | Widget and unit tests                                       |
 
-All user-visible text goes in `lib/l10n/app_en.arb`, never directly in widgets.
+All user-visible text lives in `packages/i18n/locales/` (English and Telugu),
+never directly in widgets. Add a key there under `mobile.` (or a shared group),
+then run `pnpm --filter @boothconnect/i18n build:mobile` to regenerate
+`lib/l10n/app_*.arb` and commit them. CI fails if a key is missing in any
+language or the ARB files are out of date. See `packages/i18n/README.md`.
 
 ## Main packages
 
