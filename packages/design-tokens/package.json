@@ -1,0 +1,21 @@
+{
+  "name": "@boothconnect/design-tokens",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Design tokens (liquid glass light/dark + reduced transparency): the single source for web CSS variables and Flutter ThemeData",
+  "type": "module",
+  "exports": {
+    "./tokens.json": "./tokens.json"
+  },
+  "scripts": {
+    "check:contrast": "node scripts/check-contrast.js",
+    "lint": "eslint .",
+    "test": "node scripts/check-contrast.js && node --test test/*.test.js"
+  },
+  "devDependencies": {
+    "@boothconnect/eslint-config": "workspace:*",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "typescript": "~6.0.3"
+  }
+}
