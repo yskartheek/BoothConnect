@@ -135,18 +135,20 @@ def test_cover_voter_and_summary_pages_show_the_header() -> None:
     doc = synthetic.draw_vector(truth)
     cover = squash(doc[0].get_text())
     for expected in [
-        "STATE - (S29) TELANGANA",
+        "ELECTORAL ROLL 2026",
+        "S29 Telangana",
         "Assembly Constituency : 40 - PATANCHERU (GENERAL)",
-        "is located : 6 - MEDAK (GEN)",
+        "Parliamentary Constituency : 6 - MEDAK (GEN)",
         "Part No. : 408",
-        "Qualifying Date : 01-01-2026",
-        "Date of Publication : 10-02-2026",
-        f"1 - {h.sections[0].name}",
-        f"2 - {h.sections[1].name}",
-        f"Pin Code : {h.pin_code}",
-        f"No. and Name of Polling Station : 408 - {h.polling_station.name}",
-        "Number of Auxiliary Polling Stations in this Part : 1",
+        "Qualifying Date 01-10-2026",
+        "Date of Publication 17-08-2026",
+        f"1-{h.sections[0].name}",
+        f"2-{h.sections[1].name}",
+        f"Pin code : {h.pin_code}",
+        "No. and Name of Polling Station :",
+        "Number of Auxiliary Polling 1 Stations in this part:",
         f"408A - {h.auxiliary_stations[0].name}",
+        "Starting Ending Net Electors Serial No. Serial No.",
         "Male Female Third Gender Total 1 42 19 20 1 40",
     ]:
         assert expected in cover

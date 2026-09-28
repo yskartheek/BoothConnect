@@ -50,8 +50,8 @@ select = [
 ]
 
 [tool.ruff.lint.per-file-ignores]
-# assert is how pytest checks things
-"tests/**" = ["S101"]
+# assert is how pytest checks things; sample roll text keeps its long lines
+"tests/**" = ["S101", "E501"]
 # Fake data for tests: seeded, not cryptographic
 "src/roll_parser/synthetic/**" = ["S311"]
 
