@@ -68,13 +68,7 @@
       }
     }
   ],
-  "pages": [
-    "cover",
-    "maps",
-    "voters",
-    "voters",
-    "summary"
-  ],
+  "pages": ["cover", "maps", "voters", "voters", "summary"],
   "voters": [
     {
       "serial": 1,
