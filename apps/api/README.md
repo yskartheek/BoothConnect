@@ -192,6 +192,28 @@ members) and `fields`, every **enabled** field the caller may see, set or not.
   granted; once withdrawn it disappears, history included.
 - A voter outside the caller's scope gets the same 404 as a missing ID.
 
+## Writing field values
+
+Every edit of a member or household field (visits, sync push, member and
+household edits) goes through `FieldValuesService.write(scope, userId,
+changes, tx?)`. It returns one result per change, and a rejected change
+doesn't stop the others:
+
+| Result     | When                                                                                                                                                                                  | Stored                                                                              |
+| ---------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
+| `applied`  | `baseVersion` is the current value (or null and the field was never set)                                                                                                              | a new current value that supersedes the old one                                     |
+| `conflict` | the field moved on since `baseVersion`, or a conflict is already open                                                                                                                 | the new value, with `conflictWithId`; both stay current until the volunteer chooses |
+| `rejected` | `NOT_FOUND` (entity outside the scope), `FIELD_UNKNOWN`, `FIELD_DISABLED`, `INVALID_VALUE`, `CONSENT_REQUIRED` (no granted consent for this person and field), `BASE_VERSION_INVALID` | nothing                                                                             |
+
+Values are never updated in place and `source_data` is never touched. Writers
+of one entity's field are serialised with a transaction-scoped advisory lock,
+so two edits can't both supersede the same value. Pass `tx` to write inside
+the caller's transaction (e.g. with a visit).
+
+Value rules: `text` up to 2000 characters (not blank), `number` finite,
+`boolean`, `date` as a real `YYYY-MM-DD`, `phone` in E.164, `single_select` /
+`multi_select` from the field's options. Clearing a field isn't supported yet.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it

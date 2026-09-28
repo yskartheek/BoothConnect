@@ -9,6 +9,7 @@ import { AppConfigModule } from './config/config.module';
 import type { Env } from './config/env';
 import { loggerParams } from './config/logger';
 import { DatabaseModule } from './database/database.module';
+import { FieldValuesModule } from './field-values/field-values.module';
 import { GeographyModule } from './geography/geography.module';
 import { HealthModule } from './health/health.module';
 import { HouseholdsModule } from './households/households.module';
@@ -37,6 +38,7 @@ import { VotersModule } from './voters/voters.module';
     AuthModule,
     UsersModule,
     GeographyModule,
+    FieldValuesModule,
     HouseholdsModule,
     VotersModule,
   ],
