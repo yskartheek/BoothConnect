@@ -3,8 +3,8 @@
 The single source for BoothConnect's look: colours, liquid-glass surfaces,
 radius, spacing, typography, elevation and motion, for the light and dark
 themes. Everything lives in [`tokens.json`](tokens.json). The web CSS
-variables (#54) and the Flutter `ThemeData` (#55) are generated from it, so
-change values here and nowhere else.
+variables and the Flutter `ThemeData` (#55) are generated from it, so change
+values here and nowhere else.
 
 Values start from spec §11.1 ("Suggested design tokens") and the colours in
 [`docs/design/volunteer-app-mockups.html`](../../docs/design/volunteer-app-mockups.html).
@@ -41,3 +41,47 @@ Glass is translucent, so a glass background is blended over every colour in
 so CI fails when a token change breaks contrast.
 
 When you add a colour role, add it to `contrast.pairs` too.
+
+## CSS variables (web)
+
+```sh
+pnpm --filter @boothconnect/design-tokens build   # writes dist/tokens.css
+```
+
+`dist/tokens.css` is generated (not committed); Turborepo builds it before any
+app that depends on this package. Import it once, before the app's own CSS:
+
+```ts
+import '@boothconnect/design-tokens/tokens.css';
+```
+
+Every token becomes a `--bc-*` custom property, for example
+`--bc-color-text`, `--bc-color-on-primary`, `--bc-radius-large`,
+`--bc-space-md`, `--bc-elevation-medium`, `--bc-duration-standard` and
+`--bc-easing-standard`. Text styles are `font` shorthands:
+`font: var(--bc-text-body)`. Sizes are px and durations ms.
+
+| What switches it                                                        | Effect                                                                   |
+| ----------------------------------------------------------------------- | ------------------------------------------------------------------------ |
+| Nothing                                                                 | Light theme                                                              |
+| `prefers-color-scheme: dark`                                            | Dark theme, unless `<html data-theme="light">`                           |
+| `data-theme="light"` / `"dark"` on `<html>` or any element              | Forces that theme for the element and everything inside it               |
+| `prefers-reduced-transparency: reduce` or `data-transparency="reduced"` | `--bc-glass-*` switch to the opaque surfaces; `--bc-glass-blur` is `0px` |
+| `prefers-reduced-motion: reduce`                                        | Every `--bc-duration-*` is `0ms`                                         |
+
+Build glass surfaces from the `--bc-glass-*` variables only (`fill`, `border`,
+`highlight`, `blur`, `sheet-blur`), never from `--bc-glass-translucent-*`, so
+the reduced-transparency fallback applies:
+
+```css
+.card {
+  background: var(--bc-glass-fill);
+  border: 1px solid var(--bc-glass-border);
+  box-shadow:
+    inset 0 1px 0 var(--bc-glass-highlight),
+    var(--bc-elevation-medium);
+  backdrop-filter: blur(var(--bc-glass-blur));
+}
+```
+
+Springs (`motion.spring`) have no CSS form and are only used by the Flutter theme.

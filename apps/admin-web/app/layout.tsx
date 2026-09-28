@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import type { ReactNode } from 'react';
 
+import '@boothconnect/design-tokens/tokens.css';
 import './globals.css';
 
 export const metadata: Metadata = {
