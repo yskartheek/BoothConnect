@@ -82,3 +82,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #113  | [Editing member details and choosing between conflicting values](113-member-edits-conflicts.md) | Ready to test   |
 | #53   | [Design tokens (light/dark glass + reduced transparency)](53-design-tokens.md)                  | Ready to test   |
 | #54   | [Design tokens as CSS variables in the admin web](54-css-variables.md)                          | Ready to test   |
+| #43   | [Offline sync, uploading the phone's queue](43-sync-push.md)                                    | Ready to test   |

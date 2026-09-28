@@ -68,14 +68,24 @@ export class HouseholdWritesService {
     private readonly audit: AuditService,
   ) {}
 
-  async create(scope: Scope, actor: Actor, dto: CreateHouseholdDto): Promise<HouseholdCreated> {
+  async create(
+    scope: Scope,
+    actor: Actor,
+    dto: CreateHouseholdDto,
+    outer?: Tx,
+  ): Promise<HouseholdCreated> {
+    const db = outer ?? this.prisma;
     if (dto.id) {
-      const existing = await this.prisma.household.findUnique({ where: { id: dto.id } });
-      if (existing)
-        return { ...(await this.existing(scope, existing, dto.pollingStationId)), duplicate: true };
+      const existing = await db.household.findUnique({ where: { id: dto.id } });
+      if (existing) {
+        return {
+          ...(await this.existing(db, scope, existing, dto.pollingStationId)),
+          duplicate: true,
+        };
+      }
     }
     if (!scope.boothIds.includes(dto.pollingStationId)) throw notFound('Polling station');
-    const station = await this.prisma.geographyNode.findUniqueOrThrow({
+    const station = await db.geographyNode.findUniqueOrThrow({
       where: { id: dto.pollingStationId },
       select: { parentId: true },
     });
@@ -83,7 +93,7 @@ export class HouseholdWritesService {
 
     const newId = dto.id ?? randomUUID();
 
-    const id = await this.prisma.$transaction(async (tx) => {
+    const write = async (tx: Tx): Promise<HouseholdCreated> => {
       const household = await tx.household.create({
         data: {
           id: newId,
@@ -119,9 +129,9 @@ export class HouseholdWritesService {
         },
         tx,
       );
-      return household.id;
-    });
-    return { ...(await this.households.get(scope, id)), duplicate: false };
+      return { ...(await this.households.get(scope, household.id, tx)), duplicate: false };
+    };
+    return outer ? write(outer) : this.prisma.$transaction(write);
   }
 
   async update(
@@ -129,7 +139,9 @@ export class HouseholdWritesService {
     actor: Actor,
     id: string,
     dto: UpdateHouseholdDto,
+    outer?: Tx,
   ): Promise<HouseholdUpdated> {
+    const db = outer ?? this.prisma;
     if (!dto.address && !dto.location) throw unprocessable('Send an address, a location or both');
     if (
       (dto.address && dto.addressBaseVersion === undefined) ||
@@ -138,14 +150,14 @@ export class HouseholdWritesService {
       throw unprocessable('Each field sent needs its base version (null if the phone had none)');
     }
     foundInScope(
-      await this.prisma.household.findFirst({
+      await db.household.findFirst({
         where: { id, ...inScope(scope) },
         select: { id: true },
       }),
       'Household',
     );
 
-    const results = await this.prisma.$transaction(async (tx) => {
+    const write = async (tx: Tx): Promise<HouseholdUpdated> => {
       const written = await this.writeAddressAndLocation(tx, scope, actor, id, {
         address: dto.address && cleanAddress(dto.address),
         addressBaseVersion: dto.addressBaseVersion ?? null,
@@ -165,9 +177,9 @@ export class HouseholdWritesService {
         },
         tx,
       );
-      return written;
-    });
-    return { household: await this.households.get(scope, id), results };
+      return { household: await this.households.get(scope, id, tx), results: written };
+    };
+    return outer ? write(outer) : this.prisma.$transaction(write);
   }
 
   async addMember(
@@ -175,9 +187,11 @@ export class HouseholdWritesService {
     actor: Actor,
     householdId: string,
     dto: AddMemberDto,
+    outer?: Tx,
   ): Promise<MemberCreated> {
+    const db = outer ?? this.prisma;
     const household = foundInScope(
-      await this.prisma.household.findFirst({
+      await db.household.findFirst({
         where: { id: householdId, ...inScope(scope) },
         select: {
           id: true,
@@ -189,7 +203,7 @@ export class HouseholdWritesService {
       'Household',
     );
     if (dto.id) {
-      const existing = await this.prisma.voter.findUnique({ where: { id: dto.id } });
+      const existing = await db.voter.findUnique({ where: { id: dto.id } });
       if (existing) {
         if (existing.householdId !== household.id || existing.origin !== 'volunteer_added') {
           throw new AppException(HttpStatus.CONFLICT, ErrorCode.CONFLICT, 'id is already used');
@@ -207,7 +221,7 @@ export class HouseholdWritesService {
     const keys = changes.map((c) => c.fieldKey);
     if (new Set(keys).size !== keys.length) throw unprocessable('Each field can be sent once');
 
-    return this.prisma.$transaction(async (tx) => {
+    const write = async (tx: Tx): Promise<MemberCreated> => {
       const voter = await tx.voter.create({
         data: {
           ...(dto.id ? { id: dto.id } : {}),
@@ -250,7 +264,8 @@ export class HouseholdWritesService {
         tx,
       );
       return { id: voter.id, householdId: household.id, duplicate: false, fields };
-    });
+    };
+    return outer ? write(outer) : this.prisma.$transaction(write);
   }
 
   /**
@@ -309,6 +324,7 @@ export class HouseholdWritesService {
 
   /** A retried create: the same household if the caller can see it, else 409. */
   private async existing(
+    db: Tx,
     scope: Scope,
     household: { id: string; pollingStationId: string; origin: string },
     pollingStationId: string,
@@ -320,7 +336,7 @@ export class HouseholdWritesService {
     ) {
       throw new AppException(HttpStatus.CONFLICT, ErrorCode.CONFLICT, 'id is already used');
     }
-    return this.households.get(scope, household.id);
+    return this.households.get(scope, household.id, db);
   }
 }
 

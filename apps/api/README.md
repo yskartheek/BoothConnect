@@ -359,6 +359,46 @@ the next pull asks for exactly the rows that snapshot couldn't see. A slow
 transaction that commits after a pull is therefore never skipped, which
 timestamps can't guarantee, and nothing is sent twice.
 
+## Offline sync: push
+
+`POST /v1/sync/push` (volunteers and admins, `Idempotency-Key` for the whole
+batch) takes the phone's queue, up to 200 changes, and applies them **in
+order, each in its own transaction**, returning one result per change. A bad
+change never stops the others.
+
+```json
+{ "mutations": [{ "key": "m-…", "type": "household.create", "payload": { … } }] }
+```
+
+| `type`             | `payload`                                                                          |
+| ------------------ | ---------------------------------------------------------------------------------- |
+| `visit.create`     | as `POST /v1/visits`                                                               |
+| `field.change`     | `{ entityType, entityId, fieldKey, value, baseVersion, consentId?, collectedAt? }` |
+| `consent.capture`  | `{ id?, voterId \| householdId, purpose, noticeVersion, method, capturedAt? }`     |
+| `household.create` | as `POST /v1/households`                                                           |
+| `household.update` | `{ id, …as PATCH /v1/households/:id }`                                             |
+| `member.create`    | `{ householdId, …as POST /v1/households/:id/members }`                             |
+| `conflict.resolve` | `{ conflictId, keepFieldValueId }`                                                 |
+
+Each result is `{ key, type, status, result?, current?, code?, message?, details? }`:
+
+- `applied`: stored; `result` is what the matching endpoint returns.
+- `duplicate`: already stored. Either the item `key` was pushed before (the
+  stored `result` is returned) or a record with the phone's `id`/`clientId`
+  exists, or a conflict was already resolved. Nothing is stored again.
+- `conflict`: stored, but the field had moved on; `current` has the server's
+  current values (both clashing values) for **Choose value**.
+- `rejected`: nothing stored; `code` and `message` say why (`VALIDATION_FAILED`
+  with `details`, `NOT_FOUND` for anything outside the caller's booths,
+  `FIELD_DISABLED`, `CONSENT_REQUIRED`, `IDEMPOTENCY_KEY_REUSED` for a key
+  already used for a different change, …).
+
+Later items can refer to what earlier ones created through the ids the phone
+made (`household.create` `id`, `member.create` `id`, `consent.capture` `id`).
+Each item key is kept like an `Idempotency-Key` (`IDEMPOTENCY_TTL_SECONDS`) and
+locked while the item runs, so the same queue sent twice, even at the same
+time, stores everything once.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it

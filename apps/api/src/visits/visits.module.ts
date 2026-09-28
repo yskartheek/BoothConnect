@@ -8,5 +8,6 @@ import { VisitsService } from './visits.service';
   imports: [FieldValuesModule],
   controllers: [VisitsController],
   providers: [VisitsService],
+  exports: [VisitsService],
 })
 export class VisitsModule {}
