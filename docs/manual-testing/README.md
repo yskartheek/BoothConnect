@@ -86,3 +86,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #56   | [Shared strings package (English + Telugu)](56-i18n.md)                                         | Ready to test   |
 | #150  | [Glass follows phone settings (transparency, battery saver)](150-glass-platform-settings.md)    | Ready to test   |
 | #43   | [Offline sync, uploading the phone's queue](43-sync-push.md)                                    | Ready to test   |
+| #44   | [Roll imports: opening a batch and uploading PDFs or ZIPs](44-import-uploads.md)                | Ready to test   |

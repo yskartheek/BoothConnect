@@ -41,6 +41,27 @@ const envSchema = z
     // How long a write's response is kept for Idempotency-Key retries (#35).
     // Long enough for a phone that was offline for days to retry its queue.
     IDEMPOTENCY_TTL_SECONDS: seconds(7 * 24 * 60 * 60),
+
+    // Object storage for roll imports (#44): MinIO locally, any S3-compatible
+    // service elsewhere. Defaults match infra/docker-compose.yml.
+    S3_ENDPOINT: z.url().default('http://localhost:9000'),
+    S3_REGION: z.string().min(1).default('us-east-1'),
+    S3_ACCESS_KEY_ID: z.string().min(1).default('boothconnect'),
+    S3_SECRET_ACCESS_KEY: z.string().min(1).default('boothconnect-dev-secret'),
+    S3_FORCE_PATH_STYLE: z.stringbool().default(true),
+    S3_BUCKET_IMPORTS: z.string().min(3).default('boothconnect-imports'),
+    // Largest roll PDF and ZIP an admin may upload, and how long upload URLs work.
+    IMPORT_MAX_PDF_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(100 * 1024 * 1024),
+    IMPORT_MAX_ZIP_BYTES: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .default(2 * 1024 * 1024 * 1024),
+    IMPORT_UPLOAD_URL_TTL_SECONDS: seconds(60 * 60),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
@@ -59,6 +80,13 @@ const envSchema = z
         code: 'custom',
         path: ['JWT_REFRESH_SECRET'],
         message: 'must differ from JWT_ACCESS_SECRET',
+      });
+    }
+    if (env.S3_SECRET_ACCESS_KEY === 'boothconnect-dev-secret') {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['S3_SECRET_ACCESS_KEY'],
+        message: 'must not be the development default in production',
       });
     }
     if (env.OTP_DEV_MODE) {

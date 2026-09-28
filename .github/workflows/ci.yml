@@ -118,6 +118,12 @@ jobs:
     env:
       DATABASE_URL: postgresql://boothconnect:boothconnect@localhost:5432/boothconnect?schema=public
       REDIS_URL: redis://localhost:6379
+      # Roll-import uploads (#44) go to MinIO; the tests create the bucket.
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY_ID: boothconnect
+      S3_SECRET_ACCESS_KEY: boothconnect-dev-secret
+      S3_FORCE_PATH_STYLE: 'true'
+      S3_BUCKET_IMPORTS: boothconnect-imports
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -126,6 +132,19 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # MinIO needs `server /data`, which service containers can't pass, so
+      # it's started here (same image as infra/docker-compose.yml).
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER="$S3_ACCESS_KEY_ID" -e MINIO_ROOT_PASSWORD="$S3_SECRET_ACCESS_KEY" \
+            pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9000/minio/health/ready && exit 0
+            sleep 2
+          done
+          docker logs minio
+          exit 1
       # test:int migrates and seeds its own databases (test/global-setup-int.cjs)
       - run: pnpm --filter api test:int
 
