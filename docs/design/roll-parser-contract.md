@@ -151,7 +151,8 @@ ResultDocument
     │   │            pcNumber, pcName, pcReservation, partNumber, revisionYear,
     │   │            revisionType, qualifyingDate, publicationDate,
     │   │            rollIdentification, sections[{number, name}], mainTown,
-    │   │            postOffice, policeStation, mandal, district, pinCode,
+    │   │            postOffice, policeStation, mandal, subdivision (may be
+    │   │            null), district, pinCode,
     │   │            pollingStation{number, name, address}, stationType,
     │   │            auxiliaryStationCount, auxiliaryStations[...] }   every leaf is a Field
     │   ├── printedTotals { startSerial, endSerial, counts{male, female, thirdGender, total} }

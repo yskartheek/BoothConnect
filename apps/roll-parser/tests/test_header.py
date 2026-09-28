@@ -30,7 +30,48 @@ def fake_lines(text: str, confidence: float = 0.95) -> list[Line]:
     return lines
 
 
+# The owner's AC 40 part 408 cover, as Tesseract read it (verbatim from the
+# real-sample check on #123). Constituency and polling-station details only:
+# public, no voter data. Note the OCR noise ("Gection Now", ">" for ":").
 COVER = """
+ELECTORAL ROLL 2026 S29 Telangana
+No. Name and Reservation Status of Assembly Constituency : 40 - PATANCHERU (GENERAL) Part No. : 408
+No. Name and Reservation Status of Parliamentary Constituency : 6 - MEDAK (GEN)
+1. Details of Revision
+Year of Revision 2026 Roll Identification
+Draft Electoral Roll of Special Intensive Revision, 2026
+Qualifying Date 01-10-2026
+Type of revision Special Intensive Revision
+2026
+Date of Publication 17-08-2026
+2. Details of part and polling area
+No. and name of sections in the part
+1-Section No 1
+| Main Town or Village : RAMCHANDRAPURAM
+2-Gection Now Post Office : TELLAPUR
+Police Station > KOLLUR
+Tehsil/Mandal : RAMACHANDRAPURAM
+Subdivision : SANGAREDDY
+District : SANGAREDDY
+Pin code : 502032
+3. Polling station details
+No. and Name of Polling Station : Type of Polling Station GENERAL
+(Male/Female/General)
+408 - Mandal Parishad Primary School, Indira Nagar,
+Tellapur Number of Auxiliary Polling 0
+Stations in this part:
+Address of Polling Station :
+Mandal Prashad Primary School, Indra Nagar, Tellapur
+4. NUMBER OF ELECTORS
+Starting Ending Net Electors
+Serial No. Serial No. Male Female Third Gender Total
+1 571 287 284 0 571
+Signature of Electoral Registration Officer
+Total Pages 23 - Page 1
+"""
+
+# An older layout (the spike's): every label with a colon, one per value
+OLD_COVER = """
 ELECTORAL ROLL, 2026
 STATE - (S29) TELANGANA
 No., Name and Reservation Status of Assembly Constituency : 40 - PATANCHERU (GENERAL) Part No. : 408
@@ -76,14 +117,31 @@ def codes(issues: list[Issue]) -> list[str]:
 def test_cover_text_gives_every_field() -> None:
     header, totals = parse_cover(fake_lines(COVER))
     h = header.values()
+    assert (h.state_code, h.state_name) == ("S29", "Telangana")
     assert (h.ac_number, h.ac_name, h.ac_reservation) == (40, "PATANCHERU", "GENERAL")
     assert (h.pc_number, h.pc_name, h.pc_reservation) == (6, "MEDAK", "GEN")
     assert h.part_number == 408
-    assert (h.state_code, h.state_name) == ("S29", "TELANGANA")
-    assert [s.name for s in h.sections] == ["FIRST NAGAR", "SECOND PET"]
-    assert (h.main_town, h.post_office, h.police_station) == ("TOWNA", "TOWNA", "STATIONA")
-    assert h.polling_station.address == "SCHOOL A, ROOM 1, TOWNA"  # wrapped line joined
-    assert h.qualifying_date.isoformat() == "2026-01-01"
+    assert (h.revision_year, h.revision_type) == (2026, "Special Intensive Revision 2026")
+    assert h.roll_identification == "Draft Electoral Roll of Special Intensive Revision, 2026"
+    assert h.qualifying_date.isoformat() == "2026-10-01"
+    assert h.publication_date.isoformat() == "2026-08-17"
+    assert [(s.number, s.name) for s in h.sections] == [(1, "Section No 1"), (2, "Gection Now")]
+    assert (h.main_town, h.post_office, h.police_station) == (
+        "RAMCHANDRAPURAM",
+        "TELLAPUR",
+        "KOLLUR",
+    )
+    assert (h.mandal, h.subdivision, h.district, h.pin_code) == (
+        "RAMACHANDRAPURAM",
+        "SANGAREDDY",
+        "SANGAREDDY",
+        "502032",
+    )
+    station = h.polling_station
+    assert station.number == "408"
+    assert station.name == "Mandal Parishad Primary School, Indira Nagar, Tellapur"  # wrapped
+    assert station.address == "Mandal Prashad Primary School, Indra Nagar, Tellapur"  # below
+    assert (h.station_type, h.auxiliary_station_count, h.auxiliary_stations) == ("GENERAL", 0, [])
     t = totals.values()
     assert (t.start_serial, t.end_serial) == (1, 571)
     assert (t.counts.male, t.counts.female, t.counts.third_gender, t.counts.total) == (
@@ -92,6 +150,21 @@ def test_cover_text_gives_every_field() -> None:
         0,
         571,
     )
+    assert _check_header(header, 1) == []
+    assert _check_totals(totals, 1) == []
+
+
+def test_older_cover_layout_still_parses() -> None:
+    header, totals = parse_cover(fake_lines(OLD_COVER))
+    h = header.values()
+    assert (h.state_code, h.state_name) == ("S29", "TELANGANA")
+    assert (h.pc_number, h.pc_name, h.pc_reservation) == (6, "MEDAK", "GEN")
+    assert [s.name for s in h.sections] == ["FIRST NAGAR", "SECOND PET"]
+    assert (h.main_town, h.post_office, h.police_station) == ("TOWNA", "TOWNA", "STATIONA")
+    assert h.subdivision is None  # not on this layout, and not an error
+    assert h.polling_station.name == "SCHOOL A"
+    assert h.polling_station.address == "SCHOOL A, ROOM 1, TOWNA"  # wrapped line joined
+    assert totals.values().counts.total == 571
     assert _check_header(header, 1) == []
     assert _check_totals(totals, 1) == []
 
@@ -160,7 +233,7 @@ def test_summary_adds_up_supplements() -> None:
 
 
 def test_auxiliary_count_must_match_the_list() -> None:
-    cover = COVER.replace("in this Part : 0", "in this Part : 1")
+    cover = COVER.replace("Auxiliary Polling 0", "Auxiliary Polling 1")
     header, _ = parse_cover(fake_lines(cover))
     assert codes(_check_header(header, 1)) == ["header.auxiliary_count_mismatch"]
 

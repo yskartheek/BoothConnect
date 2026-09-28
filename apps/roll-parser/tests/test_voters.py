@@ -186,3 +186,25 @@ def test_extract_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> 
     truth = RollTruth.model_validate_json((FIXTURES / "small.json").read_text("utf-8"))
     assert all(v.name not in printed and v.epic not in printed for v in truth.voters)
     assert RollExtraction.model_validate_json(out.read_text("utf-8")).rows
+
+
+def test_serial_and_epic_dont_depend_on_fixed_positions(
+    extracted_roll: Callable[[str], tuple[RollExtraction, RollTruth]],
+) -> None:
+    """A different serial/EPIC row: the serial frame in the box's corner and a
+    frame round the EPIC (the real sample's printed serials mostly disagreed
+    with reading order when the crops were fixed fractions of the box)."""
+    result, truth = extracted_roll("small-framed")
+    accuracy = compare(result, truth)
+    assert accuracy.boxes_found == accuracy.boxes_expected
+    assert accuracy.rate("serial") == 1.0
+    assert accuracy.rate("epic") == 1.0
+    assert not any(r.printed_serial.value != r.serial for r in result.rows)
+    assert "serial.many_mismatches" not in {i.code for i in result.issues}
+
+
+def test_id_crops_command(tmp_path: Path, capsys: pytest.CaptureFixture[str]) -> None:
+    out = tmp_path / "crops.png"
+    assert main(["id-crops", str(FIXTURES / "small.pdf"), "--page", "3", "--out", str(out)]) == 0
+    assert "24 boxes; serial or EPIC not found in 0" in capsys.readouterr().out
+    assert out.stat().st_size > 0

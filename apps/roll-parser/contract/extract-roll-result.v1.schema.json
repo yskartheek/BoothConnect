@@ -133,6 +133,9 @@
         },
         "stationType": {
           "$ref": "#/$defs/Field_str_"
+        },
+        "subdivision": {
+          "$ref": "#/$defs/Field_str_"
         }
       },
       "required": [
@@ -155,6 +158,7 @@
         "postOffice",
         "policeStation",
         "mandal",
+        "subdivision",
         "district",
         "pinCode",
         "pollingStation",

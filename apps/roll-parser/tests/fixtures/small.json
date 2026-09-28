@@ -2,7 +2,7 @@
   "format": "telangana-s29-english",
   "header": {
     "stateCode": "S29",
-    "stateName": "TELANGANA",
+    "stateName": "Telangana",
     "acNumber": 40,
     "acName": "PATANCHERU",
     "acReservation": "GENERAL",
@@ -11,10 +11,10 @@
     "pcReservation": "GEN",
     "partNumber": 408,
     "revisionYear": 2026,
-    "revisionType": "Special Intensive Revision",
-    "qualifyingDate": "2026-01-01",
-    "publicationDate": "2026-02-10",
-    "rollIdentification": "Draft Roll",
+    "revisionType": "Special Intensive Revision 2026",
+    "qualifyingDate": "2026-10-01",
+    "publicationDate": "2026-08-17",
+    "rollIdentification": "Draft Electoral Roll of Special Intensive Revision, 2026",
     "sections": [
       {
         "number": 1,
@@ -25,24 +25,25 @@
         "name": "PAVA NAGAR"
       }
     ],
-    "mainTown": "YANEKO BASTI",
-    "postOffice": "YANEKO BASTI",
+    "mainTown": "RUME NAGAR",
+    "postOffice": "RUME NAGAR",
     "policeStation": "DDIRUPA GUDA",
     "mandal": "RAGUCHE NAGAR",
+    "subdivision": "SANGAREDDY",
     "district": "SANGAREDDY",
     "pinCode": "504109",
     "pollingStation": {
       "number": "408",
-      "name": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR",
-      "address": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR, ROOM NO 1, YANEKO BASTI"
+      "name": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR",
+      "address": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR, Room No 1"
     },
-    "stationType": "General",
+    "stationType": "GENERAL",
     "auxiliaryStationCount": 1,
     "auxiliaryStations": [
       {
         "number": "408A",
-        "name": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR ROOM NO 2",
-        "address": "MANDAL PARISHAD PRIMARY SCHOOL RUME NAGAR, ROOM NO 2, YANEKO BASTI"
+        "name": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR, Room No 2",
+        "address": "Mandal Parishad Primary School, YANEKO BASTI, RUME NAGAR, Room No 2"
       }
     ]
   },
