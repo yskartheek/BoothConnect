@@ -49,6 +49,8 @@ jobs:
               - 'apps/api/**'
               - 'apps/admin-web/**'
               - 'packages/**'
+              # Checked against tokens.json by the design-tokens tests.
+              - 'apps/mobile/lib/theme/tokens.g.dart'
               - '**/*.md'
               - '**/*.json'
               - '**/*.{yml,yaml}'
