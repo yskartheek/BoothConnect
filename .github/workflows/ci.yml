@@ -121,7 +121,7 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm --filter api db:deploy
+      # test:int migrates and seeds its own databases (test/global-setup-int.cjs)
       - run: pnpm --filter api test:int
 
   web-e2e:
