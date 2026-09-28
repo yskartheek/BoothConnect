@@ -29,3 +29,9 @@ export interface TokenPair {
   /** Access-token lifetime in seconds. */
   expiresIn: number;
 }
+
+export class RefreshDto {
+  @IsString()
+  @Length(1, 256)
+  refreshToken!: string;
+}

@@ -84,8 +84,22 @@ Every error response has the same shape, whatever went wrong:
 
 The access token is a 15-minute HS256 JWT with `sub` (user ID) and `sid`
 (session ID). The refresh token is an opaque random value; only its HMAC is
-stored on the session. Refresh, logout and checking tokens on every request
-come in #30–#31.
+stored on the session.
+
+## Sessions and access tokens
+
+- **Every route needs `Authorization: Bearer <access token>`** (the global
+  `JwtAuthGuard`), unless it is marked `@Public()` (health, the OTP endpoints,
+  refresh). The token must be valid and its session still open; otherwise 401
+  `UNAUTHENTICATED`. `@CurrentUser()` gives `{ userId, sessionId }`.
+- `POST /v1/auth/refresh { refreshToken }` returns a new pair and retires the
+  old refresh token. Hashes of retired tokens are kept in Redis until they
+  would have expired; **presenting a retired token revokes the whole
+  session** (the token was copied, or the copy was used first).
+- `POST /v1/auth/logout` (signed in) revokes the session: its access and
+  refresh tokens stop working. Other devices stay signed in.
+- Tests: `loginAs(t, phoneOrUserId)` (`test/support/auth.ts`) returns a
+  signed-in supertest agent.
 
 ## Database (Prisma 7)
 

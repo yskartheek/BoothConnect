@@ -1,8 +1,11 @@
 import { Controller, Get, HttpStatus, Res } from '@nestjs/common';
 import type { Response } from 'express';
 
+import { Public } from '../auth/decorators';
 import { type HealthReport, HealthService } from './health.service';
 
+// Load balancers and Docker health checks call this without signing in.
+@Public()
 @Controller('health')
 export class HealthController {
   constructor(private readonly health: HealthService) {}
