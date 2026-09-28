@@ -500,6 +500,9 @@ model Household {
   status             HouseholdStatus @default(active)
   createdAt          DateTime        @default(now()) @map("created_at") @db.Timestamptz
   updatedAt          DateTime        @updatedAt @map("updated_at") @db.Timestamptz
+  /// Sync change marker: the ID of the transaction that last wrote the row
+  /// (set by the database; see GET /v1/sync/pull).
+  changeXid          BigInt          @default(dbgenerated("((pg_current_xact_id())::text)::bigint")) @map("change_xid")
 
   part            GeographyNode  @relation("HouseholdPart", fields: [partId], references: [id], onDelete: Restrict)
   pollingStation  GeographyNode  @relation("HouseholdStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
@@ -511,6 +514,7 @@ model Household {
 
   @@unique([partId, houseKey])
   @@index([pollingStationId, status])
+  @@index([pollingStationId, changeXid])
   @@map("household")
 }
 
@@ -548,6 +552,9 @@ model Voter {
   recordStatus     VoterRecordStatus @default(active) @map("record_status")
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
+  /// Sync change marker: the ID of the transaction that last wrote the row
+  /// (set by the database; see GET /v1/sync/pull).
+  changeXid        BigInt            @default(dbgenerated("((pg_current_xact_id())::text)::bigint")) @map("change_xid")
 
   program        ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
   household      Household       @relation(fields: [householdId], references: [id], onDelete: Restrict)
@@ -564,6 +571,7 @@ model Voter {
   @@index([partId, recordStatus])
   @@index([householdId])
   @@index([programId, sourceVoterId])
+  @@index([pollingStationId, changeXid])
   @@map("voter")
 }
 
@@ -613,11 +621,15 @@ model FieldDefinition {
   legalBasis      String?     @map("legal_basis")
   createdAt       DateTime    @default(now()) @map("created_at") @db.Timestamptz
   updatedAt       DateTime    @updatedAt @map("updated_at") @db.Timestamptz
+  /// Sync change marker: the ID of the transaction that last wrote the row
+  /// (set by the database; see GET /v1/sync/pull).
+  changeXid       BigInt      @default(dbgenerated("((pg_current_xact_id())::text)::bigint")) @map("change_xid")
 
   program ElectionProgram @relation(fields: [programId], references: [id], onDelete: Restrict)
   values  FieldValue[]
 
   @@unique([programId, key])
+  @@index([programId, changeXid])
   @@map("field_definition")
 }
 
@@ -657,6 +669,9 @@ model FieldValue {
   /// conflicts with. Cleared when the volunteer chooses which value to keep.
   conflictWithId    String?     @map("conflict_with_id") @db.Uuid
   createdAt         DateTime    @default(now()) @map("created_at") @db.Timestamptz
+  /// Sync change marker: the ID of the transaction that last wrote the row
+  /// (set by the database; see GET /v1/sync/pull).
+  changeXid         BigInt      @default(dbgenerated("((pg_current_xact_id())::text)::bigint")) @map("change_xid")
 
   fieldDefinition FieldDefinition @relation(fields: [fieldDefinitionId], references: [id], onDelete: Restrict)
   collectedBy     AppUser?        @relation(fields: [collectedById], references: [id], onDelete: Restrict)
@@ -671,6 +686,7 @@ model FieldValue {
   @@index([entityType, entityId, fieldDefinitionId], map: "field_value_current_idx", where: raw("is_current"))
   @@index([fieldDefinitionId])
   @@index([conflictWithId])
+  @@index([changeXid])
   @@map("field_value")
 }
 
@@ -712,6 +728,9 @@ model Visit {
   correctsVisitId String?      @unique @map("corrects_visit_id") @db.Uuid
   /// When the server received it (the phone may have been offline).
   createdAt       DateTime     @default(now()) @map("created_at") @db.Timestamptz
+  /// Sync change marker: the ID of the transaction that last wrote the row
+  /// (set by the database; see GET /v1/sync/pull).
+  changeXid       BigInt       @default(dbgenerated("((pg_current_xact_id())::text)::bigint")) @map("change_xid")
 
   household     Household     @relation(fields: [householdId], references: [id], onDelete: Restrict)
   volunteer     AppUser       @relation(fields: [volunteerId], references: [id], onDelete: Restrict)
@@ -721,6 +740,7 @@ model Visit {
 
   @@index([householdId, startedAt])
   @@index([volunteerId, startedAt])
+  @@index([householdId, changeXid])
   @@map("visit")
 }
 
@@ -772,6 +792,9 @@ model Consent {
   capturedAt         DateTime      @default(now()) @map("captured_at") @db.Timestamptz
   withdrawnAt        DateTime?     @map("withdrawn_at") @db.Timestamptz
   withdrawnById      String?       @map("withdrawn_by") @db.Uuid
+  /// Sync change marker: the ID of the transaction that last wrote the row
+  /// (set by the database; see GET /v1/sync/pull).
+  changeXid          BigInt        @default(dbgenerated("((pg_current_xact_id())::text)::bigint")) @map("change_xid")
 
   subjectVoter     Voter?       @relation(fields: [subjectVoterId], references: [id], onDelete: Restrict)
   subjectHousehold Household?   @relation(fields: [subjectHouseholdId], references: [id], onDelete: Restrict)
@@ -782,6 +805,7 @@ model Consent {
 
   @@index([subjectVoterId, purpose])
   @@index([subjectHouseholdId, purpose])
+  @@index([changeXid])
   @@map("consent")
 }
 

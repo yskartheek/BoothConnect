@@ -25,6 +25,8 @@ export interface VisitCreated {
   startedAt: Date;
   completedAt: Date | null;
   createdAt: Date;
+  /** The visit this one corrects; the corrected visit no longer counts. */
+  correctsVisitId: string | null;
   /** True when a visit with this clientId was already stored; nothing was applied again. */
   duplicate: boolean;
   /** The consent records created, by the client's `ref`. */
@@ -106,6 +108,7 @@ export class VisitsService {
         throw unprocessable(`No consent with ref "${change.consentRef}" in this visit`);
       }
     }
+    if (dto.correctsVisitId) await this.checkCorrection(scope, actor, dto);
 
     return this.prisma.$transaction(async (tx) => {
       const visit = await tx.visit.create({
@@ -118,6 +121,7 @@ export class VisitsService {
           outcome: dto.outcome,
           formVersion: dto.formVersion,
           notes: dto.notes ?? null,
+          correctsVisitId: dto.correctsVisitId ?? null,
           membersMet: { create: (dto.memberIdsMet ?? []).map((voterId) => ({ voterId })) },
         },
       });
@@ -186,6 +190,7 @@ export class VisitsService {
           metadata: {
             householdId: household.id,
             outcome: visit.outcome,
+            correctsVisitId: visit.correctsVisitId,
             consents: created.length,
             applied: fieldChanges.filter((r) => r.status === 'applied').length,
             conflicts: fieldChanges.filter((r) => r.status === 'conflict').length,
@@ -198,6 +203,33 @@ export class VisitsService {
       return { ...summary(visit), duplicate: false, consents: created, fieldChanges };
     });
   }
+
+  /**
+   * A correction ("edit from list") replaces an earlier visit to the same
+   * household: the volunteer who recorded it, or an admin, may correct it,
+   * once. A correction can itself be corrected.
+   */
+  private async checkCorrection(scope: Scope, actor: Actor, dto: CreateVisitDto): Promise<void> {
+    const original = await this.prisma.visit.findFirst({
+      where: { id: dto.correctsVisitId, householdId: dto.householdId },
+      select: { volunteerId: true, correctedBy: { select: { id: true } } },
+    });
+    if (!original) throw unprocessable('correctsVisitId is not a visit to this household');
+    if (original.volunteerId !== actor.userId && !scope.roles.includes('admin')) {
+      throw new AppException(
+        HttpStatus.FORBIDDEN,
+        ErrorCode.FORBIDDEN,
+        'Only the volunteer who recorded a visit, or an admin, can correct it',
+      );
+    }
+    if (original.correctedBy) {
+      throw new AppException(
+        HttpStatus.CONFLICT,
+        ErrorCode.CONFLICT,
+        'This visit has already been corrected; correct the latest version',
+      );
+    }
+  }
 }
 
 function summary(visit: {
@@ -208,6 +240,7 @@ function summary(visit: {
   startedAt: Date;
   completedAt: Date | null;
   createdAt: Date;
+  correctsVisitId: string | null;
 }) {
   return {
     id: visit.id,
@@ -217,5 +250,6 @@ function summary(visit: {
     startedAt: visit.startedAt,
     completedAt: visit.completedAt,
     createdAt: visit.createdAt,
+    correctsVisitId: visit.correctsVisitId,
   };
 }

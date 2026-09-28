@@ -105,6 +105,11 @@ export class CreateVisitDto {
   @MaxLength(1000)
   notes?: string;
 
+  /** Set when this visit corrects an earlier one to the same household ("edit from list"). */
+  @IsOptional()
+  @IsUUID()
+  correctsVisitId?: string;
+
   /** Members the volunteer met; each must belong to the household. */
   @IsOptional()
   @IsArray()

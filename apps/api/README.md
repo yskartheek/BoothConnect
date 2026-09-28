@@ -266,9 +266,45 @@ one visit to a household in the caller's scope (else 404):
   the stored response (`Idempotency-Replayed: true`); a retry under a new key
   gets the stored visit with `duplicate: true`, and nothing is applied again.
   A `clientId` used by another volunteer or household is 409.
+- **Corrections** ("edit from list"): send `correctsVisitId` with the earlier
+  visit's ID. Both are kept (visits are immutable); the corrected visit no
+  longer counts for the household's last visit or visit status. Only the
+  volunteer who recorded it, or an admin, may correct a visit (else 403), and
+  only once (409: correct the latest version instead); it must be a visit to
+  the same household (else 422).
 - 422 `UNPROCESSABLE` for times in the future (more than 10 minutes ahead),
   `completedAt` before `startedAt`, members met or consent subjects outside
   the household, duplicate consent refs, or an unknown `consentRef`.
+
+## Offline sync: pull
+
+`GET /v1/sync/pull?since=<cursor>&limit=` sends the phone what changed on the
+caller's booths. Without `since` (first run) it is a **full snapshot**
+(`reset: true`: replace everything stored). Keep calling with the returned
+`cursor` while `hasMore` is true; the last page's `cursor` is the `since` for
+the next pull.
+
+- Each page has up to `limit` rows (default 500, max 2000) across
+  `fieldDefinitions`, `households`, `voters`, `fieldValues` and `visits`, sent
+  in that order. The phone upserts rows by `id`.
+- A snapshot has active households and voters, enabled field definitions and
+  current values only. A delta also has rows that went away: a household
+  `status` of `removed`, a voter `recordStatus` other than `active`, a field
+  definition with `enabled: false`, a value with `isCurrent: false`.
+- The last page also has `conflicts` (every open conflict: both values, who
+  entered each and when, for **Choose value**) and `removedFieldValueIds`
+  (values hidden because the person withdrew consent).
+- Restricted fields follow `GET /v1/voters/:id`: only admins and volunteers
+  get them, and a consent-gated value only while the consent is granted.
+- If the caller's booths or restricted-field access changed since the cursor,
+  the pull starts again as a full snapshot (`reset: true`).
+
+**The cursor** holds a database snapshot, not a time: the first transaction
+ID not yet handed out and the IDs still running. Every synced row carries the
+ID of the transaction that last wrote it (`change_xid`, set by a trigger), and
+the next pull asks for exactly the rows that snapshot couldn't see. A slow
+transaction that commits after a pull is therefore never skipped, which
+timestamps can't guarantee, and nothing is sent twice.
 
 ## Audit log
 
