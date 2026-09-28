@@ -1,0 +1,75 @@
+{
+  "$defs": {
+    "JobOptions": {
+      "properties": {
+        "pageImages": {
+          "default": true,
+          "description": "Render cover, voter and summary pages to JPEG for review",
+          "title": "Pageimages",
+          "type": "boolean"
+        }
+      },
+      "title": "JobOptions",
+      "type": "object"
+    }
+  },
+  "description": "``job.data`` of an ``extract-roll`` job.",
+  "properties": {
+    "bucket": {
+      "description": "Private bucket holding the PDF",
+      "title": "Bucket",
+      "type": "string"
+    },
+    "importFileId": {
+      "description": "import_file.id; used in object keys and logs",
+      "title": "Importfileid",
+      "type": "string"
+    },
+    "key": {
+      "description": "Object key of the PDF",
+      "title": "Key",
+      "type": "string"
+    },
+    "options": {
+      "$ref": "#/$defs/JobOptions",
+      "default": {
+        "pageImages": true
+      }
+    },
+    "resultPrefix": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Where results go in the same bucket; default \"extractions/<importFileId>/\"",
+      "title": "Resultprefix"
+    },
+    "sha256": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Expected SHA-256 (hex); a mismatch fails the job",
+      "title": "Sha256"
+    },
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    }
+  },
+  "required": ["importFileId", "bucket", "key"],
+  "title": "JobPayload",
+  "type": "object"
+}

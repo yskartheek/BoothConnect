@@ -8,6 +8,7 @@ import random
 import string
 from collections import Counter
 from datetime import date
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict
 
@@ -83,6 +84,7 @@ class RollSpec(BaseModel):
     pc_name: str = "MEDAK"
     pc_reservation: str = "GEN"
     part_number: int = 408
+    box_style: Literal["plain", "framed"] = "plain"  # see render.BoxStyle
 
 
 def _made_up_word(rng: random.Random, syllables: int) -> str:

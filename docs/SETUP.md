@@ -209,6 +209,14 @@ docker compose -f infra/docker-compose.yml --profile roll-parser run --rm roll-p
 ```
 
 `pnpm infra:up` never starts the roll-parser; it has its own compose profile.
+To run the **queue worker** in Docker (it connects to the Redis and MinIO
+containers):
+
+```powershell
+docker compose -f infra/docker-compose.yml --profile roll-parser up -d --build roll-parser
+```
+
+Without Docker: `pnpm --filter roll-parser worker` (after `pnpm infra:up`).
 
 ### Troubleshooting
 

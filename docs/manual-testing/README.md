@@ -24,6 +24,7 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #26                | Seeded database: State → PC → AC → parts/booths, users, households, voters           | Prisma Studio             |
 | #97                | **Read your own roll's cover**: AC/PC/part and printed totals from your sample       | Terminal                  |
 | #98                | **Read every voter row** of your sample and compare the counts with the totals       | Terminal                  |
+| #99                | roll-parser worker takes jobs from Redis; results and page images appear in MinIO    | Docker Desktop, browser   |
 | #29–#33            | Sign in through the API with a dev one-time code and call `/v1/me`                   | curl / Postman / Bruno    |
 | #36–#39            | Browse households and voters through the API; check volunteer A can't see booth B    | curl / Postman            |
 | #41–#43            | Record a visit and sync through the API; try replays and conflicts                   | curl / Postman            |
@@ -59,3 +60,5 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #25   | [Schema: idempotency and audit log](25-idempotency-audit.md)                      | Ready to test   |
 | #26   | [Development seed data](26-seed.md)                                               | Ready to test   |
 | #97   | [Cover and summary page parsing](97-cover-summary-parsing.md)                     | Ready to test   |
+| #98   | [Voter-box extraction with confidence and normalisation](98-voter-boxes.md)       | Ready to test   |
+| #99   | [roll-parser queue worker (extract-roll jobs)](99-queue-worker.md)                | Ready to test   |

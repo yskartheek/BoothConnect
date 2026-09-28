@@ -10,6 +10,8 @@
     "lint": "uv run ruff check . && uv run ruff format --check .",
     "format": "uv run ruff check --fix . && uv run ruff format .",
     "typecheck": "uv run mypy",
-    "test": "uv run pytest"
+    "test": "uv run pytest",
+    "test:int": "uv run pytest -m integration",
+    "worker": "uv run roll-parser worker"
   }
 }

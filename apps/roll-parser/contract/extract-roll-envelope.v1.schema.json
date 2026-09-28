@@ -1,0 +1,240 @@
+{
+  "$defs": {
+    "ElectorCounts": {
+      "additionalProperties": false,
+      "properties": {
+        "female": {
+          "title": "Female",
+          "type": "integer"
+        },
+        "male": {
+          "title": "Male",
+          "type": "integer"
+        },
+        "thirdGender": {
+          "title": "Thirdgender",
+          "type": "integer"
+        },
+        "total": {
+          "title": "Total",
+          "type": "integer"
+        }
+      },
+      "required": ["male", "female", "thirdGender", "total"],
+      "title": "ElectorCounts",
+      "type": "object"
+    },
+    "Failure": {
+      "properties": {
+        "code": {
+          "$ref": "#/$defs/FailureCode"
+        },
+        "message": {
+          "description": "For people; never contains voter data",
+          "title": "Message",
+          "type": "string"
+        }
+      },
+      "required": ["code", "message"],
+      "title": "Failure",
+      "type": "object"
+    },
+    "FailureCode": {
+      "description": "Why a file couldn't be extracted. None of these is worth retrying.",
+      "enum": [
+        "checksum_mismatch",
+        "too_large",
+        "pdf_unreadable",
+        "pdf_encrypted",
+        "not_a_roll",
+        "timeout",
+        "invalid_payload"
+      ],
+      "title": "FailureCode",
+      "type": "string"
+    },
+    "PageImage": {
+      "properties": {
+        "height": {
+          "title": "Height",
+          "type": "integer"
+        },
+        "key": {
+          "description": "Object key of the JPEG in the same bucket",
+          "title": "Key",
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/PageKind"
+        },
+        "page": {
+          "description": "1-based page number in the PDF",
+          "title": "Page",
+          "type": "integer"
+        },
+        "width": {
+          "title": "Width",
+          "type": "integer"
+        }
+      },
+      "required": ["page", "kind", "key", "width", "height"],
+      "title": "PageImage",
+      "type": "object"
+    },
+    "PageKind": {
+      "enum": ["cover", "maps", "voters", "summary"],
+      "title": "PageKind",
+      "type": "string"
+    },
+    "ResultSummary": {
+      "properties": {
+        "extractedTotals": {
+          "$ref": "#/$defs/ElectorCounts"
+        },
+        "issueCounts": {
+          "additionalProperties": {
+            "type": "integer"
+          },
+          "description": "Issue code -> number of occurrences (file and rows)",
+          "title": "Issuecounts",
+          "type": "object"
+        },
+        "needsReview": {
+          "title": "Needsreview",
+          "type": "boolean"
+        },
+        "pageCount": {
+          "title": "Pagecount",
+          "type": "integer"
+        },
+        "printedTotals": {
+          "anyOf": [
+            {
+              "$ref": "#/$defs/ElectorCounts"
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "qualityScore": {
+          "title": "Qualityscore",
+          "type": "number"
+        },
+        "rowCount": {
+          "title": "Rowcount",
+          "type": "integer"
+        }
+      },
+      "required": [
+        "pageCount",
+        "rowCount",
+        "printedTotals",
+        "extractedTotals",
+        "qualityScore",
+        "needsReview",
+        "issueCounts"
+      ],
+      "title": "ResultSummary",
+      "type": "object"
+    },
+    "Timings": {
+      "properties": {
+        "headerSeconds": {
+          "title": "Headerseconds",
+          "type": "number"
+        },
+        "totalSeconds": {
+          "title": "Totalseconds",
+          "type": "number"
+        },
+        "voterPagesSeconds": {
+          "title": "Voterpagesseconds",
+          "type": "number"
+        }
+      },
+      "required": ["headerSeconds", "voterPagesSeconds", "totalSeconds"],
+      "title": "Timings",
+      "type": "object"
+    }
+  },
+  "description": "The job's return value: small enough to live in Redis.",
+  "properties": {
+    "failure": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Failure"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "importFileId": {
+      "title": "Importfileid",
+      "type": "string"
+    },
+    "pageImages": {
+      "default": [],
+      "items": {
+        "$ref": "#/$defs/PageImage"
+      },
+      "title": "Pageimages",
+      "type": "array"
+    },
+    "resultKey": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null,
+      "description": "Object key of the ResultDocument JSON (completed only)",
+      "title": "Resultkey"
+    },
+    "status": {
+      "enum": ["completed", "failed"],
+      "title": "Status",
+      "type": "string"
+    },
+    "summary": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/ResultSummary"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "timings": {
+      "anyOf": [
+        {
+          "$ref": "#/$defs/Timings"
+        },
+        {
+          "type": "null"
+        }
+      ],
+      "default": null
+    },
+    "version": {
+      "const": 1,
+      "default": 1,
+      "title": "Version",
+      "type": "integer"
+    },
+    "workerVersion": {
+      "title": "Workerversion",
+      "type": "string"
+    }
+  },
+  "required": ["status", "importFileId", "workerVersion"],
+  "title": "ResultEnvelope",
+  "type": "object"
+}

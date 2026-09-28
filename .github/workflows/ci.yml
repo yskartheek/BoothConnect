@@ -172,13 +172,26 @@ jobs:
       - run: flutter test
 
   roll-parser:
-    name: Roll parser (lint, typecheck, test)
+    name: Roll parser (lint, typecheck, test, integration)
     needs: changes
     if: needs.changes.outputs.roll-parser == 'true'
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 30
+    services:
+      redis:
+        image: redis:7-alpine
+        ports: ['6379:6379']
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       UV_VERSION: '0.12.19'
+      REDIS_URL: redis://localhost:6379
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY_ID: boothconnect
+      S3_SECRET_ACCESS_KEY: boothconnect-dev-secret
+      S3_FORCE_PATH_STYLE: 'true'
+      S3_BUCKET_IMPORTS: boothconnect-imports
     steps:
       - uses: actions/checkout@v7
       - name: Install Tesseract
@@ -196,6 +209,21 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm --filter roll-parser sync
       - run: pnpm turbo run lint typecheck test --filter=@boothconnect/roll-parser
+      # MinIO needs `server /data`, which service containers can't pass, so
+      # it's started here (same image as infra/docker-compose.yml).
+      - name: Start MinIO
+        run: |
+          docker run -d --name minio -p 9000:9000 \
+            -e MINIO_ROOT_USER="$S3_ACCESS_KEY_ID" -e MINIO_ROOT_PASSWORD="$S3_SECRET_ACCESS_KEY" \
+            pgsty/minio:RELEASE.2026-08-04T00-00-00Z server /data
+          for i in $(seq 1 30); do
+            curl -sf http://localhost:9000/minio/health/ready && exit 0
+            sleep 2
+          done
+          docker logs minio
+          exit 1
+      - name: Integration test (Redis + MinIO + worker)
+        run: pnpm --filter roll-parser test:int
       - name: Build the Docker image and run its self-check
         run: |
           docker build -t boothconnect/roll-parser:ci apps/roll-parser

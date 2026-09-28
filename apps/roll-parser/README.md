@@ -26,10 +26,13 @@ pnpm --filter roll-parser sync        # uv sync: create .venv, install packages
 pnpm --filter roll-parser check        # show Tesseract/PyMuPDF/OpenCV versions
 pnpm --filter roll-parser synth        # write synthetic roll PDFs (fake data)
 pnpm --filter roll-parser exec uv run roll-parser header <roll.pdf>   # read a roll's header
+pnpm --filter roll-parser exec uv run roll-parser extract <roll.pdf>  # read every voter row
 pnpm --filter roll-parser lint         # ruff check + ruff format --check
 pnpm --filter roll-parser format       # apply ruff format and safe fixes
 pnpm --filter roll-parser typecheck    # mypy --strict
-pnpm --filter roll-parser test         # pytest
+pnpm --filter roll-parser test         # pytest (unit tests)
+pnpm --filter roll-parser test:int     # integration test (needs pnpm infra:up)
+pnpm --filter roll-parser worker       # run the queue worker
 ```
 
 Inside `apps/roll-parser` you can call the tools directly, for example
@@ -70,6 +73,81 @@ How it works (`src/roll_parser/extract/`):
 
 Every value is a `Field`: `value` (or `null`), `raw` OCR text, and
 `confidence` (the lowest Tesseract word confidence in it, 0–1).
+
+### Reading every voter row
+
+```powershell
+pnpm --filter roll-parser exec uv run roll-parser extract C:\path\to\roll.pdf
+pnpm --filter roll-parser exec uv run roll-parser extract C:\path\to\roll.pdf --out C:\somewhere\private\result.json
+pnpm --filter roll-parser exec uv run roll-parser extract synthetic-rolls/ac40.pdf --truth synthetic-rolls/ac40.json
+```
+
+The console shows counts, the quality score, timing and issue codes only, never
+voter data. `--out` writes the full result, which **does** contain voter data:
+keep it private and delete it when done. `--truth` compares a synthetic roll
+with its ground truth and prints the accuracy per field.
+
+How it works (`extract/voters.py`, `extract/roll.py`):
+
+1. **Boxes:** OpenCV finds the 3 × 10 grid (rectangles about a third of the
+   page wide and a tenth high) and puts them in reading order.
+2. **OCR, three Tesseract calls per page** (instead of the spike's three per
+   box): the whole page in sparse-text mode with the box borders removed, and
+   the words are assigned to boxes by position; then every box's EPIC,
+   stacked into one image and read with a letters-and-digits whitelist; then
+   every serial the same way, digits only. The serial and EPIC crops aren't
+   fixed positions: the parser finds the first row of character-sized blobs
+   at the top of the box (frames and borders removed), takes its rightmost
+   group as the EPIC and its leftmost as the serial, and keeps only those
+   glyphs. Dictionaries are off, because names and IDs aren't English words.
+   `roll-parser id-crops <pdf> --page 3 --out crops.png` shows those crops
+   (the image shows EPIC numbers: keep it private).
+3. **Fields:** the body is split at its labels (`Name`, `Fathers/Mothers/
+Husbands/Others Name`, `House Number`, `Age`, `Gender`); a colon that OCR
+   dropped doesn't matter. Wrapped names are joined. `DELETED` / `MODIFIED`
+   are read from the photo placeholder area (only the marker is kept).
+4. **Normalisation, raw text always kept:** EPIC letters/digits corrected by
+   position (`X1Z…` → `XIZ…`); names cleaned (`]` → `I`, a lowercase `l` in a
+   capitals-only name → `I`, stray punctuation dropped).
+5. **Serial from reading order** (starting at the cover's first serial); the
+   serial printed in the box is only a cross-check.
+6. **Checks:** per row, missing or low-confidence fields, age outside 18–120,
+   printed serial ≠ reading order, EPIC with dropped characters, duplicate EPIC,
+   EPIC prefix used only once in the part. Per file, box count vs the serial
+   range, extracted male/female/third/total vs the cover, and more than 2%
+   serial disagreements. Errors send the file to review.
+7. **Quality score:** the average row confidence (a row's confidence is its
+   lowest field confidence), halved when a file-level check fails.
+8. **Parallel:** voter pages are read in separate processes (default: one per
+   CPU). About 28 s for a 23-page part on 4 cores.
+
+### The queue worker
+
+```powershell
+pnpm infra:up                                              # Redis + MinIO
+pnpm --filter roll-parser worker                           # runs until Ctrl+C
+# or, in Docker:
+docker compose -f infra/docker-compose.yml --profile roll-parser up -d --build roll-parser
+```
+
+It takes `extract-roll` jobs from the `roll-extraction` queue (BullMQ),
+downloads the PDF from the private bucket, extracts it, and writes
+`result.v1.json` and page images next to it; the job's return value is a
+small summary. The whole contract (payload, result, failure codes, how it maps
+to the import tables) is in
+[`docs/design/roll-parser-contract.md`](../../docs/design/roll-parser-contract.md);
+JSON Schemas are in [`contract/`](contract/). After changing the contract
+models, run `uv run roll-parser contract --write` (a test fails until you
+do).
+
+- **Failures:** a broken or unsuitable file (corrupt, encrypted, not a roll,
+  too big, too slow, wrong checksum) completes the job with
+  `status: "failed"` and a reason code. Storage or network errors fail the job
+  in BullMQ so it's retried (`attempts`/`backoff` are set by the API).
+- **Health:** `GET http://localhost:8090/health` (Docker uses it too).
+- **Logs:** JSON lines, ids/counts/codes/timings only; the formatter drops any
+  field that isn't on its allow-list, so voter data can't end up in logs.
+- **Integration test** (needs `pnpm infra:up`): `pnpm --filter roll-parser test:int`.
 
 ### Synthetic rolls (fake data)
 
@@ -115,6 +193,8 @@ docker compose -f infra/docker-compose.yml --profile roll-parser run --rm roll-p
 ```
 
 The service has the `roll-parser` profile, so `pnpm infra:up` doesn't start it.
+Its default command is the worker; `run --rm roll-parser check` still runs
+the self-check.
 The image is Ubuntu 24.04 with Python 3.12 and Tesseract 5.3.4 (English and
 Telugu), the same versions as the CI runner, and runs as a non-root user.
 
