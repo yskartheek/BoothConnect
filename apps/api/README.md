@@ -90,12 +90,16 @@ stored on the session.
 
 - **Every route needs `Authorization: Bearer <access token>`** (the global
   `JwtAuthGuard`), unless it is marked `@Public()` (health, the OTP endpoints,
-  refresh). The token must be valid and its session still open; otherwise 401
-  `UNAUTHENTICATED`. `@CurrentUser()` gives `{ userId, sessionId }`.
+  refresh). The token must be valid, its session still open and its user
+  active; otherwise 401 `UNAUTHENTICATED`. Session and user status are read
+  from the database on every request (one indexed query, not cached), so a
+  logout or a suspension takes effect on the next request. `@CurrentUser()` gives `{ userId, sessionId }`.
 - `POST /v1/auth/refresh { refreshToken }` returns a new pair and retires the
   old refresh token. Hashes of retired tokens are kept in Redis until they
   would have expired; **presenting a retired token revokes the whole
-  session** (the token was copied, or the copy was used first).
+  session** (the token was copied, or the copy was used first). A suspended
+  user can't refresh; their sessions stay open, so reactivating them restores
+  their devices without a new sign-in.
 - `POST /v1/auth/logout` (signed in) revokes the session: its access and
   refresh tokens stop working. Other devices stay signed in.
 - Tests: `loginAs(t, phoneOrUserId)` (`test/support/auth.ts`) returns a
