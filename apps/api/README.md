@@ -172,6 +172,26 @@ gets the same 404 as a missing ID.
 - `lastVisit` is the latest visit that no later visit corrects:
   `{ id, outcome, startedAt, completedAt, volunteerId, memberIdsMet }`, or null.
 
+## Voters
+
+`GET /v1/voters/:id[?history=true]` returns one member: `official` (the
+roll's `source_data`, never changed by edits; null for volunteer-added
+members) and `fields`, every **enabled** field the caller may see, set or not.
+
+- Each field has `current`: usually one value, two while an offline conflict
+  waits, empty if never set. A value carries `id` (send it as `base_version`
+  when editing), `value`, `sourceType`, `collectedBy {id, name}`,
+  `collectedAt`, `supersedesId` and `conflictWithId`.
+- `?history=true` adds `history` to each field: every earlier value, newest
+  first; follow `supersedesId` for the chain.
+- Disabled fields (religion, political affiliation) are never returned, even
+  if a value exists.
+- Restricted fields (caste/community) are returned only to `admin` and
+  `volunteer` (`RESTRICTED_FIELD_ROLES`); campaign managers don't get the
+  field at all. A consent-gated value is shown only while its consent is
+  granted; once withdrawn it disappears, history included.
+- A voter outside the caller's scope gets the same 404 as a missing ID.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it
