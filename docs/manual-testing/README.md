@@ -78,3 +78,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #40   | [Saving member details (edits, conflicts, rejections)](40-field-value-writes.md)     | Ready to test   |
 | #41   | [Recording a visit](41-visits.md)                                                    | Ready to test   |
 | #42   | [Offline sync, downloading changes (+ visit corrections)](42-sync-pull.md)           | Ready to test   |
+| #53   | [Design tokens (light/dark glass + reduced transparency)](53-design-tokens.md)       | Ready to test   |
