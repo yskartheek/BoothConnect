@@ -172,6 +172,39 @@ gets the same 404 as a missing ID.
 - `lastVisit` is the latest visit that no later visit corrects:
   `{ id, outcome, startedAt, completedAt, volunteerId, memberIdsMet }`, or null.
 
+### Adding households and members, editing the address
+
+All three need `Idempotency-Key`, are for volunteers and admins, are audited
+(`household.create`, `household.update`, `member.create`) and run in one
+transaction.
+
+- `POST /v1/households` `{ id?, pollingStationId, address, location? }`: a
+  household not on the roll (`origin: volunteer_added`) in one of the
+  caller's booths (else 404). `address` has `house_no`, `street`, `area`,
+  `pin_code` (6 digits) and `landmark`; a house number or street is needed.
+  `location` is `{ lat, lng, accuracyM?, capturedAt, consent: { noticeVersion,
+method } }`: a consent record is created with it. A house number already in
+  the part gets 409 `UNIQUE_VIOLATION` (the house is probably there already).
+  `id` is optional and made on the phone; sending an `id` that exists
+  returns that household with `duplicate: true`.
+- `PATCH /v1/households/:id` `{ address?, addressBaseVersion?, location?,
+locationBaseVersion? }`: each field sent needs its base version (the value
+  ID the phone last saw, or null). The answer has the household and a
+  result per field (`applied | conflict | rejected`).
+- `POST /v1/households/:id/members` `{ id?, name, age?, gender?, fields? }`:
+  a member not on the roll (no EPIC number, no `source_data`). Each value is
+  written as a field value and reported; the member is added if the name is
+  saved (else 422).
+
+Address and location are household **field values** (fields `address` and
+`household_location`, types `address` and `location`), so they get the same
+conflict checks and history as member details. When one becomes current,
+the household row is updated to match: `structured_address`, the
+`display_address` shown in lists ("12/4, Gandhi Road, Nehru Nagar, 500038";
+the landmark is left out), the `location_*` columns and, for households a
+volunteer added, the house number used as `house_key`. A conflicting value
+doesn't change the row until the volunteer chooses.
+
 ## Voters
 
 `GET /v1/voters/:id[?history=true]` returns one member: `official` (the

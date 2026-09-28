@@ -261,6 +261,8 @@ describe('households and voters (real Postgres)', () => {
       );
       return rows.map((row) => row['QUERY PLAN']).join('\n');
     });
-    expect(plan).toContain('voter_polling_station_id_record_status_idx');
+    // Either index that starts with the station serves it; which one the
+    // planner picks depends on table statistics (both are near-empty here).
+    expect(plan).toMatch(/voter_polling_station_id_(record_status|change_xid)_idx/);
   });
 });

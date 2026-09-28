@@ -4,6 +4,7 @@ import type { Request } from 'express';
 import { type AuthUser, CurrentUser } from '../auth/decorators';
 import { CurrentScope, Roles } from '../authz/decorators';
 import type { Scope } from '../authz/scope.service';
+import { actorOf } from '../common/actor';
 import { Idempotent } from '../idempotency/idempotency.interceptor';
 import { CreateVisitDto } from './dto';
 import { type VisitCreated, VisitsService } from './visits.service';
@@ -26,14 +27,6 @@ export class VisitsController {
     @Req() req: Request & { id?: unknown },
     @Body() dto: CreateVisitDto,
   ): Promise<VisitCreated> {
-    return this.visits.create(
-      scope,
-      {
-        userId: user.userId,
-        sessionId: user.sessionId,
-        requestId: typeof req.id === 'string' ? req.id : null,
-      },
-      dto,
-    );
+    return this.visits.create(scope, actorOf(user, req), dto);
   }
 }

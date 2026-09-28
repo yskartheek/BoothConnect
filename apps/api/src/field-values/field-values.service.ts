@@ -4,8 +4,8 @@ import type { Scope } from '../authz/scope.service';
 import { inScope } from '../authz/scoped-query';
 import { ErrorCode } from '../common/errors/error-codes';
 import { PrismaService } from '../database/prisma.service';
-import type { FieldEntity, Prisma, ValueSource } from '../generated/prisma/client';
-import { isValidValue } from './field-value-rules';
+import type { FieldEntity, FieldType, Prisma, ValueSource } from '../generated/prisma/client';
+import { type Address, displayAddress, isValidValue, type Location } from './field-value-rules';
 
 type Tx = Prisma.TransactionClient;
 
@@ -180,6 +180,10 @@ export class FieldValuesService {
     if (clean) {
       const supersedesId = current[0]?.id ?? null;
       const row = await tx.fieldValue.create({ data: { ...data, supersedesId } });
+      await projectOntoHousehold(tx, change.entityType, change.entityId, definition.type, {
+        value: change.value,
+        consentId: data.consentId,
+      });
       return { status: 'applied', fieldValueId: row.id, supersedesId };
     }
     // Stale base (or an unresolved conflict): keep both; the newest current
@@ -203,5 +207,51 @@ export class FieldValuesService {
       select: { part: { select: { programId: true } } },
     });
     return household && { programId: household.part.programId };
+  }
+}
+
+/**
+ * The household row keeps a copy of its current address and location, for
+ * lists, search and maps. Called whenever such a value becomes current (an
+ * applied edit, or the value kept when a conflict is resolved).
+ */
+export async function projectOntoHousehold(
+  tx: Tx,
+  entityType: FieldEntity,
+  householdId: string,
+  type: FieldType,
+  current: { value: unknown; consentId: string | null },
+): Promise<void> {
+  if (entityType !== 'household') return;
+  if (type === 'address') {
+    const address = current.value as Address;
+    const household = await tx.household.findUniqueOrThrow({
+      where: { id: householdId },
+      select: { origin: true },
+    });
+    await tx.household.update({
+      where: { id: householdId },
+      data: {
+        structuredAddress: address,
+        displayAddress: displayAddress(address),
+        // A roll household keeps the roll's house number for grouping.
+        ...(household.origin === 'volunteer_added' && address.house_no
+          ? { houseKey: address.house_no.trim() }
+          : {}),
+      },
+    });
+  }
+  if (type === 'location') {
+    const location = current.value as Location;
+    await tx.household.update({
+      where: { id: householdId },
+      data: {
+        locationLat: location.lat,
+        locationLng: location.lng,
+        locationAccuracyM: location.accuracyM ?? null,
+        locationCapturedAt: new Date(location.capturedAt),
+        locationConsentId: current.consentId,
+      },
+    });
   }
 }
