@@ -306,8 +306,9 @@ export async function seedDatabase(prisma: SeedClient): Promise<SeedSummary> {
   // --- Field definitions (spec v1.1) ----------------------------------------
   const field = (
     key: string,
-    type: 'text' | 'number' | 'phone' | 'single_select',
+    type: 'text' | 'number' | 'phone' | 'single_select' | 'address' | 'location',
     extra: Partial<{
+      appliesTo: 'voter' | 'household';
       enabled: boolean;
       isRestricted: boolean;
       requiresConsent: boolean;
@@ -320,7 +321,7 @@ export async function seedDatabase(prisma: SeedClient): Promise<SeedSummary> {
     programId,
     key,
     labelKey: `field.${key}`,
-    appliesTo: 'voter' as const,
+    appliesTo: extra.appliesTo ?? ('voter' as const),
     type,
     purpose: extra.purpose ?? 'Keep the member’s details up to date for field work',
     enabled: extra.enabled ?? true,
@@ -349,6 +350,15 @@ export async function seedDatabase(prisma: SeedClient): Promise<SeedSummary> {
         purpose: 'Optional, with the member’s consent (spec v1.1)',
         legalBasis:
           'DEVELOPMENT SEED ONLY: the legal review in spec §22 must be completed before production use',
+      }),
+      field('address', 'address', {
+        appliesTo: 'household',
+        purpose: 'Find the house again and keep search and reports clean',
+      }),
+      field('household_location', 'location', {
+        appliesTo: 'household',
+        requiresConsent: true,
+        purpose: 'Find the house again; taken once, with the household’s consent',
       }),
       field('religion', 'text', {
         enabled: false,

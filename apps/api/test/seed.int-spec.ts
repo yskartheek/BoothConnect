@@ -24,7 +24,7 @@ describe('development seed (real Postgres)', () => {
       users: 3,
       households: 40,
       voters: 121, // 120 from the roll + 1 added by a volunteer
-      fieldDefinitions: 9,
+      fieldDefinitions: 11,
       fieldValues: 5,
       consents: 3,
     });

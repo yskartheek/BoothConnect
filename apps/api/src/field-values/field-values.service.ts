@@ -1,11 +1,12 @@
 import { Injectable } from '@nestjs/common';
 
+import { seesRestricted } from '../authz/restricted-fields';
 import type { Scope } from '../authz/scope.service';
 import { inScope } from '../authz/scoped-query';
 import { ErrorCode } from '../common/errors/error-codes';
 import { PrismaService } from '../database/prisma.service';
-import type { FieldEntity, Prisma, ValueSource } from '../generated/prisma/client';
-import { isValidValue } from './field-value-rules';
+import type { FieldEntity, FieldType, Prisma, ValueSource } from '../generated/prisma/client';
+import { type Address, displayAddress, isValidValue, type Location } from './field-value-rules';
 
 type Tx = Prisma.TransactionClient;
 
@@ -43,6 +44,24 @@ export type FieldChangeResult =
   | { status: 'conflict'; fieldValueId: string; conflictWithId: string }
   /** Nothing stored. */
   | { status: 'rejected'; code: RejectionCode; message: string };
+
+export type ConflictResolution =
+  /** `keptId` is the current value; `discardedIds` stay in history. */
+  | {
+      status: 'resolved';
+      keptId: string;
+      discardedIds: string[];
+      entityType: FieldEntity;
+      entityId: string;
+      fieldKey: string;
+    }
+  /** Nothing was open and `keptId` is already the current value: nothing changed. */
+  | { status: 'already_resolved'; keptId: string }
+  | {
+      status: 'rejected';
+      code: typeof ErrorCode.NOT_FOUND | typeof ErrorCode.CONFLICT;
+      message: string;
+    };
 
 const rejected = (code: RejectionCode, message: string): FieldChangeResult => ({
   status: 'rejected',
@@ -97,7 +116,13 @@ export class FieldValuesService {
     const definition = await tx.fieldDefinition.findUnique({
       where: { programId_key: { programId: entity.programId, key: change.fieldKey } },
     });
-    if (!definition || definition.appliesTo !== change.entityType) {
+    // A restricted field is invisible to roles that may not see it, so it is
+    // "unknown" to them rather than forbidden.
+    if (
+      !definition ||
+      definition.appliesTo !== change.entityType ||
+      (definition.isRestricted && !seesRestricted(scope))
+    ) {
       return rejected(
         ErrorCode.FIELD_UNKNOWN,
         `No ${change.entityType} field "${change.fieldKey}"`,
@@ -131,9 +156,7 @@ export class FieldValuesService {
       }
     }
 
-    // Serialise writers of this entity's field until the transaction ends, so
-    // two edits can't both supersede the same value.
-    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`field_value:${change.entityId}:${definition.id}`}, 0))`;
+    await lockField(tx, change.entityId, definition.id);
 
     if (change.baseVersion) {
       const base = await tx.fieldValue.findUnique({ where: { id: change.baseVersion } });
@@ -180,6 +203,10 @@ export class FieldValuesService {
     if (clean) {
       const supersedesId = current[0]?.id ?? null;
       const row = await tx.fieldValue.create({ data: { ...data, supersedesId } });
+      await projectOntoHousehold(tx, change.entityType, change.entityId, definition.type, {
+        value: change.value,
+        consentId: data.consentId,
+      });
       return { status: 'applied', fieldValueId: row.id, supersedesId };
     }
     // Stale base (or an unresolved conflict): keep both; the newest current
@@ -187,6 +214,81 @@ export class FieldValuesService {
     const conflictWithId = current[0]!.id;
     const row = await tx.fieldValue.create({ data: { ...data, conflictWithId } });
     return { status: 'conflict', fieldValueId: row.id, conflictWithId };
+  }
+
+  /**
+   * Resolves an open conflict on the field that value `conflictId` belongs
+   * to: `keepId` (one of the field's current values) stays current, every
+   * other current value leaves (it stays in history), and the conflict marks
+   * are cleared. Resolving again, keeping the same value, changes nothing.
+   */
+  async resolveConflict(
+    scope: Scope,
+    conflictId: string,
+    keepId: string,
+    tx: Tx,
+  ): Promise<ConflictResolution> {
+    const value = await tx.fieldValue.findUnique({
+      where: { id: conflictId },
+      include: { fieldDefinition: true },
+    });
+    const definition = value?.fieldDefinition;
+    // Outside the scope, or a field the caller may not see: as if missing.
+    if (
+      !value ||
+      !definition ||
+      !(await this.findInScope(tx, scope, value.entityType, value.entityId)) ||
+      (definition.isRestricted && !seesRestricted(scope))
+    ) {
+      return { status: 'rejected', code: ErrorCode.NOT_FOUND, message: 'Conflict not found' };
+    }
+    await lockField(tx, value.entityId, definition.id);
+
+    const current = await tx.fieldValue.findMany({
+      where: {
+        entityType: value.entityType,
+        entityId: value.entityId,
+        fieldDefinitionId: definition.id,
+        isCurrent: true,
+      },
+    });
+    const keep = current.find((row) => row.id === keepId);
+    const open = current.length > 1 || current.some((row) => row.conflictWithId !== null);
+    if (!open) {
+      return keep
+        ? { status: 'already_resolved', keptId: keep.id }
+        : {
+            status: 'rejected',
+            code: ErrorCode.CONFLICT,
+            message: 'There is no open conflict on this field to keep that value for',
+          };
+    }
+    if (!keep) {
+      return {
+        status: 'rejected',
+        code: ErrorCode.CONFLICT,
+        message: 'keepFieldValueId must be one of the conflicting values',
+      };
+    }
+
+    const discardedIds = current.filter((row) => row.id !== keep.id).map((row) => row.id);
+    await tx.fieldValue.updateMany({
+      where: { id: { in: discardedIds } },
+      data: { isCurrent: false, conflictWithId: null },
+    });
+    await tx.fieldValue.update({ where: { id: keep.id }, data: { conflictWithId: null } });
+    await projectOntoHousehold(tx, value.entityType, value.entityId, definition.type, {
+      value: keep.value,
+      consentId: keep.consentId,
+    });
+    return {
+      status: 'resolved',
+      keptId: keep.id,
+      discardedIds,
+      entityType: value.entityType,
+      entityId: value.entityId,
+      fieldKey: definition.key,
+    };
   }
 
   private async findInScope(
@@ -203,5 +305,59 @@ export class FieldValuesService {
       select: { part: { select: { programId: true } } },
     });
     return household && { programId: household.part.programId };
+  }
+}
+
+/**
+ * Serialises writers of one entity's field until the transaction ends, so two
+ * edits (or an edit and a conflict resolution) can't interleave.
+ */
+async function lockField(tx: Tx, entityId: string, fieldDefinitionId: string): Promise<void> {
+  await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtextextended(${`field_value:${entityId}:${fieldDefinitionId}`}, 0))`;
+}
+
+/**
+ * The household row keeps a copy of its current address and location, for
+ * lists, search and maps. Called whenever such a value becomes current (an
+ * applied edit, or the value kept when a conflict is resolved).
+ */
+export async function projectOntoHousehold(
+  tx: Tx,
+  entityType: FieldEntity,
+  householdId: string,
+  type: FieldType,
+  current: { value: unknown; consentId: string | null },
+): Promise<void> {
+  if (entityType !== 'household') return;
+  if (type === 'address') {
+    const address = current.value as Address;
+    const household = await tx.household.findUniqueOrThrow({
+      where: { id: householdId },
+      select: { origin: true },
+    });
+    await tx.household.update({
+      where: { id: householdId },
+      data: {
+        structuredAddress: address,
+        displayAddress: displayAddress(address),
+        // A roll household keeps the roll's house number for grouping.
+        ...(household.origin === 'volunteer_added' && address.house_no
+          ? { houseKey: address.house_no.trim() }
+          : {}),
+      },
+    });
+  }
+  if (type === 'location') {
+    const location = current.value as Location;
+    await tx.household.update({
+      where: { id: householdId },
+      data: {
+        locationLat: location.lat,
+        locationLng: location.lng,
+        locationAccuracyM: location.accuracyM ?? null,
+        locationCapturedAt: new Date(location.capturedAt),
+        locationConsentId: current.consentId,
+      },
+    });
   }
 }

@@ -587,6 +587,10 @@ enum FieldType {
   phone
   single_select
   multi_select
+  /// Household address: { house_no, street, area, pin_code, landmark }.
+  address
+  /// Household location: { lat, lng, accuracyM, capturedAt }; needs consent.
+  location
 
   @@map("field_type")
 }

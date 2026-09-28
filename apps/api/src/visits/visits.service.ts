@@ -3,6 +3,7 @@ import { HttpStatus, Injectable } from '@nestjs/common';
 import { AuditService } from '../audit/audit.service';
 import type { Scope } from '../authz/scope.service';
 import { foundInScope, inScope } from '../authz/scoped-query';
+import type { Actor } from '../common/actor';
 import { AppException } from '../common/errors/app.exception';
 import { ErrorCode } from '../common/errors/error-codes';
 import { PrismaService } from '../database/prisma.service';
@@ -33,12 +34,6 @@ export interface VisitCreated {
   consents: { ref: string; id: string }[];
   /** One result per field change, in request order. */
   fieldChanges: FieldChangeResult[];
-}
-
-export interface Actor {
-  userId: string;
-  sessionId?: string | null;
-  requestId?: string | null;
 }
 
 const unprocessable = (message: string) =>

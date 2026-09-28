@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 
 import { Injectable } from '@nestjs/common';
 
+import { seesRestricted as canSeeRestricted } from '../authz/restricted-fields';
 import type { Scope } from '../authz/scope.service';
 import { decodeCursor, encodeCursor } from '../common/pagination';
 import { PrismaService } from '../database/prisma.service';
@@ -15,7 +16,6 @@ import {
   type VisitOutcome,
   type VoterRecordStatus,
 } from '../generated/prisma/client';
-import { RESTRICTED_FIELD_ROLES } from '../voters/voters.service';
 
 export const DEFAULT_SYNC_LIMIT = 500;
 export const MAX_SYNC_LIMIT = 2000;
@@ -199,7 +199,7 @@ export class SyncService {
   constructor(private readonly prisma: PrismaService) {}
 
   async pull(scope: Scope, since: string | undefined, limit: number): Promise<SyncPage> {
-    const seesRestricted = scope.roles.some((role) => RESTRICTED_FIELD_ROLES.includes(role));
+    const seesRestricted = canSeeRestricted(scope);
     const fingerprint = createHash('sha256')
       .update(`${[...scope.boothIds].sort().join(',')}|${seesRestricted}`)
       .digest('base64url')
