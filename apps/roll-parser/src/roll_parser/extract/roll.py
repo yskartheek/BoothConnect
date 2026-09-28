@@ -30,6 +30,7 @@ from roll_parser.extract.voters import (
     BoxText,
     epic_chars,
     find_boxes,
+    id_crops,
     normalise_epic,
     page_section,
     parse_body,
@@ -163,11 +164,21 @@ def read_voter_page(pdf: Path, index: int) -> PageRead:
     )
 
     texts = [split_box(b, words) for b in boxes]
+    # The ID crops are cut from the box's top row; a box where the row isn't
+    # found falls back to the fixed strips
+    ids = [id_crops(image, b) for b in boxes]
     epics = read_strips(
-        [top_strip(clean, b, SERIAL_RIGHT, 1.0) for b in boxes], whitelist=EPIC_CHARS
+        [
+            e if e is not None else top_strip(clean, b, SERIAL_RIGHT, 1.0)
+            for (_, e), b in zip(ids, boxes, strict=True)
+        ],
+        whitelist=EPIC_CHARS,
     )
     serials = read_strips(
-        [remove_box_lines(top_strip(image, b, SERIAL_LEFT, SERIAL_RIGHT)) for b in boxes],
+        [
+            s if s is not None else remove_box_lines(top_strip(image, b, SERIAL_LEFT, SERIAL_RIGHT))
+            for (s, _), b in zip(ids, boxes, strict=True)
+        ],
         whitelist="0123456789",
     )
     texts = [

@@ -29,6 +29,11 @@
 | `small` (5 pages) | 42/42   | 100%   | 100%  | 100%  | 100%     | 100%  | 100% | 100%   | 0            | 0         |
 | `ac40` (23 pages) | 571/571 | 100%   | 100%  | 100%  | 100%     | 100%  | 100% | 100%   | 0            | 0         |
 | `ac40-degraded`   | 571/571 | 100%   | 99.8% | 99.8% | 100%     | 100%  | 100% | 100%   | 2            | 0         |
+| `small-framed`    | 42/42   | 100%   | 100%  | 100%  | 100%     | 100%  | 100% | 100%   | 0            | 0         |
+
+`small-framed` draws the serial/EPIC row differently (the serial frame in
+the box's corner, a frame round the EPIC, slight blur): it checks that the
+serial and EPIC crops don't depend on fixed positions.
 
 Required: ≥ 99% for gender/age/serial/EPIC, ≥ 98% for names, and every wrong
 value flagged. CI checks all of these.
@@ -62,6 +67,17 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
    Open it and search for `"issues": [{` to see flagged rows. Each field has
    `value`, `raw` and `confidence`. Compare a few flagged rows with the PDF.
    Then `Remove-Item "$env:TEMP\roll-result.json"`.
+   Every row has a `serial` (a plain number from reading order, starting at
+   the cover's first serial) and a `printed_serial` field (the number OCR'd
+   from the box, with `value`/`raw`/`confidence`), used only as a check.
+   To see what the parser crops for the serial and EPIC on a page (this image
+   **shows EPIC numbers**: keep it private and delete it afterwards):
+   ```powershell
+   pnpm --filter roll-parser exec uv run roll-parser id-crops "C:\path\to\roll.pdf" --page 3 --out "$env:TEMP\crops.png"
+   ```
+   For each box it shows the top third of the box, then the serial crop,
+   then the EPIC crop (grey when not found). If a crop includes something
+   that isn't the serial or EPIC, describe it on the PR (without numbers).
 3. A synthetic roll with the accuracy report:
    ```powershell
    pnpm --filter roll-parser synth ac40-degraded
@@ -72,7 +88,7 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
    ```powershell
    pnpm --filter roll-parser test
    ```
-   **Expect:** `65 passed`, in about 3 minutes (it extracts two 23-page rolls).
+   **Expect:** `67 passed`, in about 3 minutes (it extracts two 23-page rolls).
 
 ## Pass criteria
 
@@ -81,6 +97,12 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
 
 ## Known issues and notes
 
+- **First real-sample run** (posted on #125): boxes, rows and gender
+  totals were exact, but most printed serials disagreed with reading order
+  and EPIC confidence was about 0.5. The fixed crops were catching something
+  besides the ID (a frame, a border or a clipped neighbour). The crops are now
+  found from the glyphs themselves (see above); please re-run step 1 and, if
+  serials still disagree, step 2's `id-crops`.
 - **Warnings on correct values:** about 1 row in 10 gets a low-confidence
   warning, mostly on ages that were read correctly (Tesseract gives short
   numbers low confidence). These are warnings, not errors; they don't send the

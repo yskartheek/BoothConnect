@@ -19,6 +19,8 @@ import re
 from dataclasses import dataclass
 
 import cv2
+import numpy as np
+import numpy.typing as npt
 
 from roll_parser.extract.fields import Field
 from roll_parser.extract.text import DASH, to_int
@@ -104,6 +106,112 @@ def remove_box_lines(crop: GrayImage) -> GrayImage:
     out = crop.copy()
     out[mask > 0] = 255
     return out
+
+
+# Where to look for the serial/EPIC row, as a share of the box height
+ID_ROW_SEARCH = 0.4
+# Glyph heights, as a share of the box height: smaller is a speck, taller is a
+# frame or rule
+GLYPH_HEIGHT = (0.03, 0.12)
+
+
+@dataclass(frozen=True)
+class _Glyph:
+    x: int
+    y: int
+    w: int
+    h: int
+    label: int
+
+    @property
+    def cy(self) -> float:
+        return self.y + self.h / 2
+
+
+def _glyphs(region: GrayImage, box_height: int) -> tuple[list[_Glyph], npt.NDArray[np.int32]]:
+    """Character-sized ink blobs in ``region`` (frames, rules and specks dropped)."""
+    ink = cv2.threshold(region, 0, 255, cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+    low, high = (int(f * box_height) for f in GLYPH_HEIGHT)
+    # Lines longer than any glyph (frames, borders) go first, so a digit that
+    # touches its frame isn't dropped with it
+    lines = cv2.bitwise_or(
+        cv2.morphologyEx(
+            ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (2 * high, 1))
+        ),
+        cv2.morphologyEx(
+            ink, cv2.MORPH_OPEN, cv2.getStructuringElement(cv2.MORPH_RECT, (1, high + 1))
+        ),
+    )
+    ink = cv2.bitwise_and(ink, cv2.bitwise_not(lines))
+    count, labels, stats, _ = cv2.connectedComponentsWithStats(ink, connectivity=8)
+    glyphs = []
+    for label in range(1, count):
+        x, y, w, h, _area = (int(v) for v in stats[label])
+        if low <= h <= high and 6 * w >= h:  # (touching glyphs can be wide; slivers not)
+            glyphs.append(_Glyph(x, y, w, h, label))
+    return glyphs, np.asarray(labels, dtype=np.int32)
+
+
+def _group_by(items: list[_Glyph], gap: float) -> list[list[_Glyph]]:
+    """Glyphs left to right, split where the horizontal gap exceeds ``gap``."""
+    groups: list[list[_Glyph]] = []
+    for g in sorted(items, key=lambda g: g.x):
+        if groups and g.x - max(o.x + o.w for o in groups[-1]) <= gap:
+            groups[-1].append(g)
+        else:
+            groups.append([g])
+    return groups
+
+
+def id_crops(image: GrayImage, box: Box) -> tuple[GrayImage | None, GrayImage | None]:
+    """The serial number and the EPIC, cut from the box's top row.
+
+    Rather than fixed positions, this finds the first row of character-sized
+    blobs in the top of the box: the serial is its leftmost group, the EPIC
+    its rightmost. Only the glyphs themselves are kept (on white), so the
+    serial's frame, box borders and clipped neighbours can't be misread as
+    digits. Returns ``None`` for a part that isn't found.
+    """
+    inset = 3
+    x0, y0 = box.x + inset, box.y + inset
+    region = image[y0 : box.y + int(ID_ROW_SEARCH * box.h), x0 : box.x + box.w - inset]
+    if region.size == 0:
+        return None, None
+    glyphs, labels = _glyphs(region, box.h)
+    if not glyphs:
+        return None, None
+
+    # The first row (from the top) with enough glyphs to hold an EPIC
+    rows: list[list[_Glyph]] = []
+    for g in sorted(glyphs, key=lambda g: g.cy):
+        if rows and abs(g.cy - rows[-1][0].cy) < max(g.h, rows[-1][0].h) * 0.6:
+            rows[-1].append(g)
+        else:
+            rows.append([g])
+    row = next((r for r in rows if len(r) >= 4), None)
+    if row is None:
+        return None, None
+    height = sorted(g.h for g in row)[len(row) // 2]
+    groups = _group_by(row, gap=1.5 * height)
+
+    def crop(group: list[_Glyph]) -> GrayImage:
+        pad = max(height // 2, 2)
+        left, right = min(g.x for g in group), max(g.x + g.w for g in group)
+        top, bottom = min(g.y for g in group), max(g.y + g.h for g in group)
+        keep = np.isin(labels, [g.label for g in group])
+        keep = cv2.dilate(keep.astype(np.uint8), np.ones((3, 3), np.uint8)) > 0
+        clean = np.where(keep, region, 255).astype(np.uint8)
+        top, left = max(top - pad, 0), max(left - pad, 0)
+        return clean[top : bottom + pad, left : right + pad]
+
+    # The EPIC is the rightmost group long enough to be one; the serial is the
+    # leftmost group before it, if that starts in the left half
+    epic_at = max((i for i, g in enumerate(groups) if len(g) >= 4), default=None)
+    if epic_at is None:
+        return None, None
+    before = groups[:epic_at]
+    serial = crop(before[0]) if before and before[0][0].x < region.shape[1] / 2 else None
+    return serial, crop(groups[epic_at])
 
 
 def _reading_order(words: list[PageWord]) -> list[PageWord]:

@@ -91,11 +91,15 @@ How it works (`extract/voters.py`, `extract/roll.py`):
    page wide and a tenth high) and puts them in reading order.
 2. **OCR, three Tesseract calls per page** (instead of the spike's three per
    box): the whole page in sparse-text mode with the box borders removed, and
-   the words are assigned to boxes by position; then every box's EPIC strip,
+   the words are assigned to boxes by position; then every box's EPIC,
    stacked into one image and read with a letters-and-digits whitelist; then
-   every serial box the same way, digits only. The stacked, whitelisted passes
-   fixed most ID errors. Dictionaries are off, because names and IDs aren't
-   English words.
+   every serial the same way, digits only. The serial and EPIC crops aren't
+   fixed positions: the parser finds the first row of character-sized blobs
+   at the top of the box (frames and borders removed), takes its rightmost
+   group as the EPIC and its leftmost as the serial, and keeps only those
+   glyphs. Dictionaries are off, because names and IDs aren't English words.
+   `roll-parser id-crops <pdf> --page 3 --out crops.png` shows those crops
+   (the image shows EPIC numbers: keep it private).
 3. **Fields:** the body is split at its labels (`Name`, `Fathers/Mothers/
 Husbands/Others Name`, `House Number`, `Age`, `Gender`); a colon that OCR
    dropped doesn't matter. Wrapped names are joined. `DELETED` / `MODIFIED`
