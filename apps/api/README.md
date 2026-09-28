@@ -266,6 +266,12 @@ one visit to a household in the caller's scope (else 404):
   the stored response (`Idempotency-Replayed: true`); a retry under a new key
   gets the stored visit with `duplicate: true`, and nothing is applied again.
   A `clientId` used by another volunteer or household is 409.
+- **Corrections** ("edit from list"): send `correctsVisitId` with the earlier
+  visit's ID. Both are kept (visits are immutable); the corrected visit no
+  longer counts for the household's last visit or visit status. Only the
+  volunteer who recorded it, or an admin, may correct a visit (else 403), and
+  only once (409: correct the latest version instead); it must be a visit to
+  the same household (else 422).
 - 422 `UNPROCESSABLE` for times in the future (more than 10 minutes ahead),
   `completedAt` before `startedAt`, members met or consent subjects outside
   the household, duplicate consent refs, or an unknown `consentRef`.

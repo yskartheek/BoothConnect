@@ -331,6 +331,78 @@ describe('POST /v1/visits (real Postgres)', () => {
     );
   });
 
+  describe('corrections ("edit from list")', () => {
+    it('a correction replaces the visit it corrects', async () => {
+      const household = await freshHousehold();
+      const wrong = (
+        await post(a, body(household.id, { outcome: 'follow_up_requested' })).expect(201)
+      ).body as VisitCreated;
+      const fixed = (
+        await post(
+          a,
+          body(household.id, { outcome: 'completed', correctsVisitId: wrong.id }),
+        ).expect(201)
+      ).body as VisitCreated;
+      expect(fixed).toMatchObject({ correctsVisitId: wrong.id, outcome: 'completed' });
+
+      // Both are kept; the household shows the correction, not the corrected visit.
+      expect(await t.prisma.visit.count({ where: { householdId: household.id } })).toBe(2);
+      const detail = await a.http.get(`/v1/households/${household.id}`).expect(200);
+      expect((detail.body as { lastVisit: { id: string } }).lastVisit.id).toBe(fixed.id);
+      const followUps = await a.http.get('/v1/households?status=follow_up&limit=200').expect(200);
+      const ids = (followUps.body as { items: { id: string }[] }).items.map((h) => h.id);
+      expect(ids).not.toContain(household.id);
+
+      const [event] = await t.prisma.auditEvent.findMany({
+        where: { action: 'visit.create', resourceId: fixed.id },
+      });
+      expect(event?.metadata).toMatchObject({ correctsVisitId: wrong.id });
+
+      // A correction can be corrected in turn.
+      await post(a, body(household.id, { correctsVisitId: fixed.id })).expect(201);
+    });
+
+    it('a visit is corrected once; correct the latest version instead', async () => {
+      const household = await freshHousehold();
+      const first = (await post(a, body(household.id)).expect(201)).body as VisitCreated;
+      await post(a, body(household.id, { correctsVisitId: first.id })).expect(201);
+      const again = await post(a, body(household.id, { correctsVisitId: first.id })).expect(409);
+      expect((again.body as ApiErrorBody).code).toBe('CONFLICT');
+    });
+
+    it('only the volunteer who recorded it, or an admin, may correct it', async () => {
+      const household = await freshHousehold();
+      const visit = (await post(a, body(household.id)).expect(201)).body as VisitCreated;
+
+      // Another volunteer on the same booth.
+      const volunteerA = await t.prisma.appUser.findUniqueOrThrow({
+        where: { phone: VOLUNTEER_A },
+      });
+      const colleague = await t.prisma.appUser.create({
+        data: {
+          organizationId: volunteerA.organizationId,
+          name: 'Test Colleague',
+          phone: '+919999900041',
+          roleAssignments: { create: { role: 'volunteer', geographyNodeId: station1 } },
+        },
+      });
+      const other = await loginAs(t, colleague.id);
+      const res = await post(other, body(household.id, { correctsVisitId: visit.id })).expect(403);
+      expect((res.body as ApiErrorBody).code).toBe('FORBIDDEN');
+
+      const admin = await loginAs(t, '+919999900001');
+      await post(admin, body(household.id, { correctsVisitId: visit.id })).expect(201);
+    });
+
+    it('a correction must be for a visit to the same household', async () => {
+      const household = await freshHousehold();
+      const neighbour = await freshHousehold();
+      const visit = (await post(a, body(neighbour.id)).expect(201)).body as VisitCreated;
+      await post(a, body(household.id, { correctsVisitId: visit.id })).expect(422);
+      await post(a, body(household.id, { correctsVisitId: randomUUID() })).expect(422);
+    });
+  });
+
   describe('404 and validation', () => {
     it('a household outside the scope gets 404, and nothing is stored', async () => {
       const outside = await t.prisma.household.findFirstOrThrow({
