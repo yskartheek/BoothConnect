@@ -32,6 +32,9 @@ describe('validateEnv', () => {
       IMPORT_MAX_PDF_BYTES: 104857600,
       IMPORT_MAX_ZIP_BYTES: 2147483648,
       IMPORT_UPLOAD_URL_TTL_SECONDS: 3600,
+      ROLL_PARSER_QUEUE: 'roll-extraction',
+      ROLL_PARSER_QUEUE_PREFIX: 'bull',
+      IMPORT_RESULTS_SWEEP_SECONDS: 30,
     });
   });
 
