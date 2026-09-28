@@ -22,6 +22,7 @@ describe('validateEnv', () => {
       OTP_MAX_ATTEMPTS: 5,
       OTP_REQUEST_LIMIT: 3,
       OTP_REQUEST_WINDOW_SECONDS: 600,
+      IDEMPOTENCY_TTL_SECONDS: 604800,
     });
   });
 

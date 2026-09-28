@@ -37,6 +37,10 @@ const envSchema = z
     OTP_MAX_ATTEMPTS: z.coerce.number().int().min(1).max(20).default(5),
     OTP_REQUEST_LIMIT: z.coerce.number().int().min(1).default(3),
     OTP_REQUEST_WINDOW_SECONDS: seconds(600),
+
+    // How long a write's response is kept for Idempotency-Key retries (#35).
+    // Long enough for a phone that was offline for days to retry its queue.
+    IDEMPOTENCY_TTL_SECONDS: seconds(7 * 24 * 60 * 60),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
