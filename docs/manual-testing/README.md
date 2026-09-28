@@ -66,3 +66,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #28   | [Structured error format, request IDs and validation](28-errors-validation.md)       | Ready to test   |
 | #29   | [Sign-in with a one-time code (development)](29-otp-sign-in.md)                      | Ready to test   |
 | #30   | [Access tokens, refresh rotation and logout](30-tokens-refresh-logout.md)            | Ready to test   |
+| #31   | [Suspended users lose access immediately](31-suspended-users.md)                     | Ready to test   |

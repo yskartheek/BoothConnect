@@ -16,8 +16,9 @@ export const unauthenticated = () =>
 
 /**
  * Registered globally: every route needs `Authorization: Bearer <access token>`
- * unless it is marked @Public(). The token must be valid and its session
- * still open (not logged out, revoked or expired).
+ * unless it is marked @Public(). The token must be valid, its session still
+ * open (not logged out, revoked or expired), and its user active (not
+ * suspended).
  */
 @Injectable()
 export class JwtAuthGuard implements CanActivate {

@@ -78,14 +78,19 @@ export class TokenService {
    */
   async refresh(refreshToken: string): Promise<TokenPair> {
     const oldHash = this.hashRefreshToken(refreshToken);
-    const session = await this.prisma.session.findUnique({ where: { refreshHash: oldHash } });
+    const session = await this.prisma.session.findUnique({
+      where: { refreshHash: oldHash },
+      include: { user: { select: { status: true } } },
+    });
 
     if (!session) {
       const reusedSessionId = await this.redis.get(retiredRefreshKey(oldHash));
       if (reusedSessionId) await this.revoke(reusedSessionId);
       throw invalidRefresh();
     }
-    if (session.revokedAt || session.expiresAt <= new Date()) throw invalidRefresh();
+    // A suspended user can't get new tokens either. The session stays open,
+    // so reactivating the user restores the device without a new sign-in.
+    if (!isOpen(session) || session.user.status !== 'active') throw invalidRefresh();
 
     const next = newRefreshToken();
     // Conditional on the old hash, so of two concurrent refreshes with the same
@@ -118,8 +123,9 @@ export class TokenService {
   }
 
   /**
-   * Checks an access token: signature, expiry, and that its session is still
-   * open. Returns undefined for anything that isn't a valid signed-in caller.
+   * Checks an access token: signature, expiry, that its session is still open
+   * and that the user is active. Returns undefined for anything that isn't a
+   * valid signed-in caller.
    */
   async authenticate(accessToken: string): Promise<AuthUser | undefined> {
     let claims: AccessClaims;
@@ -133,12 +139,20 @@ export class TokenService {
     }
     if (typeof claims.sub !== 'string' || typeof claims.sid !== 'string') return undefined;
 
+    // Checked on every request, not cached, so logging out, revoking a
+    // session or suspending a user takes effect on the very next request
+    // (spec §7.1), not when the access token expires.
     const session = await this.prisma.session.findUnique({
       where: { id: claims.sid },
-      select: { userId: true, revokedAt: true, expiresAt: true },
+      select: {
+        userId: true,
+        revokedAt: true,
+        expiresAt: true,
+        user: { select: { status: true } },
+      },
     });
     if (!session || session.userId !== claims.sub) return undefined;
-    if (session.revokedAt || session.expiresAt <= new Date()) return undefined;
+    if (!isOpen(session) || session.user.status !== 'active') return undefined;
     return { userId: claims.sub, sessionId: claims.sid };
   }
 
@@ -155,6 +169,10 @@ export class TokenService {
     });
     return { accessToken, tokenType: 'Bearer', expiresIn };
   }
+}
+
+function isOpen(session: { revokedAt: Date | null; expiresAt: Date }): boolean {
+  return !session.revokedAt && session.expiresAt > new Date();
 }
 
 function newRefreshToken(): string {
