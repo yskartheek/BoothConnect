@@ -97,6 +97,7 @@ class RollHeader(_Model):
     post_office: str
     police_station: str
     mandal: str
+    subdivision: str | None = None  # printed on newer covers
     district: str
     pin_code: str
     polling_station: PollingStation

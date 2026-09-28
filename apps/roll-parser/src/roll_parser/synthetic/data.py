@@ -236,11 +236,11 @@ def generate(spec: RollSpec) -> RollTruth:
         total=len(active),
     )
 
-    station_name = f"MANDAL PARISHAD PRIMARY SCHOOL {_place_name(rng)}"
     town = _place_name(rng)
+    station_name = f"Mandal Parishad Primary School, {_place_name(rng)}, {town}"
     header = RollHeader(
         state_code="S29",
-        state_name="TELANGANA",
+        state_name="Telangana",
         ac_number=spec.ac_number,
         ac_name=spec.ac_name,
         ac_reservation=spec.ac_reservation,
@@ -249,29 +249,30 @@ def generate(spec: RollSpec) -> RollTruth:
         pc_reservation=spec.pc_reservation,
         part_number=spec.part_number,
         revision_year=2026,
-        revision_type="Special Intensive Revision",
-        qualifying_date=date(2026, 1, 1),
-        publication_date=date(2026, 2, 10),
-        roll_identification="Draft Roll",
+        revision_type="Special Intensive Revision 2026",
+        qualifying_date=date(2026, 10, 1),
+        publication_date=date(2026, 8, 17),
+        roll_identification="Draft Electoral Roll of Special Intensive Revision, 2026",
         sections=sections,
         main_town=town,
         post_office=town,
         police_station=_place_name(rng),
         mandal=_place_name(rng),
+        subdivision="SANGAREDDY",
         district="SANGAREDDY",
         pin_code=f"50{rng.randint(1000, 9999)}",
         polling_station=PollingStation(
             number=str(spec.part_number),
             name=station_name,
-            address=f"{station_name}, ROOM NO 1, {town}",
+            address=f"{station_name}, Room No 1",
         ),
-        station_type="General",
+        station_type="GENERAL",
         auxiliary_station_count=spec.auxiliary_stations,
         auxiliary_stations=[
             PollingStation(
                 number=f"{spec.part_number}{string.ascii_uppercase[i]}",
-                name=f"{station_name} ROOM NO {i + 2}",
-                address=f"{station_name}, ROOM NO {i + 2}, {town}",
+                name=f"{station_name}, Room No {i + 2}",
+                address=f"{station_name}, Room No {i + 2}",
             )
             for i in range(spec.auxiliary_stations)
         ],

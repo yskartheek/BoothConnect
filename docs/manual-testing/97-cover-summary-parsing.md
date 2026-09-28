@@ -37,7 +37,7 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
    **Expect** (it takes a few seconds):
    ```text
    pages: 23 (cover, maps, voters, voters, ..., voters, summary)
-   state:   S29 TELANGANA
+   state:   S29 Telangana
    AC:      40 PATANCHERU (GENERAL)
    PC:      6 MEDAK (GEN)
    part:    408, sections: <n>, auxiliary stations: 0
@@ -67,7 +67,7 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
    ```powershell
    pnpm --filter roll-parser test
    ```
-   **Expect:** `40 passed` (about a minute: it generates the two 23-page
+   **Expect:** `41 passed` (about a minute: it generates the two 23-page
    rolls).
 
 ## Pass criteria
@@ -79,10 +79,17 @@ Needs the roll-parser set up (see #95 or `docs/SETUP.md` section 6).
 
 ## Known issues and notes
 
-- **Label wording comes from the design notes, not from your PDF directly**
-  (it can't be committed). If step 1 shows `field.missing` issues, the label
-  on your roll is worded differently. The `--json` output shows what OCR
-  read, and the fix is a one-line change to the label list in `cover.py`.
+- **Label wording and layout now follow your sample's cover** (from the OCR
+  lines you posted on the PR): the state in the title line, the
+  `Parliamentary Constituency :` label, the revision table without colons,
+  `Tehsil/Mandal` and `Subdivision`, the station number and name under their
+  label, the auxiliary count split over two lines, and the two-line totals
+  header. The synthetic cover copies that layout, and a test feeds the exact
+  OCR lines from your sample through the parser. If step 1 still shows
+  `field.missing`, the `--json` output shows what OCR read.
+- **Section names are read as printed**, OCR noise included (your sample
+  gave `Gection Now` for section 2). A low-confidence name is a warning, not
+  an error.
 - **Addresses that wrap** onto the next line are joined. **Auxiliary
   stations** are read from the list under the count; the synthetic rolls put
   them there, but no real sample with auxiliary stations has been seen yet.

@@ -13,6 +13,7 @@ from roll_parser.extract.models import (
 )
 from roll_parser.extract.text import (
     DASH,
+    OPT_SEP,
     SEP,
     LabelledValues,
     as_text,
@@ -23,25 +24,30 @@ from roll_parser.extract.text import (
 )
 from roll_parser.ocr import Line
 
-# Labels on the Telangana S29 English cover page, as regular expressions
-REVISION_YEAR = r"Year of Revision"
-REVISION_TYPE = r"Type of Revision"
-QUALIFYING_DATE = r"Qualifying Date"
-PUBLICATION_DATE = r"Date of Publication"
-ROLL_IDENTIFICATION = r"Roll Identification"
-MAIN_TOWN = r"Main Town or Village"
-POST_OFFICE = r"Post Office"
-POLICE_STATION = r"Police Station"
-MANDAL = r"Mandal"
-DISTRICT = r"District"
-PIN_CODE = r"Pin\s*Code"
-STATION = r"No\.?\s*and\s*Name of Polling Station"
-STATION_ADDRESS = r"Address of Polling Station"
-STATION_TYPE = r"Type of Polling Station"
-AUXILIARY_COUNT = r"Number of Auxiliary Polling Stations in this Part"
-AUXILIARY_ADDRESS = r"Address"
-PART_NUMBER = r"Part\s*No\.?"
-SECTIONS = r"No\.?\s*and\s*Name of Sections in the part"
+# Labels on the Telangana S29 English cover page, as regular expressions with
+# their separator. The "Details of revision" table has no colons.
+REVISION_YEAR = rf"Year of Revision{OPT_SEP}"
+REVISION_TYPE = rf"Type of Revision{OPT_SEP}"
+QUALIFYING_DATE = rf"Qualifying Date{OPT_SEP}"
+PUBLICATION_DATE = rf"Date of Publication{OPT_SEP}"
+ROLL_IDENTIFICATION = rf"Roll Identification{OPT_SEP}"
+MAIN_TOWN = rf"Main Town or Village{SEP}"
+POST_OFFICE = rf"Post Office{SEP}"
+POLICE_STATION = rf"Police Station{SEP}"
+MANDAL = rf"(?:Tehsil\s*/\s*)?Mandal{SEP}"
+SUBDIVISION = rf"Sub\s*division{SEP}"
+DISTRICT = rf"District{SEP}"
+PIN_CODE = rf"Pin\s*Code{SEP}"
+STATION = rf"No\.?\s*and\s*Name of Polling Station{OPT_SEP}"
+STATION_ADDRESS = rf"Address of Polling Station{OPT_SEP}"
+STATION_TYPE = rf"Type of Polling Station{OPT_SEP}"
+STATION_TYPE_HINT = r"\(\s*Male\s*/\s*Female\s*/\s*General\s*\)"
+# "Number of Auxiliary Polling Stations in this part", sometimes split in two lines
+AUXILIARY_COUNT = rf"(?:Number of\s*)?Auxiliary Polling(?:\s*Stations in this part)?{OPT_SEP}"
+AUXILIARY_TAIL = rf"Stations in this part{OPT_SEP}"
+AUXILIARY_ADDRESS = rf"Address{SEP}"
+PART_NUMBER = rf"Part\s*No\.?{SEP}"
+SECTIONS = rf"No\.?\s*and\s*Name of Sections in the part{OPT_SEP}"
 
 LABELS = [
     REVISION_YEAR,
@@ -53,12 +59,15 @@ LABELS = [
     POST_OFFICE,
     POLICE_STATION,
     MANDAL,
+    SUBDIVISION,
     DISTRICT,
     PIN_CODE,
     STATION,
     STATION_ADDRESS,
     STATION_TYPE,
+    STATION_TYPE_HINT,
     AUXILIARY_COUNT,
+    AUXILIARY_TAIL,
     PART_NUMBER,
     SECTIONS,
 ]
@@ -67,7 +76,9 @@ LABELS = [
 CONSTITUENCY = rf"(\w{{1,3}})\s*{DASH}\s*(.+?)\s*\(\s*([A-Z]+)\s*\)"
 HEADING = re.compile(r"^\d\s*\.\s+[A-Z]")
 NUMBERED = re.compile(rf"^(\w{{1,3}})\s*{DASH}\s*(.+)$")  # "1 - MAKA THANDA"
-STATION_NUMBER = re.compile(rf"^(\d{{1,4}}\s*[A-Z]?)\s*{DASH}\s*(.+)$")  # "408A - SCHOOL ..."
+# An auxiliary station's "408A - NAME" line (spaced dash, unlike "12-3" in an address)
+AUXILIARY_LINE = rf"^\s*\d{{1,4}}\s*[A-Z]?\s+{DASH}\s+"
+STATION_NUMBER = re.compile(rf"\s*(\d{{1,4}}\s*[A-Z]?)\s*{DASH}\s*(.+)$")  # "408A - SCHOOL ..."
 
 
 def _digits(raw: str) -> str | None:
@@ -83,18 +94,33 @@ def _state_code(raw: str) -> str | None:
 
 
 def _groups[T](
-    lines: Sequence[Line], pattern: str, converters: Sequence[Callable[[str], T | None]]
+    lines: Sequence[Line], patterns: Sequence[str], converters: Sequence[Callable[[str], T | None]]
 ) -> list[Field[T]]:
-    """Fields from the capture groups of the first line matching ``pattern``."""
-    regex = re.compile(pattern, re.I)
-    for line in lines:
-        m = regex.search(line.text)
-        if m:
-            return [
-                span_field(line, m.start(g), m.end(g), convert)
-                for g, convert in enumerate(converters, start=1)
-            ]
+    """Fields from the capture groups of the first line matching a pattern.
+
+    Patterns are tried in order (for layouts that print the same thing
+    differently).
+    """
+    for pattern in patterns:
+        regex = re.compile(pattern, re.I)
+        for line in lines:
+            m = regex.search(line.text)
+            if m:
+                return [
+                    span_field(line, m.start(g), m.end(g), convert)
+                    for g, convert in enumerate(converters, start=1)
+                ]
     return [Field.missing() for _ in converters]
+
+
+def _joined[T](parts: Sequence[Field[str]], convert: Callable[[str], T | None]) -> Field[T]:
+    """One value from pieces on consecutive lines."""
+    raw = " ".join(p.raw for p in parts)
+    return Field(
+        value=convert(raw) if raw else None,
+        raw=raw,
+        confidence=min((p.confidence for p in parts), default=0.0),
+    )
 
 
 def _numbered_lines(
@@ -133,16 +159,20 @@ def _sections(lines: Sequence[Line], values: LabelledValues) -> list[ExtractedSe
     return sections
 
 
-def _auxiliary_stations(lines: Sequence[Line], values: LabelledValues) -> list[ExtractedStation]:
+def _auxiliary_stations(
+    lines: Sequence[Line], values: LabelledValues, after: int
+) -> list[ExtractedStation]:
+    """``408A - NAME`` lines (each with an ``Address :`` line) after the count."""
     start = first_line_index(lines, AUXILIARY_COUNT)
     if start is None:
         return []
     stations = []
-    address_label = re.compile(f"^{AUXILIARY_ADDRESS}{SEP}", re.I)
+    address_label = re.compile(f"^{AUXILIARY_ADDRESS}", re.I)
     stop = first_line_index(lines, r"NUMBER OF ELECTORS", start) or len(lines)
-    for index in range(start + 1, stop):
+    for index in range(max(start, after) + 1, stop):
         line = lines[index]
-        m = STATION_NUMBER.match(line.text)
+        end, _ = values.before_label(index)
+        m = STATION_NUMBER.match(line.text[:end])
         if not m:
             continue
         address: Field[str] = Field.missing()
@@ -158,27 +188,53 @@ def _auxiliary_stations(lines: Sequence[Line], values: LabelledValues) -> list[E
     return stations
 
 
-def _main_station(values: LabelledValues) -> ExtractedStation:
-    station, index = values.find(STATION, as_text)
+def _main_station(values: LabelledValues) -> tuple[ExtractedStation, int]:
+    """The polling station, and the index of the last line its name is on.
+
+    ``408 - NAME`` follows the label on the same line or within the next few
+    lines (the type-of-station column sits beside it); a long name wraps onto
+    the next lines, up to the next label.
+    """
+    lines = values.lines
     number: Field[str] = Field.missing()
     name: Field[str] = Field.missing()
-    if index is not None and station.raw:
-        line = values.lines[index]
-        offset = line.text.find(station.raw)
-        m = STATION_NUMBER.match(station.raw)
-        if m and offset >= 0:
-            number = span_field(line, offset + m.start(1), offset + m.end(1), _digits)
-            name = span_field(line, offset + m.start(2), offset + m.end(2), as_text)
-    address, _ = values.find(STATION_ADDRESS, as_text, continuation=True)
-    return ExtractedStation(number=number, name=name, address=address)
+    last = -1
+    label_index = first_line_index(lines, STATION)
+    if label_index is not None:
+        label = re.search(STATION, lines[label_index].text, re.I)
+        start = label.end() if label else 0
+        for index in range(label_index, min(label_index + 4, len(lines))):
+            line = lines[index]
+            end = values.any_label.search(line.text, start)
+            m = STATION_NUMBER.match(line.text[: end.start() if end else len(line.text)], start)
+            start = 0
+            if not m:
+                continue
+            number = span_field(line, m.start(1), m.end(1), _digits)
+            parts = [span_field(line, m.start(2), m.end(2), as_text)]
+            last = index
+            for following in range(index + 1, min(index + 3, len(lines))):
+                cut, _ = values.before_label(following)
+                text = lines[following].text[:cut]
+                if not text.strip() or HEADING.match(text):
+                    break
+                parts.append(span_field(lines[following], 0, cut, as_text))
+                last = following
+            name = _joined(parts, as_text)
+            break
+    address, _ = values.find(
+        STATION_ADDRESS, as_text, continuation=True, below=True, stop=AUXILIARY_LINE
+    )
+    return ExtractedStation(number=number, name=name, address=address), last
 
 
 def _totals(lines: Sequence[Line]) -> ExtractedTotals:
     """The row of six numbers under "Starting Serial No. ... Total"."""
-    header = first_line_index(lines, r"Starting\s*Serial")
+    heading = first_line_index(lines, r"NUMBER OF ELECTORS") or 0
+    header = first_line_index(lines, r"Starting|Serial\s*No", heading)
     fields: list[Field[int]] = [Field.missing() for _ in range(6)]
     if header is not None:
-        for line in lines[header + 1 : header + 4]:
+        for line in lines[header + 1 : header + 5]:
             numbers = list(re.finditer(r"\S+", line.text))
             if len(numbers) == 6 and all(to_int(n.group()) is not None for n in numbers):
                 fields = [span_field(line, n.start(), n.end(), to_int) for n in numbers]
@@ -194,11 +250,21 @@ def _totals(lines: Sequence[Line]) -> ExtractedTotals:
 def parse_cover(lines: Sequence[Line]) -> tuple[ExtractedHeader, ExtractedTotals]:
     values = LabelledValues(lines, LABELS)
     state_code, state_name = _groups(
-        lines, rf"STATE\s*{DASH}\s*\(\s*(\S{{3}})\s*\)\s*(.+)$", [_state_code, as_text]
+        lines,
+        [
+            rf"STATE\s*{DASH}\s*\(\s*(\S{{3}})\s*\)\s*(.+)$",
+            r"ELECTORAL\s*ROLL[,.]?\s*\d{4}[,.]?\s+([S5$]\w{2})\s+(.+)$",
+        ],
+        [_state_code, as_text],
     )
-    ac = _groups(lines, rf"Assembly Constituency{SEP}{CONSTITUENCY}", [to_int, as_text, as_text])
-    pc = _groups(lines, rf"is located{SEP}{CONSTITUENCY}", [to_int, as_text, as_text])
+    ac = _groups(lines, [rf"Assembly Constituency{SEP}{CONSTITUENCY}"], [to_int, as_text, as_text])
+    pc = _groups(
+        lines,
+        [rf"Parliamentary Constituency[^:;>]*{SEP}{CONSTITUENCY}"],
+        [to_int, as_text, as_text],
+    )
     part_number, _ = values.find(PART_NUMBER, to_int)
+    station, station_end = _main_station(values)
 
     header = ExtractedHeader(
         state_code=state_code,
@@ -211,20 +277,21 @@ def parse_cover(lines: Sequence[Line]) -> tuple[ExtractedHeader, ExtractedTotals
         pc_reservation=pc[2],
         part_number=part_number,
         revision_year=values.find(REVISION_YEAR, to_int)[0],
-        revision_type=values.find(REVISION_TYPE, as_text)[0],
+        revision_type=values.find(REVISION_TYPE, as_text, continuation=True)[0],
         qualifying_date=values.find(QUALIFYING_DATE, to_date)[0],
         publication_date=values.find(PUBLICATION_DATE, to_date)[0],
-        roll_identification=values.find(ROLL_IDENTIFICATION, as_text)[0],
+        roll_identification=values.find(ROLL_IDENTIFICATION, as_text, below=True)[0],
         sections=_sections(lines, values),
         main_town=values.find(MAIN_TOWN, as_text)[0],
         post_office=values.find(POST_OFFICE, as_text)[0],
         police_station=values.find(POLICE_STATION, as_text)[0],
         mandal=values.find(MANDAL, as_text)[0],
+        subdivision=values.find(SUBDIVISION, as_text)[0],
         district=values.find(DISTRICT, as_text)[0],
         pin_code=values.find(PIN_CODE, _digits)[0],
-        polling_station=_main_station(values),
+        polling_station=station,
         station_type=values.find(STATION_TYPE, as_text)[0],
         auxiliary_station_count=values.find(AUXILIARY_COUNT, to_int)[0],
-        auxiliary_stations=_auxiliary_stations(lines, values),
+        auxiliary_stations=_auxiliary_stations(lines, values, after=station_end),
     )
     return header, _totals(lines)
