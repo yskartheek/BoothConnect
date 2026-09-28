@@ -15,6 +15,7 @@ import request from 'supertest';
 
 import { AppModule } from '../src/app.module';
 import { configureApp } from '../src/app.setup';
+import { Public } from '../src/auth/decorators';
 import { type ApiErrorBody, AppException } from '../src/common/errors/app.exception';
 import { ErrorCode } from '../src/common/errors/error-codes';
 import { Prisma } from '../src/generated/prisma/client';
@@ -41,6 +42,7 @@ class MemberDto {
 }
 
 // Routes that raise each kind of error, only for these tests.
+@Public()
 @Controller('test-errors')
 class ErrorsTestController {
   @Post('members')
