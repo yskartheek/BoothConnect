@@ -3,6 +3,8 @@ import { ConfigService } from '@nestjs/config';
 import { APP_GUARD } from '@nestjs/core';
 import { JwtModule } from '@nestjs/jwt';
 
+import { GeoScopeGuard } from '../authz/geo-scope.guard';
+import { ScopeService } from '../authz/scope.service';
 import type { Env } from '../config/env';
 import { AuthController } from './auth.controller';
 import { JwtAuthGuard } from './jwt-auth.guard';
@@ -17,8 +19,11 @@ import { TokenService } from './token.service';
   providers: [
     OtpService,
     TokenService,
-    // Every route needs a valid access token unless marked @Public().
+    ScopeService,
+    // Global guards run in this order: first the access token (401), then
+    // the caller's scope and @Roles() (403). Both skip @Public() routes.
     { provide: APP_GUARD, useClass: JwtAuthGuard },
+    { provide: APP_GUARD, useClass: GeoScopeGuard },
     {
       provide: OTP_SENDER,
       inject: [ConfigService],
@@ -28,6 +33,6 @@ import { TokenService } from './token.service';
           : new UnconfiguredOtpSender(),
     },
   ],
-  exports: [TokenService],
+  exports: [TokenService, ScopeService],
 })
 export class AuthModule {}

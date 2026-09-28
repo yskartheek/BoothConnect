@@ -108,6 +108,25 @@ stored on the session.
   assignments (started, and not yet ended; `valid_until` is exclusive), each
   with its node and the `path` from the state down to that node.
 
+## Geographic scope and roles
+
+Every signed-in request gets `req.scope` (`@CurrentScope()`): the caller's
+roles and **every polling station under any of their active assignments**,
+found through `geography_closure`. An assignment on a booth covers that booth;
+on a part, its main and auxiliary booths; on an AC or higher, every booth
+below it.
+
+- **Booth-level data is only ever queried through the scope:**
+  `where: { ...inScope(scope), … }` (`src/authz/scoped-query.ts`). An empty
+  scope matches nothing.
+- **A record outside the scope is 404, never 403**, exactly like a record
+  that doesn't exist (`foundInScope(record, 'Household')`), so IDs can't be
+  probed.
+- `@Roles('admin', 'campaign_manager')` limits a route to callers holding one
+  of those roles in an active assignment; others get 403 `FORBIDDEN`.
+- The guards run in order: access token (401) → scope and roles (403);
+  `@Public()` routes skip both.
+
 ## Database (Prisma 7)
 
 ```powershell
