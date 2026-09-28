@@ -60,6 +60,7 @@ export class ExtractionResultsService implements OnModuleInit, OnModuleDestroy {
   private queue?: Queue;
   private events?: QueueEvents;
   private timer?: NodeJS.Timeout;
+  private closing = false;
 
   constructor(
     private readonly prisma: PrismaService,
@@ -75,15 +76,27 @@ export class ExtractionResultsService implements OnModuleInit, OnModuleDestroy {
       connection: bullConnection(this.config.get('REDIS_URL', { infer: true })),
       prefix: this.config.get('ROLL_PARSER_QUEUE_PREFIX', { infer: true }),
     };
-    this.queue = new Queue(name, options);
-    this.events = new QueueEvents(name, options);
-    const settle = ({ jobId }: { jobId: string }) => {
-      this.settle(jobId).catch((error: unknown) =>
-        this.logger.error(`import file ${jobId}: result not processed`, error as Error),
-      );
-    };
-    this.events.on('completed', settle);
-    this.events.on('failed', settle);
+    const queue = new Queue(name, options);
+    queue.on('error', (error) => this.logger.warn(`roll-extraction queue: ${error.message}`));
+    this.queue = queue;
+    // QueueEvents is only started once Redis is reachable: closing one that
+    // never connected waits forever, which would block shutdown.
+    queue
+      .waitUntilReady()
+      .then(() => {
+        if (this.closing) return;
+        const events = new QueueEvents(name, options);
+        events.on('error', (error) => this.logger.warn(`roll-extraction events: ${error.message}`));
+        const settle = ({ jobId }: { jobId: string }) => {
+          this.settle(jobId).catch((error: unknown) =>
+            this.logger.error(`import file ${jobId}: result not processed`, error as Error),
+          );
+        };
+        events.on('completed', settle);
+        events.on('failed', settle);
+        this.events = events;
+      })
+      .catch(() => undefined); // closed before Redis was reached
     const every = this.config.get('IMPORT_RESULTS_SWEEP_SECONDS', { infer: true }) * 1000;
     this.timer = setInterval(() => {
       this.sweep().catch((error: unknown) =>
@@ -94,6 +107,7 @@ export class ExtractionResultsService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy(): Promise<void> {
+    this.closing = true;
     clearInterval(this.timer);
     await this.events?.close();
     await this.queue?.close();

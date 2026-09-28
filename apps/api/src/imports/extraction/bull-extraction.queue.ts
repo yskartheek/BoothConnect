@@ -1,4 +1,4 @@
-import { Inject, Injectable, type OnModuleDestroy } from '@nestjs/common';
+import { Inject, Injectable, Logger, type OnModuleDestroy } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { type JobsOptions, Queue } from 'bullmq';
 
@@ -24,6 +24,7 @@ export const DEFAULT_JOB_OPTIONS: JobsOptions = {
 /** Publishes one `extract-roll` job per import file (job id = file id, so never twice). */
 @Injectable()
 export class BullExtractionQueue extends ExtractionQueue implements OnModuleDestroy {
+  private readonly logger = new Logger(BullExtractionQueue.name);
   private readonly queue: Queue;
 
   constructor(
@@ -35,6 +36,7 @@ export class BullExtractionQueue extends ExtractionQueue implements OnModuleDest
       connection: bullConnection(config.get('REDIS_URL', { infer: true })),
       prefix: config.get('ROLL_PARSER_QUEUE_PREFIX', { infer: true }),
     });
+    this.queue.on('error', (error) => this.logger.warn(`roll-extraction queue: ${error.message}`));
   }
 
   async enqueue(request: ExtractionRequest): Promise<void> {
