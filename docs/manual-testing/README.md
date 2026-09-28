@@ -36,29 +36,30 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 
 ## Guides
 
-| Issue | Guide                                                                             | Status          |
-| ----- | --------------------------------------------------------------------------------- | --------------- |
-| #13   | [Initialize pnpm workspace and Turborepo](13-pnpm-workspace-turborepo.md)         | Ready to test   |
-| #14   | [Shared ESLint + Prettier config](14-eslint-prettier.md)                          | Ready to test   |
-| #15   | [docker-compose for Postgres 16, Redis and MinIO](15-docker-compose.md)           | Ready to test   |
-| #16   | [Environment-variable template (.env.example)](16-env-example.md)                 | Ready to test   |
-| #9    | [NestJS API skeleton with health endpoint](9-api-skeleton.md)                     | Ready to test   |
-| #10   | [Next.js admin-web skeleton](10-admin-web-skeleton.md)                            | Ready to test   |
-| #11   | [Flutter mobile skeleton](11-mobile-skeleton.md)                                  | Ready to test   |
-| #17   | [GitHub Actions CI](17-ci.md)                                                     | Ready to test   |
-| #12   | [SETUP.md and ADR-001 (technology stack)](12-setup-and-adr.md)                    | Ready to test   |
-| #92   | [Design: PDF roll import + hierarchical analytics](92-pdf-roll-import-design.md)  | Ready to review |
-| #18   | [Prisma with UUIDv7 and timestamptz conventions](18-prisma-setup.md)              | Ready to test   |
-| #19   | [Schema: organization, program and geography tree](19-geography-schema.md)        | Ready to test   |
-| #20   | [Schema: users, sessions and role assignments](20-users-sessions-roles.md)        | Ready to test   |
-| #21   | [Schema: roll imports](21-import-schema.md)                                       | Ready to test   |
-| #22   | [Schema: households and voters](22-household-voter.md)                            | Ready to test   |
-| #23   | [Schema: field definitions and values](23-field-values.md)                        | Ready to test   |
-| #95   | [roll-parser scaffold (Python, Docker image, CI job)](95-roll-parser-scaffold.md) | Ready to test   |
-| #96   | [Synthetic roll PDF generator and fixtures](96-synthetic-rolls.md)                | Ready to test   |
-| #24   | [Schema: visits and consent](24-visit-consent.md)                                 | Ready to test   |
-| #25   | [Schema: idempotency and audit log](25-idempotency-audit.md)                      | Ready to test   |
-| #26   | [Development seed data](26-seed.md)                                               | Ready to test   |
-| #97   | [Cover and summary page parsing](97-cover-summary-parsing.md)                     | Ready to test   |
-| #98   | [Voter-box extraction with confidence and normalisation](98-voter-boxes.md)       | Ready to test   |
-| #99   | [roll-parser queue worker (extract-roll jobs)](99-queue-worker.md)                | Ready to test   |
+| Issue | Guide                                                                                | Status          |
+| ----- | ------------------------------------------------------------------------------------ | --------------- |
+| #13   | [Initialize pnpm workspace and Turborepo](13-pnpm-workspace-turborepo.md)            | Ready to test   |
+| #14   | [Shared ESLint + Prettier config](14-eslint-prettier.md)                             | Ready to test   |
+| #15   | [docker-compose for Postgres 16, Redis and MinIO](15-docker-compose.md)              | Ready to test   |
+| #16   | [Environment-variable template (.env.example)](16-env-example.md)                    | Ready to test   |
+| #9    | [NestJS API skeleton with health endpoint](9-api-skeleton.md)                        | Ready to test   |
+| #10   | [Next.js admin-web skeleton](10-admin-web-skeleton.md)                               | Ready to test   |
+| #11   | [Flutter mobile skeleton](11-mobile-skeleton.md)                                     | Ready to test   |
+| #17   | [GitHub Actions CI](17-ci.md)                                                        | Ready to test   |
+| #12   | [SETUP.md and ADR-001 (technology stack)](12-setup-and-adr.md)                       | Ready to test   |
+| #92   | [Design: PDF roll import + hierarchical analytics](92-pdf-roll-import-design.md)     | Ready to review |
+| #18   | [Prisma with UUIDv7 and timestamptz conventions](18-prisma-setup.md)                 | Ready to test   |
+| #19   | [Schema: organization, program and geography tree](19-geography-schema.md)           | Ready to test   |
+| #20   | [Schema: users, sessions and role assignments](20-users-sessions-roles.md)           | Ready to test   |
+| #21   | [Schema: roll imports](21-import-schema.md)                                          | Ready to test   |
+| #22   | [Schema: households and voters](22-household-voter.md)                               | Ready to test   |
+| #23   | [Schema: field definitions and values](23-field-values.md)                           | Ready to test   |
+| #95   | [roll-parser scaffold (Python, Docker image, CI job)](95-roll-parser-scaffold.md)    | Ready to test   |
+| #96   | [Synthetic roll PDF generator and fixtures](96-synthetic-rolls.md)                   | Ready to test   |
+| #24   | [Schema: visits and consent](24-visit-consent.md)                                    | Ready to test   |
+| #25   | [Schema: idempotency and audit log](25-idempotency-audit.md)                         | Ready to test   |
+| #26   | [Development seed data](26-seed.md)                                                  | Ready to test   |
+| #97   | [Cover and summary page parsing](97-cover-summary-parsing.md)                        | Ready to test   |
+| #98   | [Voter-box extraction with confidence and normalisation](98-voter-boxes.md)          | Ready to test   |
+| #99   | [roll-parser queue worker (extract-roll jobs)](99-queue-worker.md)                   | Ready to test   |
+| #27   | [API integration-test harness (a database per test file)](27-integration-harness.md) | Ready to test   |

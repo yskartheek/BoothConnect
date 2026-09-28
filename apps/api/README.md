@@ -69,8 +69,15 @@ Conventions for every model:
   don't show up as drift. Create the migration with
   `pnpm --filter api exec prisma migrate dev --create-only --name <name>`,
   add the SQL, then run `pnpm --filter api db:migrate`.
-- Integration tests run inside a transaction that is always rolled back
-  (`test/support/database.ts`), so they leave no data behind.
+- Integration tests never touch the database in `DATABASE_URL`. Each run
+  builds a migrated and seeded template (`<db>_it_template`) and gives every
+  test file its own copy (`<db>_it_<random>`), dropped when the file ends
+  (`test/support/test-databases.cjs`). So every file starts from the same
+  seed data, and files run in parallel.
+  - Database-only tests: `connectDatabase()` plus `inRollback()`
+    (`test/support/database.ts`) and the builders in `test/support/fixtures.ts`.
+  - HTTP tests: `createTestApp()` (`test/support/app.ts`) starts the full API
+    against the file's database; `t.http().get('/v1/…')`.
 - Partial indexes with a `raw()` condition must use the text PostgreSQL
   stores (check with `pg_get_expr`), or Prisma reports drift every time.
   `pnpm --filter api exec prisma migrate diff --from-config-datasource --to-schema prisma/schema.prisma --exit-code`
