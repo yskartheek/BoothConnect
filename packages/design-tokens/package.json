@@ -10,9 +10,11 @@
   },
   "scripts": {
     "build": "node scripts/build-css.js",
+    "build:dart": "node scripts/build-dart.js",
     "check:contrast": "node scripts/check-contrast.js",
+    "check:dart": "node scripts/build-dart.js --check",
     "lint": "eslint .",
-    "test": "node scripts/check-contrast.js && node --test test/*.test.js"
+    "test": "node scripts/check-contrast.js && node scripts/build-dart.js --check && node --test test/*.test.js"
   },
   "devDependencies": {
     "@boothconnect/eslint-config": "workspace:*",
