@@ -80,3 +80,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #42   | [Offline sync, downloading changes (+ visit corrections)](42-sync-pull.md)           | Ready to test   |
 | #53   | [Design tokens (light/dark glass + reduced transparency)](53-design-tokens.md)       | Ready to test   |
 | #54   | [Design tokens as CSS variables in the admin web](54-css-variables.md)               | Ready to test   |
+| #55   | [Design tokens as the Flutter theme (+ opaque glass fallback)](55-flutter-theme.md)  | Ready to test   |
