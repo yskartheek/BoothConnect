@@ -13,6 +13,42 @@ describe('validateEnv', () => {
       API_PORT: 4000,
       LOG_LEVEL: 'info',
       CORS_ORIGINS: [],
+      JWT_ACCESS_SECRET: 'dev-only-access-secret-change-me',
+      JWT_REFRESH_SECRET: 'dev-only-refresh-secret-change-me',
+      JWT_ACCESS_TTL_SECONDS: 900,
+      JWT_REFRESH_TTL_SECONDS: 2592000,
+      OTP_TTL_SECONDS: 300,
+      OTP_DEV_MODE: false,
+      OTP_MAX_ATTEMPTS: 5,
+      OTP_REQUEST_LIMIT: 3,
+      OTP_REQUEST_WINDOW_SECONDS: 600,
+    });
+  });
+
+  it('parses OTP_DEV_MODE as a boolean', () => {
+    expect(validateEnv({ ...valid, OTP_DEV_MODE: 'true' }).OTP_DEV_MODE).toBe(true);
+    expect(validateEnv({ ...valid, OTP_DEV_MODE: 'false' }).OTP_DEV_MODE).toBe(false);
+  });
+
+  describe('in production', () => {
+    const strong = {
+      ...valid,
+      NODE_ENV: 'production',
+      JWT_ACCESS_SECRET: 'a'.repeat(32),
+      JWT_REFRESH_SECRET: 'b'.repeat(32),
+    };
+
+    it('accepts strong, distinct secrets', () => {
+      expect(() => validateEnv(strong)).not.toThrow();
+    });
+
+    it.each([
+      ['the development default', { JWT_ACCESS_SECRET: undefined }, 'JWT_ACCESS_SECRET'],
+      ['a short secret', { JWT_REFRESH_SECRET: 'short' }, 'JWT_REFRESH_SECRET'],
+      ['the same secret twice', { JWT_REFRESH_SECRET: 'a'.repeat(32) }, 'JWT_REFRESH_SECRET'],
+      ['OTP dev mode', { OTP_DEV_MODE: 'true' }, 'OTP_DEV_MODE'],
+    ])('refuses %s', (_name, override, key) => {
+      expect(() => validateEnv({ ...strong, ...override })).toThrow(key);
     });
   });
 

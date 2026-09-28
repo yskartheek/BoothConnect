@@ -1,5 +1,5 @@
 import type { NestExpressApplication } from '@nestjs/platform-express';
-import { Test } from '@nestjs/testing';
+import { Test, type TestingModuleBuilder } from '@nestjs/testing';
 import request from 'supertest';
 
 import { AppModule } from '../../src/app.module';
@@ -18,10 +18,13 @@ export interface TestApp {
 /**
  * The full API, configured exactly as in main.ts, against this test file's own
  * database and the real Redis. Requests commit, so use it for HTTP tests and
- * `inRollback` for database-only tests.
+ * `inRollback` for database-only tests. `customize` can replace providers,
+ * e.g. `(b) => b.overrideProvider(OTP_SENDER).useValue(fakeSender)`.
  */
-export async function createTestApp(): Promise<TestApp> {
-  const moduleRef = await Test.createTestingModule({ imports: [AppModule] }).compile();
+export async function createTestApp(
+  customize: (builder: TestingModuleBuilder) => TestingModuleBuilder = (builder) => builder,
+): Promise<TestApp> {
+  const moduleRef = await customize(Test.createTestingModule({ imports: [AppModule] })).compile();
   const app = moduleRef.createNestApplication<NestExpressApplication>();
   configureApp(app);
   await app.init();

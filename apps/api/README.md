@@ -18,6 +18,8 @@ pnpm --filter api start        # run the compiled build
 | `src/main.ts`        | Bootstrap: logger, `configureApp`, listen on `API_PORT`          |
 | `src/app.setup.ts`   | Global prefix, CORS, shutdown hooks (shared with the HTTP tests) |
 | `src/config/`        | Environment validation (zod) and logging setup                   |
+| `src/auth/`          | Sign-in with a one-time code (OTP) and session tokens            |
+| `src/redis/`         | The shared Redis client (`@Inject(REDIS)`)                       |
 | `src/common/`        | Error format, validation pipe and other cross-cutting pieces     |
 | `src/health/`        | `GET /v1/health`: checks the database and Redis, 200 or 503      |
 | `test/*.e2e-spec.ts` | HTTP tests against the real app wiring, external services faked  |
@@ -61,6 +63,29 @@ Every error response has the same shape, whatever went wrong:
   should act on. Prisma's unique-violation (`P2002` → 409
   `UNIQUE_VIOLATION`), foreign-key (`P2003` → 409) and not-found
   (`P2025` → 404) errors are mapped automatically.
+
+## Sign-in (one-time codes)
+
+1. `POST /v1/auth/otp/request { "phone": "+919999900001" }` always answers
+   **202**, whether or not the phone is registered, so the endpoint can't be
+   used to find out who has an account. Only an **active** user gets a code.
+   Requests are limited per phone number (`OTP_REQUEST_LIMIT` per
+   `OTP_REQUEST_WINDOW_SECONDS`, then 429 `RATE_LIMITED`), registered or not.
+2. The 6-digit code is stored in Redis only as an HMAC (keyed with
+   `JWT_REFRESH_SECRET`), with a TTL (`OTP_TTL_SECONDS`) and an attempt count.
+   With `OTP_DEV_MODE=true` the code is written to the API log instead of
+   being sent; the API refuses to start in production with that setting. No
+   SMS provider is integrated yet.
+3. `POST /v1/auth/otp/verify { phone, code, deviceId }` returns
+   `{ accessToken, refreshToken, tokenType: "Bearer", expiresIn }` and
+   creates a `session` for the device. A code works once; a wrong code is 401
+   `OTP_INVALID`, and after `OTP_MAX_ATTEMPTS` wrong codes it is deleted
+   (401 `OTP_LOCKED`).
+
+The access token is a 15-minute HS256 JWT with `sub` (user ID) and `sid`
+(session ID). The refresh token is an opaque random value; only its HMAC is
+stored on the session. Refresh, logout and checking tokens on every request
+come in #30–#31.
 
 ## Database (Prisma 7)
 
