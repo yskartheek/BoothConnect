@@ -104,6 +104,9 @@ stored on the session.
   refresh tokens stop working. Other devices stay signed in.
 - Tests: `loginAs(t, phoneOrUserId)` (`test/support/auth.ts`) returns a
   signed-in supertest agent.
+- `GET /v1/me` returns the caller's profile and their **active** role
+  assignments (started, and not yet ended; `valid_until` is exclusive), each
+  with its node and the `path` from the state down to that node.
 
 ## Database (Prisma 7)
 

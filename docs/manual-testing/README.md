@@ -67,3 +67,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #29   | [Sign-in with a one-time code (development)](29-otp-sign-in.md)                      | Ready to test   |
 | #30   | [Access tokens, refresh rotation and logout](30-tokens-refresh-logout.md)            | Ready to test   |
 | #31   | [Suspended users lose access immediately](31-suspended-users.md)                     | Ready to test   |
+| #32   | [GET /v1/me: profile and active assignments](32-me.md)                               | Ready to test   |
