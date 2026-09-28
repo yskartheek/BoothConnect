@@ -25,7 +25,6 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #97                | **Read your own roll's cover**: AC/PC/part and printed totals from your sample       | Terminal                  |
 | #98                | **Read every voter row** of your sample and compare the counts with the totals       | Terminal                  |
 | #99                | roll-parser worker takes jobs from Redis; results and page images appear in MinIO    | Docker Desktop, browser   |
-| #28                | [Structured error format, request IDs and validation](28-errors-validation.md)       | Ready to test             |
 | #29–#33            | Sign in through the API with a dev one-time code and call `/v1/me`                   | curl / Postman / Bruno    |
 | #36–#39            | Browse households and voters through the API; check volunteer A can't see booth B    | curl / Postman            |
 | #41–#43            | Record a visit and sync through the API; try replays and conflicts                   | curl / Postman            |
@@ -64,3 +63,5 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #98   | [Voter-box extraction with confidence and normalisation](98-voter-boxes.md)          | Ready to test   |
 | #99   | [roll-parser queue worker (extract-roll jobs)](99-queue-worker.md)                   | Ready to test   |
 | #27   | [API integration-test harness (a database per test file)](27-integration-harness.md) | Ready to test   |
+| #28   | [Structured error format, request IDs and validation](28-errors-validation.md)       | Ready to test   |
+| #29   | [Sign-in with a one-time code (development)](29-otp-sign-in.md)                      | Ready to test   |
