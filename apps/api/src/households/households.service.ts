@@ -171,14 +171,19 @@ export class HouseholdsService {
     };
   }
   /** One household with its members and last visit; 404 outside the scope. */
-  async get(scope: Scope, id: string): Promise<HouseholdDetail> {
+  /** Pass `db` to read inside a transaction (e.g. right after a write in it). */
+  async get(
+    scope: Scope,
+    id: string,
+    db: Prisma.TransactionClient = this.prisma,
+  ): Promise<HouseholdDetail> {
     const household = foundInScope(
-      await this.prisma.household.findFirst({ where: { id, ...inScope(scope) } }),
+      await db.household.findFirst({ where: { id, ...inScope(scope) } }),
       'Household',
     );
 
     const [voters, lastVisit] = await Promise.all([
-      this.prisma.voter.findMany({
+      db.voter.findMany({
         where: { householdId: id, recordStatus: 'active' },
         orderBy: [
           { sectionNo: { sort: 'asc', nulls: 'last' } },
@@ -187,14 +192,14 @@ export class HouseholdsService {
           { id: 'asc' },
         ],
       }),
-      this.prisma.visit.findFirst({
+      db.visit.findFirst({
         where: { householdId: id, correctedBy: { is: null } },
         orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
         include: { membersMet: { select: { voterId: true }, orderBy: { voterId: 'asc' } } },
       }),
     ]);
 
-    const values = await this.prisma.fieldValue.findMany({
+    const values = await db.fieldValue.findMany({
       where: {
         entityType: 'voter',
         entityId: { in: voters.map((voter) => voter.id) },

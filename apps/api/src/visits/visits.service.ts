@@ -51,9 +51,16 @@ export class VisitsService {
    * Stores a visit with the members met, any consents captured and any field
    * changes, all in one transaction together with its audit event. Visits are
    * append-only; each field change gets its own applied/conflict/rejected result.
+   * Pass `outer` to run inside the caller's transaction (sync push).
    */
-  async create(scope: Scope, actor: Actor, dto: CreateVisitDto): Promise<VisitCreated> {
-    const existing = await this.prisma.visit.findUnique({ where: { clientId: dto.clientId } });
+  async create(
+    scope: Scope,
+    actor: Actor,
+    dto: CreateVisitDto,
+    outer?: Prisma.TransactionClient,
+  ): Promise<VisitCreated> {
+    const db = outer ?? this.prisma;
+    const existing = await db.visit.findUnique({ where: { clientId: dto.clientId } });
     if (existing) {
       // A retry after the idempotency record expired, or under another key.
       if (existing.volunteerId !== actor.userId || existing.householdId !== dto.householdId) {
@@ -67,7 +74,7 @@ export class VisitsService {
     }
 
     const household = foundInScope(
-      await this.prisma.household.findFirst({
+      await db.household.findFirst({
         where: { id: dto.householdId, ...inScope(scope) },
         select: { id: true, voters: { select: { id: true } } },
       }),
@@ -103,9 +110,9 @@ export class VisitsService {
         throw unprocessable(`No consent with ref "${change.consentRef}" in this visit`);
       }
     }
-    if (dto.correctsVisitId) await this.checkCorrection(scope, actor, dto);
+    if (dto.correctsVisitId) await this.checkCorrection(db, scope, actor, dto);
 
-    return this.prisma.$transaction(async (tx) => {
+    const write = async (tx: Prisma.TransactionClient): Promise<VisitCreated> => {
       const visit = await tx.visit.create({
         data: {
           clientId: dto.clientId,
@@ -196,7 +203,8 @@ export class VisitsService {
       );
 
       return { ...summary(visit), duplicate: false, consents: created, fieldChanges };
-    });
+    };
+    return outer ? write(outer) : this.prisma.$transaction(write);
   }
 
   /**
@@ -204,8 +212,13 @@ export class VisitsService {
    * household: the volunteer who recorded it, or an admin, may correct it,
    * once. A correction can itself be corrected.
    */
-  private async checkCorrection(scope: Scope, actor: Actor, dto: CreateVisitDto): Promise<void> {
-    const original = await this.prisma.visit.findFirst({
+  private async checkCorrection(
+    db: Prisma.TransactionClient,
+    scope: Scope,
+    actor: Actor,
+    dto: CreateVisitDto,
+  ): Promise<void> {
+    const original = await db.visit.findFirst({
       where: { id: dto.correctsVisitId, householdId: dto.householdId },
       select: { volunteerId: true, correctedBy: { select: { id: true } } },
     });
