@@ -8,6 +8,7 @@ import { CommonModule } from './common/common.module';
 import { AppConfigModule } from './config/config.module';
 import type { Env } from './config/env';
 import { loggerParams } from './config/logger';
+import { ConflictsModule } from './conflicts/conflicts.module';
 import { DatabaseModule } from './database/database.module';
 import { FieldValuesModule } from './field-values/field-values.module';
 import { GeographyModule } from './geography/geography.module';
@@ -44,6 +45,7 @@ import { VotersModule } from './voters/voters.module';
     HouseholdsModule,
     VotersModule,
     VisitsModule,
+    ConflictsModule,
     SyncModule,
   ],
 })

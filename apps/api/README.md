@@ -225,6 +225,26 @@ members) and `fields`, every **enabled** field the caller may see, set or not.
   granted; once withdrawn it disappears, history included.
 - A voter outside the caller's scope gets the same 404 as a missing ID.
 
+### Editing members and choosing between conflicting values
+
+- `PATCH /v1/voters/:id` (volunteers and admins, `Idempotency-Key`,
+  audited as `voter.update` with field keys and outcomes, never values)
+  `{ fields: [{ fieldKey, value, baseVersion, consentId? }] }`: each field
+  goes through the field-value service and comes back `applied`, `conflict`
+  or `rejected`. A voter outside the scope gets 404.
+- `POST /v1/conflicts/:id/resolve { keepFieldValueId }` (volunteers and
+  admins, audited as `conflict.resolve`): `:id` is either value of a
+  conflict (sync pull lists both). The kept value stays current, the other
+  leaves the current set but stays in history, and the conflict marks are
+  cleared; for an address or location, the household row follows the kept
+  value. Keeping the same value again is a no-op (`already_resolved`). A
+  value outside the caller's booths is 404; a `keepFieldValueId` that isn't
+  one of the conflicting values is 409.
+
+Restricted fields (caste/community) can only be written, resolved or seen by
+`RESTRICTED_FIELD_ROLES` (admin, volunteer); to anyone else the field is
+unknown (`FIELD_UNKNOWN`, or 404 for a conflict).
+
 ## Writing field values
 
 Every edit of a member or household field (visits, sync push, member and

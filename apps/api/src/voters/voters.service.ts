@@ -1,24 +1,16 @@
 import { Injectable } from '@nestjs/common';
 
 import type { Scope } from '../authz/scope.service';
+import { seesRestricted } from '../authz/restricted-fields';
 import { foundInScope, inScope } from '../authz/scoped-query';
 import { PrismaService } from '../database/prisma.service';
 import type {
   FieldType,
   Prisma,
   RecordOrigin,
-  Role,
   ValueSource,
   VoterRecordStatus,
 } from '../generated/prisma/client';
-
-/**
- * Roles that may see restricted fields (caste/community): the volunteers who
- * collect them with the voter's consent, and admins who correct them
- * (ADR 0003). Campaign managers see restricted data only as thresholded
- * aggregates in analytics.
- */
-export const RESTRICTED_FIELD_ROLES: readonly Role[] = ['admin', 'volunteer'];
 
 export interface FieldValueView {
   /** Send this as `base_version` when editing the field. */
@@ -71,14 +63,14 @@ export class VotersService {
       await this.prisma.voter.findFirst({ where: { id, ...inScope(scope) } }),
       'Voter',
     );
-    const seesRestricted = scope.roles.some((role) => RESTRICTED_FIELD_ROLES.includes(role));
+    const restricted = seesRestricted(scope);
 
     const definitions = await this.prisma.fieldDefinition.findMany({
       where: {
         programId: voter.programId,
         appliesTo: 'voter',
         enabled: true,
-        ...(seesRestricted ? {} : { isRestricted: false }),
+        ...(restricted ? {} : { isRestricted: false }),
       },
       // In the order they were defined; seeded ones (same instant) by key.
       orderBy: [{ createdAt: 'asc' }, { key: 'asc' }],
