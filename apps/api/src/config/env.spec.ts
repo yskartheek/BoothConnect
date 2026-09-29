@@ -35,6 +35,7 @@ describe('validateEnv', () => {
       ROLL_PARSER_QUEUE: 'roll-extraction',
       ROLL_PARSER_QUEUE_PREFIX: 'bull',
       IMPORT_RESULTS_SWEEP_SECONDS: 30,
+      ANALYTICS_REFRESH_SECONDS: 30,
     });
   });
 

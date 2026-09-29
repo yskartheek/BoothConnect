@@ -29,7 +29,7 @@ import {
 import type { HeaderMatch } from './extraction/results.service';
 import { auditBase } from './imports.service';
 import { countVoters, currentValues, printedCounts, type RowValues } from './review-rules';
-import { NodeStatsRefresh } from './stats-refresh';
+import { NodeStatsRefresh } from '../analytics/stats-refresh';
 
 type Tx = Prisma.TransactionClient;
 

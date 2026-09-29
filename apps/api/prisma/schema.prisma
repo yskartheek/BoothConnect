@@ -133,6 +133,8 @@ model GeographyNode {
   householdsAtStation Household[]        @relation("HouseholdStation")
   votersInPart        Voter[]            @relation("VoterPart")
   votersAtStation     Voter[]            @relation("VoterStation")
+  stats               NodeStats?
+  statsRequest        NodeStatsRequest?
 
   @@unique([programId, parentId, code], map: "geography_node_sibling_code_key")
   // Top-level states have no parent, and NULLs never collide in a normal unique index.
@@ -937,4 +939,38 @@ model AuditEvent {
   @@index([resourceType, resourceId])
   @@index([action, at])
   @@map("audit_event")
+}
+
+// ---------------------------------------------------------------------------
+// Analytics (design §7, #102)
+// ---------------------------------------------------------------------------
+
+/// Per-node analytics. `own` holds what is counted at the node itself
+/// (voters, households and visits at a station; a part's import quality);
+/// `metrics` is the subtree total: own plus the children's totals. Raw,
+/// additive counts only; ratios and medians are derived when read, and
+/// small groups are suppressed by the API (never here).
+model NodeStats {
+  nodeId     String   @id @map("node_id") @db.Uuid
+  programId  String   @map("program_id") @db.Uuid
+  own        Json     @default("{}")
+  metrics    Json     @default("{}")
+  computedAt DateTime @default(now()) @map("computed_at") @db.Timestamptz
+
+  node GeographyNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@index([programId])
+  @@map("node_stats")
+}
+
+/// Nodes waiting for their stats (and their ancestors') to be refreshed.
+/// A queue: written in the same transaction as the change, drained with
+/// FOR UPDATE SKIP LOCKED.
+model NodeStatsRequest {
+  nodeId      String   @id @map("node_id") @db.Uuid
+  requestedAt DateTime @default(now()) @map("requested_at") @db.Timestamptz
+
+  node GeographyNode @relation(fields: [nodeId], references: [id], onDelete: Cascade)
+
+  @@map("node_stats_request")
 }
