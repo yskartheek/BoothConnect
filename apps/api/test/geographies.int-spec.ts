@@ -77,6 +77,23 @@ describe('GET /v1/geographies (real Postgres)', () => {
         'part:1',
       ]);
     });
+
+    it('gets the reservation of States, PCs and ACs (from the master data), and null otherwise', async () => {
+      const { http } = await loginAs(t, VOLUNTEER_A);
+      const station1 = await node('polling_station', '1');
+      const detail = (await http.get(`/v1/geographies/${station1.id}`).expect(200))
+        .body as GeographyNodeDetail;
+      expect(detail.reservation).toBeNull();
+      expect(detail.path.map((n) => [n.code, n.reservation])).toEqual([
+        ['S99', null],
+        ['1', 'GEN'],
+        ['101', 'GENERAL'],
+        ['1', null],
+      ]);
+      const pc = (await http.get(`/v1/geographies?parentId=${detail.path[0]!.id}`).expect(200))
+        .body as List;
+      expect(pc.items.map((n) => n.reservation)).toEqual(['GEN']);
+    });
   });
 
   describe('admin (AC 101)', () => {
@@ -128,6 +145,59 @@ describe('GET /v1/geographies (real Postgres)', () => {
         .body as List;
       expect(res.items).toEqual([]);
     });
+  });
+
+  it('an admin of a State also sees the program’s other States, PCs and ACs, but not their parts', async () => {
+    const s99 = await node('state', 'S99');
+    const seedAdmin = await t.prisma.appUser.findUniqueOrThrow({ where: { phone: ADMIN } });
+    // Another State with a PC, an AC and a part, outside everyone's assignments.
+    const s98 = await t.prisma.geographyNode.create({
+      data: { programId: s99.programId, type: 'state', code: 'S98', name: 'Other State' },
+    });
+    const pc = await t.prisma.geographyNode.create({
+      data: { programId: s99.programId, parentId: s98.id, type: 'pc', code: '9', name: 'Other PC' },
+    });
+    const ac = await t.prisma.geographyNode.create({
+      data: { programId: s99.programId, parentId: pc.id, type: 'ac', code: '90', name: 'Other AC' },
+    });
+    await t.prisma.geographyNode.create({
+      data: {
+        programId: s99.programId,
+        parentId: ac.id,
+        type: 'part',
+        code: '1',
+        name: 'Other part',
+      },
+    });
+    // The seed admin (AC 101) still sees only the path to their AC.
+    const acAdmin = await loginAs(t, ADMIN);
+    expect(codes((await acAdmin.http.get('/v1/geographies').expect(200)).body as List)).toEqual([
+      'S99',
+    ]);
+    await acAdmin.http.get(`/v1/geographies/${ac.id}`).expect(404);
+
+    const user = await t.prisma.appUser.create({
+      data: {
+        organizationId: seedAdmin.organizationId,
+        name: 'State admin',
+        phone: '+919999900095',
+      },
+    });
+    await t.prisma.roleAssignment.create({
+      data: { userId: user.id, role: 'admin', geographyNodeId: s99.id },
+    });
+    const { http } = await loginAs(t, '+919999900095');
+    expect(codes((await http.get('/v1/geographies').expect(200)).body as List)).toEqual([
+      'S98',
+      'S99',
+    ]);
+    expect(
+      codes((await http.get(`/v1/geographies?parentId=${pc.id}`).expect(200)).body as List),
+    ).toEqual(['90']);
+    // Parts and booths stay within their own area.
+    expect(
+      codes((await http.get(`/v1/geographies?parentId=${ac.id}`).expect(200)).body as List),
+    ).toEqual([]);
   });
 
   it('rejects an invalid cursor, type or parentId with 400', async () => {

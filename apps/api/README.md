@@ -172,6 +172,12 @@ admin assignments and everything below them.
   one of the caller's assigned nodes, **below** one, or **above** one (the
   path to it). Another booth or part at the same level is not visible, and
   asking for it by ID is 404.
+- An admin of a State manages the program's whole State → PC → AC list
+  (#100), so they also see every State, PC and AC of that program, including
+  States they have just added (#103). Parts and booths still follow the rule
+  above.
+- Each node has `reservation`: the reservation status (GEN, SC, ST…) of a
+  State, PC or AC from the master data, or `null`.
 - Children are ordered **naturally** by code (`length(code), code, id`: 1, 2,
   10, 408; "1A" after "9"). `q` matches the start of the code or part of the
   name; `%` and `_` are literal.

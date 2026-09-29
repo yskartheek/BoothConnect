@@ -12,6 +12,96 @@ const PEOPLE = {
 const tokens = new Map(); // access token -> person
 let issued = 0;
 
+// A small synthetic geography, like the development seed.
+let nextId = 0;
+let nodes = [];
+const add = (parent, type, code, name, extra = {}) => {
+  const node = {
+    id: `n-${(nextId += 1)}`,
+    parentId: parent?.id ?? null,
+    type,
+    code,
+    name,
+    isAuxiliary: false,
+    reservation: null,
+    ...extra,
+  };
+  nodes.push(node);
+  return node;
+};
+function seedGeography() {
+  nodes = [];
+  const s99 = add(null, 'state', 'S99', 'Demo State');
+  const pc1 = add(s99, 'pc', '1', 'Demo Parliamentary Constituency', { reservation: 'GEN' });
+  const ac101 = add(pc1, 'ac', '101', 'Demo Assembly Constituency', { reservation: 'GENERAL' });
+  const part1 = add(ac101, 'part', '1', 'Demo Nagar');
+  add(part1, 'polling_station', '1', 'Demo Primary School, Room 1');
+  add(part1, 'polling_station', '1A', 'Demo Primary School, Room 2', { isAuxiliary: true });
+}
+seedGeography();
+const keyOf = (node) =>
+  node.parentId ? `${keyOf(nodes.find((n) => n.id === node.parentId))}/${node.code}` : node.code;
+
+/** The master-data CSV (simple: no quoted commas), planned like the API does. */
+function plan(csv) {
+  const [header, ...lines] = csv.trim().split(/\r?\n/);
+  const columns = header.split(',').map((c) => c.trim());
+  const at = (cells, name) => (cells[columns.indexOf(name)] ?? '').trim() || null;
+  const planned = new Map();
+  const rows = lines.map((line, i) => {
+    const cells = line.split(',');
+    const level = at(cells, 'level');
+    const code = at(cells, 'code');
+    const name = at(cells, 'name');
+    const reservation = at(cells, 'reservation');
+    const parentCode = at(cells, 'parent_code');
+    const stateCode = at(cells, 'state_code');
+    const row = { line: i + 2, level, code, name, parentCode, action: 'create', errors: [] };
+    let parentKey = null;
+    if (level === 'pc' || level === 'ac') {
+      const known = [...nodes.map(keyOf), ...planned.keys()];
+      const depth = level === 'pc' ? 1 : 2;
+      parentKey =
+        known.find(
+          (k) =>
+            k.split('/').length === depth &&
+            k.endsWith(parentCode) &&
+            (!stateCode || k.startsWith(stateCode)),
+        ) ?? null;
+      if (!parentKey) row.errors.push(`Unknown ${level === 'pc' ? 'State' : 'PC'} ${parentCode}`);
+    } else if (level !== 'state') {
+      row.errors.push('level must be state, pc or ac');
+    }
+    if (row.errors.length > 0) return { ...row, action: 'error' };
+    const key = parentKey ? `${parentKey}/${code}` : code;
+    const existing = nodes.find((n) => keyOf(n) === key);
+    if (existing) {
+      row.action =
+        existing.name === name && existing.reservation === reservation ? 'unchanged' : 'update';
+    } else {
+      planned.set(key, row);
+    }
+    return { ...row, key, parentKey, reservation, existing };
+  });
+  const counts = { create: 0, update: 0, unchanged: 0, error: 0 };
+  for (const row of rows) counts[row.action] += 1;
+  return { rows, counts };
+}
+const report = ({ rows, counts }, applied) => ({
+  programId: 'program-1',
+  applied,
+  counts,
+  rows: rows.map(({ line, level, code, name, parentCode, action, errors }) => ({
+    line,
+    level,
+    code,
+    name,
+    parentCode,
+    action,
+    errors,
+  })),
+});
+
 const send = (res, status, body) => {
   res.writeHead(status, body === undefined ? {} : { 'content-type': 'application/json' });
   res.end(body === undefined ? undefined : JSON.stringify(body));
@@ -26,6 +116,11 @@ createServer(async (req, res) => {
   const person = tokens.get((req.headers.authorization ?? '').replace('Bearer ', ''));
   const url = new URL(req.url, 'http://mock');
 
+  // Tests only: back to the seed geography.
+  if (req.method === 'POST' && url.pathname === '/__reset') {
+    seedGeography();
+    return send(res, 204);
+  }
   if (req.method === 'POST' && url.pathname === '/v1/auth/otp/request') return send(res, 202);
   if (req.method === 'POST' && url.pathname === '/v1/auth/otp/verify') {
     const who = PEOPLE[body.phone];
@@ -69,6 +164,46 @@ createServer(async (req, res) => {
         },
       ],
     });
+  }
+  if (!person && url.pathname.startsWith('/v1/geographies'))
+    return error(res, 401, 'UNAUTHENTICATED');
+  if (req.method === 'GET' && url.pathname === '/v1/geographies') {
+    const parentId = url.searchParams.get('parentId');
+    const items = nodes
+      .filter((n) => n.parentId === (parentId ?? null))
+      .sort((a, b) => a.code.length - b.code.length || a.code.localeCompare(b.code));
+    return send(res, 200, { items, nextCursor: null });
+  }
+  if (req.method === 'POST' && url.pathname === '/v1/geographies/imports') {
+    const planned = plan(body.csv ?? '');
+    if (!body.confirm) return send(res, 200, report(planned, false));
+    if (planned.counts.error > 0) {
+      return send(res, 422, {
+        requestId: 'mock',
+        code: 'UNPROCESSABLE',
+        message: 'Some rows have errors; nothing was saved',
+        details: report(planned, false),
+      });
+    }
+    for (const level of ['state', 'pc', 'ac']) {
+      for (const row of planned.rows.filter((r) => r.level === level)) {
+        if (row.action === 'create') {
+          const parent = row.parentKey ? nodes.find((n) => keyOf(n) === row.parentKey) : null;
+          add(parent, level, row.code, row.name, { reservation: row.reservation });
+        } else if (row.action === 'update') {
+          Object.assign(row.existing, { name: row.name, reservation: row.reservation });
+        }
+      }
+    }
+    return send(res, 200, report(planned, true));
+  }
+  const edit = /^\/v1\/geographies\/([^/]+)$/.exec(url.pathname);
+  if (req.method === 'PATCH' && edit) {
+    const node = nodes.find((n) => n.id === edit[1]);
+    if (!node) return error(res, 404, 'NOT_FOUND');
+    if (body.name !== undefined) node.name = body.name;
+    if (body.reservation !== undefined) node.reservation = body.reservation;
+    return send(res, 200, node);
   }
   return error(res, 404, 'NOT_FOUND');
 }).listen(PORT);

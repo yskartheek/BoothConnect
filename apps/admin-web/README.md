@@ -88,3 +88,21 @@ The browser never holds a token.
 - **Browser tests** (`pnpm test:e2e`) run against `e2e/mock-api.mjs`, a
   stand-in for the API with a synthetic admin and volunteer. The code is
   always `123456`.
+
+## Geography (#103)
+
+`/geography` has two parts:
+
+- **Upload master data:** download the template
+  (`public/templates/geography-master.csv`, a copy of
+  `docs/templates/geography-master.csv` that a test keeps identical). Pick a
+  filled CSV and **Check file**: the API returns each row's result (add,
+  update, no change, error with reasons) without saving. When there are no
+  errors, **Save N changes** confirms it.
+- **Current hierarchy:**
+  - The admin's States, PCs and ACs are loaded together. A search keeps the
+    matches and the path down to them.
+  - **Edit** changes a name or reservation. Only changed fields are sent, so
+    the audit log is exact.
+  - Parts and polling stations load when an AC or part is opened. They are
+    read-only and labelled "From roll imports".

@@ -338,3 +338,138 @@ a.button {
 .session-name {
   font: var(--bc-text-label);
 }
+
+/* ---- Geography master data (#103) ---- */
+.section {
+  display: grid;
+  gap: var(--bc-space-sm);
+}
+
+.section h2 {
+  margin: 0;
+  font: var(--bc-text-title);
+}
+
+.form-inline {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bc-space-sm);
+  margin-top: 0;
+}
+
+.form-success {
+  color: var(--bc-color-success);
+}
+
+.button-small {
+  min-height: auto;
+  padding: var(--bc-space-xxs) var(--bc-space-sm);
+  font: var(--bc-text-caption);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.table-wrap {
+  overflow-x: auto;
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  font: var(--bc-text-body-small);
+}
+
+.table th,
+.table td {
+  padding: var(--bc-space-xs) var(--bc-space-sm);
+  border-bottom: 1px solid var(--bc-color-divider);
+  text-align: left;
+  vertical-align: top;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: var(--bc-space-xs);
+  padding: 0 var(--bc-space-xs);
+  border: 1px solid var(--bc-color-border);
+  border-radius: var(--bc-radius-pill);
+  font: var(--bc-text-caption);
+}
+
+.badge-create {
+  background: var(--bc-color-success-container);
+}
+
+.badge-update {
+  background: var(--bc-color-primary-container);
+}
+
+.badge-error {
+  background: var(--bc-color-danger-container);
+}
+
+.report {
+  display: grid;
+  gap: var(--bc-space-sm);
+}
+
+.report-filter {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-space-xs);
+}
+
+.report-errors {
+  margin: var(--bc-space-xxs) 0 0;
+  padding-left: var(--bc-space-md);
+  color: var(--bc-color-danger);
+}
+
+.tree {
+  margin: 0;
+  padding-left: var(--bc-space-md);
+  list-style: none;
+}
+
+.section > .tree {
+  padding-left: 0;
+}
+
+.tree-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bc-space-xs);
+  min-height: var(--bc-touch-target-ios);
+}
+
+.tree-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: none;
+  background: none;
+  color: var(--bc-color-text);
+  cursor: pointer;
+}
+
+.tree-level {
+  margin-right: var(--bc-space-xs);
+  color: var(--bc-color-text-muted);
+  font: var(--bc-text-caption);
+}
+
+.tree-note {
+  color: var(--bc-color-text-muted);
+  font: var(--bc-text-caption);
+}
