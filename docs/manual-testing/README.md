@@ -98,3 +98,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #164  | [Audit log: filtering by booth or area](164-audit-area-filter.md)                               | Ready to test   |
 | #52   | [API documentation (OpenAPI), Swagger UI and the typed client](52-openapi.md)                   | Ready to test   |
 | #100  | [Geography master data: States, PCs and ACs from a CSV](100-geography-master.md)                | Ready to test   |
+| #101  | [Auxiliary polling stations: coverage by section or serial range](101-station-coverage.md)      | Ready to test   |

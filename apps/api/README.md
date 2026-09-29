@@ -173,6 +173,31 @@ Parts and polling stations come from roll imports, not from here.
 - Audited as `geography.import` (counts), `geography.create` and
   `geography.update` (field names only).
 
+### Auxiliary polling stations (#101)
+
+A part has one main polling station and may have auxiliary ones (408A…),
+proposed from the roll's cover page during review and created on confirm.
+An auxiliary station takes the voters whose **section** or **serial
+number** it covers; everyone else is at the main station.
+
+- `GET /v1/geographies/:id/stations` (admin; `id` is a part or one of its
+  stations): the part's stations with their coverage and active voters.
+- `PUT /v1/geographies/:id/coverage` `{ coverage: { sections?, serials?: { from, to } } | null }`
+  (admin, `Idempotency-Key`) sets an auxiliary station's coverage; `null`
+  clears it. In one transaction it:
+  - moves the part's voters from the roll to the station that now covers
+    them (or back to the main station), their households to their members'
+    most common station, and volunteer-added members with their household;
+  - rejects (422) a main station, a shared section or overlapping serial
+    ranges with another auxiliary station, and a coverage that would put any
+    voter in two stations (e.g. one station's section holding another's
+    serial numbers);
+  - refreshes the part's analytics, and marks the part's stations so phones
+    on them take a full snapshot at their next sync;
+  - is audited as `geography.coverage` (the coverage and counts moved).
+- Volunteers are assigned to stations, so their booths follow the move.
+- Import confirm uses the same rules for a new revision of the part.
+
 ## Households
 
 `GET /v1/households?boothId=&q=&status=&limit=&cursor=` lists **active**
@@ -381,7 +406,9 @@ the next pull.
 - Restricted fields follow `GET /v1/voters/:id`: only admins and volunteers
   get them, and a consent-gated value only while the consent is granted.
 - If the caller's booths or restricted-field access changed since the cursor,
-  the pull starts again as a full snapshot (`reset: true`).
+  or voters were moved between the stations of one of their booths' parts
+  (auxiliary coverage, #101), the pull starts again as a full snapshot
+  (`reset: true`).
 
 **The cursor** holds a database snapshot, not a time: the first transaction
 ID not yet handed out and the IDs still running. Every synced row carries the

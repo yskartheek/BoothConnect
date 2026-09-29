@@ -58,14 +58,26 @@ export function stationFor(
 ): string {
   const covering = stations.find(
     ({ isAuxiliary, coverage }) =>
-      isAuxiliary &&
-      coverage !== null &&
-      ((coverage.sections?.includes(sectionNo) ?? false) ||
-        (coverage.serials !== undefined &&
-          serialNo >= coverage.serials.from &&
-          serialNo <= coverage.serials.to)),
+      isAuxiliary && coverage !== null && covers(coverage, sectionNo, serialNo),
   );
   return covering?.id ?? main;
+}
+
+/** Whether a coverage takes a voter with this section and serial number. */
+export function covers(coverage: Coverage, sectionNo: number, serialNo: number): boolean {
+  return (
+    (coverage.sections?.includes(sectionNo) ?? false) ||
+    (coverage.serials !== undefined &&
+      serialNo >= coverage.serials.from &&
+      serialNo <= coverage.serials.to)
+  );
+}
+
+/** The most common value; a tie goes to the one seen first. A household's station, from its members'. */
+export function mostCommon(values: string[]): string {
+  const counts = new Map<string, number>();
+  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
+  return [...counts].sort((a, b) => b[1] - a[1])[0]![0];
 }
 
 /** Station metadata's `coverage`, if it has a usable one. */

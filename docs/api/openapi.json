@@ -777,6 +777,132 @@
         },
         "type": "object"
       },
+      "Coverage": {
+        "additionalProperties": false,
+        "description": "Which sections or serial numbers an auxiliary station covers (station metadata).",
+        "properties": {
+          "sections": {
+            "items": {
+              "type": "number"
+            },
+            "type": "array"
+          },
+          "serials": {
+            "additionalProperties": false,
+            "properties": {
+              "from": {
+                "type": "number"
+              },
+              "to": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "from",
+              "to"
+            ],
+            "type": "object"
+          }
+        },
+        "type": "object"
+      },
+      "CoverageChange": {
+        "additionalProperties": false,
+        "properties": {
+          "moved": {
+            "additionalProperties": false,
+            "description": "Voters and households that changed station.",
+            "properties": {
+              "households": {
+                "type": "number"
+              },
+              "voters": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "voters",
+              "households"
+            ],
+            "type": "object"
+          },
+          "partId": {
+            "type": "string"
+          },
+          "stations": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "coverage": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Coverage"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Auxiliary stations only; null until set (then it takes no one)."
+                },
+                "id": {
+                  "type": "string"
+                },
+                "isAuxiliary": {
+                  "type": "boolean"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "voters": {
+                  "description": "Active voters at the station now.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "isAuxiliary",
+                "coverage",
+                "voters"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "moved",
+          "partId",
+          "stations"
+        ],
+        "type": "object"
+      },
+      "CoverageDto": {
+        "properties": {
+          "sections": {
+            "description": "Section numbers the station takes, e.g. [2].",
+            "items": {
+              "minimum": 1,
+              "type": "number"
+            },
+            "maxItems": 500,
+            "type": "array"
+          },
+          "serials": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SerialRangeDto"
+              }
+            ],
+            "description": "A serial number range the station takes, both ends included."
+          }
+        },
+        "type": "object"
+      },
       "CreateBatchDto": {
         "properties": {
           "targetNodeId": {
@@ -3392,6 +3518,42 @@
         "additionalProperties": {},
         "type": "object"
       },
+      "SerialRangeDto": {
+        "properties": {
+          "from": {
+            "minimum": 1,
+            "type": "number"
+          },
+          "to": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "from",
+          "to"
+        ],
+        "type": "object"
+      },
+      "SetCoverageDto": {
+        "properties": {
+          "coverage": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/CoverageDto"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "null clears it: the station then takes no one, and its voters go back to the main station."
+          }
+        },
+        "required": [
+          "coverage"
+        ],
+        "type": "object"
+      },
       "StartUploadsDto": {
         "properties": {
           "files": {
@@ -3405,6 +3567,63 @@
         },
         "required": [
           "files"
+        ],
+        "type": "object"
+      },
+      "StationLayout": {
+        "additionalProperties": false,
+        "properties": {
+          "partId": {
+            "type": "string"
+          },
+          "stations": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "coverage": {
+                  "anyOf": [
+                    {
+                      "$ref": "#/components/schemas/Coverage"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ],
+                  "description": "Auxiliary stations only; null until set (then it takes no one)."
+                },
+                "id": {
+                  "type": "string"
+                },
+                "isAuxiliary": {
+                  "type": "boolean"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "voters": {
+                  "description": "Active voters at the station now.",
+                  "type": "number"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "name",
+                "isAuxiliary",
+                "coverage",
+                "voters"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "partId",
+          "stations"
         ],
         "type": "object"
       },
@@ -5257,6 +5476,115 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MasterNodeView"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Geographies"
+        ]
+      }
+    },
+    "/v1/geographies/{id}/coverage": {
+      "put": {
+        "operationId": "Geography_setCoverage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetCoverageDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CoverageChange"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Geographies"
+        ]
+      }
+    },
+    "/v1/geographies/{id}/stations": {
+      "get": {
+        "operationId": "Geography_stations",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StationLayout"
                 }
               }
             },

@@ -19,6 +19,7 @@ export type { TokenPair } from '../auth/dto';
 export type { ApiErrorBody } from '../common/errors/app.exception';
 export type { ConflictResolved } from '../conflicts/conflicts.service';
 export type { GeographyNodeDetail } from '../geography/geography.service';
+export type { CoverageChange, StationLayout } from '../geography/coverage.service';
 export type { MasterImportReport, MasterNodeView } from '../geography/master-data.service';
 export type { HealthReport } from '../health/health.service';
 export type {
