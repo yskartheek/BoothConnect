@@ -15,6 +15,9 @@
     "typecheck": {
       "dependsOn": ["^build"]
     },
+    "@boothconnect/admin-web#typecheck": {
+      "dependsOn": ["^build", "@boothconnect/admin-web#build"]
+    },
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**"]
