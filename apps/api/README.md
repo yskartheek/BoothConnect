@@ -511,6 +511,70 @@ Admins only, within their area (another area's batch or file is 404).
 - Each change is audited as `import.row.correct` with the file id, the field
   names and the rejection change, never the values.
 
+### Confirm (#47)
+
+| Method | Path                              | Body / returns                                                                 |
+| ------ | --------------------------------- | ------------------------------------------------------------------------------ |
+| `POST` | `/v1/imports/files/:id/confirm`   | `{ acceptTotalsMismatch?: bool }` → `202 { id, status: "confirming", voters }` |
+| `POST` | `/v1/imports/batches/:id/confirm` | → `202 { queued: [...], skipped: [{ id, code, message }] }`                    |
+
+**Confirming a file** (admins, within their area):
+
+- It must be `ready`, or `needs_review` with every row error dealt with.
+  A file already `confirming` or `confirmed` gets 409.
+- 422 when (`details.reason`):
+  - `rows.unresolved`: a row still has an error, or misses its EPIC, section
+    or serial;
+  - `rows.duplicate_epic` / `rows.duplicate_serial`: listed twice;
+  - `totals.mismatch`: the counts don't match the printed totals, unless
+    `acceptTotalsMismatch` is set.
+
+**Confirming a batch** confirms every `ready` file. Any that fail the checks
+are listed in `skipped`. It is 422 if the batch has no ready file.
+
+**The commit.** A confirmed file becomes `confirming`. A background job then
+commits it in **one transaction per file**:
+
+1. **Part and stations.** The part is linked, or created under the AC if it
+   was proposed. The stations printed on the cover are linked or created (the
+   auxiliary ones too); every part gets a main station.
+2. **Source version.** A new `source_version` is added after the part's
+   current one. The previous revision is kept, and its official voters become
+   `superseded`.
+3. **Households**, by house number (`houseKey`: "H NO 5-1" and "5-1" are the
+   same house):
+   - an existing household of the part is linked to the new revision, keeping
+     what volunteers recorded;
+   - official households the new revision no longer lists become `removed`;
+   - volunteer-added households are never removed;
+   - a voter without a house number gets a household of their own.
+4. **Voters.** One per row that isn't rejected and isn't marked deleted on
+   the roll. `source_data` holds the values with corrections applied, plus
+   `corrected` (the corrected field names).
+5. **Station of each voter.** The auxiliary station whose `coverage` (station
+   metadata: `{ sections: [...] }` or `{ serials: { from, to } }`) includes
+   the voter's section or serial, else the main station.
+6. **Finish.** The file becomes `confirmed` (and the batch `completed` once
+   nothing else is pending). The `NodeStatsRefresh` hook is asked to refresh
+   the part and its stations; it only logs until #102.
+
+**The queue** is the file's own status, claimed with
+`FOR UPDATE SKIP LOCKED`:
+
+- a confirm is never lost, and never committed twice, even with several API
+  instances;
+- files are picked up right away, and by a sweep every
+  `IMPORT_RESULTS_SWEEP_SECONDS`;
+- a commit that fails sends the file back to `needs_review` with `error`.
+
+**Audit.** `import.file.confirm` records the admin; `import.file.committed`
+is a system event with counts only (voters, households created, linked and
+removed, voters superseded, rows skipped).
+
+**Known limitation.** Field values, visits and consents recorded for a
+superseded voter stay with that voter. They aren't carried over to the new
+revision's voter with the same EPIC yet.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it

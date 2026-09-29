@@ -167,3 +167,13 @@ export class CorrectRowDto {
   @Length(1, 500)
   reason?: string;
 }
+
+export class ConfirmFileDto {
+  /**
+   * Confirm although the voters don't add up to the totals printed on the
+   * roll (after the admin has checked why).
+   */
+  @IsOptional()
+  @IsBoolean()
+  acceptTotalsMismatch?: boolean;
+}

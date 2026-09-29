@@ -2,7 +2,7 @@ import type { Prisma } from '../generated/prisma/client';
 
 /**
  * A batch's status follows its files: `processing` while any file waits for
- * or is in extraction, then `review` while any is ready or needs review, then
+ * or is in extraction or is being committed after confirm, then `review` while any is ready or needs review, then
  * `completed` once files are confirmed. A completed or cancelled batch is left
  * alone.
  */
@@ -18,7 +18,7 @@ export async function refreshBatchStatus(
     _count: { _all: true },
   });
   const has = (...statuses: string[]) => files.some((f) => statuses.includes(f.status));
-  const status = has('uploaded', 'extracting')
+  const status = has('uploaded', 'extracting', 'confirming')
     ? 'processing'
     : has('ready', 'needs_review')
       ? 'review'

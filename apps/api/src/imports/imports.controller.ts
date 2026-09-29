@@ -22,7 +22,13 @@ import type { Scope } from '../authz/scope.service';
 import { actorOf } from '../common/actor';
 import { Idempotent } from '../idempotency/idempotency.interceptor';
 import {
+  type BatchConfirmResult,
+  type ConfirmQueued,
+  ImportConfirmService,
+} from './confirm.service';
+import {
   CompleteUploadDto,
+  ConfirmFileDto,
   CorrectRowDto,
   CreateBatchDto,
   PreviewQuery,
@@ -48,6 +54,7 @@ export class ImportsController {
   constructor(
     private readonly imports: ImportsService,
     private readonly review: ImportReviewService,
+    private readonly confirm: ImportConfirmService,
   ) {}
 
   @Post('batches')
@@ -132,5 +139,38 @@ export class ImportsController {
     @Body() dto: CorrectRowDto,
   ): Promise<ReviewRow> {
     return this.review.correctRow(scope, actorOf(user, req), id, rowId, dto);
+  }
+
+  /**
+   * Confirm a reviewed file: its rows are committed to the active dataset
+   * in the background (the file is `confirming`, then `confirmed`).
+   */
+  @Post('files/:id/confirm')
+  @HttpCode(HttpStatus.ACCEPTED)
+  confirmFile(
+    @CurrentScope() scope: Scope,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request & { id?: unknown },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: ConfirmFileDto,
+  ): Promise<ConfirmQueued> {
+    return this.confirm.confirmFile(
+      scope,
+      actorOf(user, req),
+      id,
+      dto.acceptTotalsMismatch ?? false,
+    );
+  }
+
+  /** Confirm every `ready` file of the batch; files that still need review are left. */
+  @Post('batches/:id/confirm')
+  @HttpCode(HttpStatus.ACCEPTED)
+  confirmBatch(
+    @CurrentScope() scope: Scope,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request & { id?: unknown },
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<BatchConfirmResult> {
+    return this.confirm.confirmBatch(scope, actorOf(user, req), id);
   }
 }
