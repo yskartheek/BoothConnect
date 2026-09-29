@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 
+import { NodeStatsRefresh } from '../analytics/stats-refresh';
 import { AuditService } from '../audit/audit.service';
 import type { Scope } from '../authz/scope.service';
 import { foundInScope, inScope } from '../authz/scoped-query';
@@ -45,6 +46,7 @@ export class VisitsService {
     private readonly prisma: PrismaService,
     private readonly fieldValues: FieldValuesService,
     private readonly audit: AuditService,
+    private readonly stats: NodeStatsRefresh,
   ) {}
 
   /**
@@ -76,7 +78,7 @@ export class VisitsService {
     const household = foundInScope(
       await db.household.findFirst({
         where: { id: dto.householdId, ...inScope(scope) },
-        select: { id: true, voters: { select: { id: true } } },
+        select: { id: true, pollingStationId: true, voters: { select: { id: true } } },
       }),
       'Household',
     );
@@ -180,6 +182,8 @@ export class VisitsService {
       toWrite.forEach((change, i) => (results[change.index] = written[i]));
       const fieldChanges = results as FieldChangeResult[];
 
+      // Field-work analytics for the station, refreshed after this commits.
+      await this.stats.request([household.pollingStationId], tx);
       await this.audit.record(
         {
           action: 'visit.create',

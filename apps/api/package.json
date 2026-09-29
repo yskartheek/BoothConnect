@@ -7,6 +7,7 @@
     "build": "nest build",
     "dev": "nest start --watch",
     "start": "node dist/main",
+    "stats:rebuild": "node dist/analytics/rebuild",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",

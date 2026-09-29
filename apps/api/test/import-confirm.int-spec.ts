@@ -5,7 +5,7 @@ import type { Prisma } from '../src/generated/prisma/client';
 import type { BatchConfirmResult, ConfirmQueued } from '../src/imports/confirm.service';
 import { ImportConfirmService } from '../src/imports/confirm.service';
 import type { BatchView } from '../src/imports/imports.service';
-import { NodeStatsRefresh } from '../src/imports/stats-refresh';
+import { NodeStatsRefresh } from '../src/analytics/stats-refresh';
 import { createTestApp, type TestApp } from './support/app';
 import { loginAs, type SignedIn } from './support/auth';
 

@@ -591,6 +591,53 @@ removed, voters superseded, rows skipped).
 superseded voter stay with that voter. They aren't carried over to the new
 revision's voter with the same EPIC yet.
 
+## Analytics: node_stats (#102)
+
+Every geography node, from State down to polling station, has a row in
+`node_stats` (design §7):
+
+- `own`: what is counted at the node itself;
+  - a station counts its voters, households, revision changes, data-quality
+    figures and field work;
+  - a part counts the import quality of its current revision;
+- `metrics`: `own` plus the children's `metrics`. A parent always equals the
+  sum of its children plus its own counts;
+- `computed_at`.
+
+**What is stored.** Only **raw, additive counts** (`RawMetrics` in
+`src/analytics/metrics.ts`):
+
+- electors by gender, and ages by single year;
+- households, and large households (more than 10 voters);
+- revision additions and deletions against the part's previous revision;
+- extraction quality, rows extracted, corrected and rejected, duplicate
+  EPICs, missing age or gender;
+- field work: households assigned (stations with a volunteer) and visited,
+  latest visit outcomes, voters met.
+
+`derive()` computes the gender ratio, age bands, median age, voters per
+household, average quality and visited share. `METRIC_DEFINITIONS` holds the
+text for each metric. Small groups are suppressed by the analytics API
+(#49), never in the table.
+
+**Refreshing:**
+
+- **Queue.** `NodeStatsRefresh.request(nodeIds, tx?)` queues nodes in
+  `node_stats_request`, in the same transaction as the change.
+  - Import confirm requests the part and its stations, and is picked up
+    right away.
+  - A visit requests its household's station, and is picked up within
+    `ANALYTICS_REFRESH_SECONDS` (default 30).
+- **Scope.** A refresh recomputes `own` for every part and station under
+  the requested nodes. It then recomputes `metrics` for them and their
+  ancestors, deepest first; nothing else is touched.
+- **Concurrency.** The queue is drained with `FOR UPDATE SKIP LOCKED`, and
+  refreshes run one at a time (advisory lock).
+- **Full rebuild.** On start-up, an empty table is built in full. Otherwise
+  run `pnpm --filter api stats:rebuild` (after `build`). Use it after
+  changes the refresh doesn't follow yet, such as new volunteer
+  assignments.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it
