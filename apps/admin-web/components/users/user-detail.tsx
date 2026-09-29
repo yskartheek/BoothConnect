@@ -10,7 +10,7 @@ import { t } from '@/lib/i18n';
 
 import { ErrorState, LoadingState } from '../states';
 import { changeError } from './add-user';
-import { placeLabel, useAdminAreas } from './area-picker';
+import { placeLabel, useAdminAreas } from '../area-picker';
 import { emptyRoleChoice, grantBody, roleChoiceProblem, RoleFields } from './role-fields';
 import { formatDate, ROLE, type RoleAssignment, STATUS, statusOf, type UserSummary } from './roles';
 

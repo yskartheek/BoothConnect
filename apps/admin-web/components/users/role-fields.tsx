@@ -4,7 +4,7 @@ import { useId } from 'react';
 
 import { t } from '@/lib/i18n';
 
-import { AreaPicker, type AreaNode } from './area-picker';
+import { AreaPicker, type AreaNode } from '../area-picker';
 import { GRANTABLE_ROLES, type GrantableRole, ROLE, startOfDay } from './roles';
 
 /** What the role fields hold: the role, the place (a path in the area), and optional dates. */
