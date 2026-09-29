@@ -12,7 +12,8 @@ import { type MessageKey, t } from '@/lib/i18n';
 import { AreaPicker, type AreaNode, PlaceBreadcrumb, placeLabel } from '../area-picker';
 import { ErrorState, errorMessage, LoadingState } from '../states';
 import { BatchProgress } from './batch-progress';
-import { UploadFiles } from './upload-files';
+import { FileReview } from './file-review';
+import { FileStatusBadge, UploadFiles } from './upload-files';
 
 export type Batch = Schemas['BatchDetail'];
 
@@ -56,7 +57,15 @@ export function Stepper({ current }: { current: Step }) {
  * level. With one (its ID in the URL, so a reload or a shared link comes
  * back to it): upload files, then the later steps.
  */
-export function ImportWizard({ batchId, step }: { batchId?: string; step?: string }) {
+export function ImportWizard({
+  batchId,
+  step,
+  fileId,
+}: {
+  batchId?: string;
+  step?: string;
+  fileId?: string;
+}) {
   const router = useRouter();
   if (!batchId) {
     return (
@@ -68,10 +77,18 @@ export function ImportWizard({ batchId, step }: { batchId?: string; step?: strin
   }
   const current: Step =
     step === 'extract' || step === 'review' || step === 'confirm' ? step : 'upload';
-  return <BatchSteps batchId={batchId} current={current} />;
+  return <BatchSteps batchId={batchId} current={current} fileId={fileId} />;
 }
 
-function BatchSteps({ batchId, current }: { batchId: string; current: Step }) {
+function BatchSteps({
+  batchId,
+  current,
+  fileId,
+}: {
+  batchId: string;
+  current: Step;
+  fileId?: string;
+}) {
   const batch = useQuery({
     queryKey: ['imports', 'batch', batchId],
     queryFn: () =>
@@ -104,17 +121,41 @@ function BatchSteps({ batchId, current }: { batchId: string; current: Step }) {
             <UploadFiles batch={batch.data} />
           ) : current === 'extract' ? (
             <BatchProgress batchId={batchId} />
+          ) : fileId ? (
+            <FileReview key={fileId} batchId={batchId} fileId={fileId} />
           ) : (
-            <section className="glass section">
-              <p>{t('state.notReadyMessage')}</p>
-              <p>
-                <Link href={importUrl(batchId, 'upload')}>{t('imports.backToUpload')}</Link>
-              </p>
-            </section>
+            <ChooseFile batch={batch.data} />
           )}
         </>
       )}
     </>
+  );
+}
+
+/** Review without a file: the files that can be reviewed. */
+function ChooseFile({ batch }: { batch: Batch }) {
+  const files = batch.files.filter((f) => f.status === 'needs_review' || f.status === 'ready');
+  return (
+    <section className="glass section">
+      <h2>{t('imports.chooseFileTitle')}</h2>
+      {files.length === 0 ? (
+        <p>
+          {t('imports.nothingToReview')}{' '}
+          <Link href={importUrl(batch.id, 'extract')}>{t('imports.backToProgress')}</Link>
+        </p>
+      ) : (
+        <ul className="plain-list">
+          {files.map((file) => (
+            <li key={file.id}>
+              <Link href={`${importUrl(batch.id, 'review')}&file=${encodeURIComponent(file.id)}`}>
+                {file.originalName}
+              </Link>{' '}
+              <FileStatusBadge status={file.status} />
+            </li>
+          ))}
+        </ul>
+      )}
+    </section>
   );
 }
 

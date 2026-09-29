@@ -1096,6 +1096,11 @@ export interface components {
                 nodeId: string | null;
             }[];
             totals: components["schemas"]["TotalsCheck"];
+            /** @description What confirming now would commit: voters, and households (one per house number, or one per voter without one). Null while rows still have errors or miss the EPIC, section or serial (confirm would refuse). */
+            willCommit: {
+                households: number;
+                voters: number;
+            } | null;
         };
         FileStatusView: {
             confirmedAt: string | null;

@@ -287,22 +287,184 @@ function advance(file) {
       });
     } else {
       Object.assign(file, {
-        status: file.originalName.includes('review') ? 'needs_review' : 'ready',
         part: part ? { id: part.id, code: part.code, name: part.name } : null,
         proposedPart: part ? null : { code: partCode, name: `Synthetic Part ${partCode}` },
-        pageCount: 30,
-        rowCount: 812,
-        rows: { accepted: 800, warning: 12, rejected: 0 },
-        voterCount: 810,
+        pageCount: 3,
         qualityScore: 0.93,
-        totalsMatch: !file.originalName.includes('review'),
+        reviewRows: syntheticRows(file.id, file.originalName.includes('review')),
       });
+      review(file);
     }
   }
   if (file.status === 'confirming' && now - file.since >= WORK_MS) {
+    if (!file.part) {
+      const created = add(file.target, 'part', file.proposedPart.code, file.proposedPart.name);
+      file.part = { id: created.id, code: created.code, name: created.name };
+      file.proposedPart = null;
+    }
     Object.assign(file, { status: 'confirmed', confirmedAt: new Date().toISOString() });
   }
 }
+
+/**
+ * Three synthetic voters, printed on the roll as 2 men and 1 woman. For a
+ * "review" file, row 2's name was read with low confidence and row 3's
+ * gender wasn't read (an error), so the totals don't match until it's fixed.
+ */
+function syntheticRows(fileId, needsReview) {
+  const person = (serial, gender, extra = {}) => ({
+    id: `${fileId}-r${serial}`,
+    page: 3,
+    boxIndex: serial - 1,
+    sectionNo: 1,
+    serialNo: serial,
+    rawText: null,
+    messages: [],
+    confidence: { name: 0.95, gender: 0.95 },
+    extracted: {
+      epic: `TST${1_000_000 + serial}`,
+      name: `Synthetic Person ${serial}`,
+      relationType: 'father',
+      relativeName: `Synthetic Relative ${serial}`,
+      houseNumber: serial === 2 ? '1' : String(serial),
+      age: 30 + serial,
+      gender,
+      marker: null,
+      sectionNumber: 1,
+    },
+    corrected: null,
+    rejected: false,
+    correctedBy: null,
+    correctedAt: null,
+    ...extra,
+  });
+  if (!needsReview) return [person(1, 'male'), person(2, 'female'), person(3, 'male')];
+  return [
+    person(1, 'male'),
+    person(2, 'female', {
+      confidence: { name: 0.4, gender: 0.95 },
+      messages: [
+        {
+          code: 'field.low_confidence',
+          severity: 'warning',
+          message: 'name read with low confidence (0.40)',
+          field: 'name',
+        },
+      ],
+    }),
+    person(3, null, {
+      messages: [
+        { code: 'field.missing', severity: 'error', message: 'gender not found', field: 'gender' },
+      ],
+    }),
+  ];
+}
+const PRINTED = { male: 2, female: 1, thirdGender: 0, total: 3 };
+const currentOf = (row) => ({ ...row.extracted, ...(row.corrected ?? {}) });
+/** Messages still open: those about a corrected field are resolved. */
+const openMessages = (row) =>
+  row.messages.filter((m) => !(row.corrected && m.field in row.corrected));
+function rowView(row) {
+  const open = openMessages(row);
+  return {
+    id: row.id,
+    page: row.page,
+    boxIndex: row.boxIndex,
+    sectionNo: row.sectionNo,
+    serialNo: row.serialNo,
+    status: row.rejected ? 'rejected' : open.length > 0 ? 'warning' : 'accepted',
+    messages: row.messages.map((m) => ({ ...m, resolved: !open.includes(m) })),
+    rawText: row.rawText,
+    extracted: row.extracted,
+    confidence: row.confidence,
+    corrected: row.corrected,
+    current: currentOf(row),
+    correctedBy: row.correctedBy,
+    correctedAt: row.correctedAt,
+  };
+}
+/** The file's counts, totals check and status, from its rows (as the API does). */
+function review(file) {
+  const rows = file.reviewRows.map(rowView);
+  const active = rows.filter((r) => r.status !== 'rejected' && r.current.marker !== 'deleted');
+  const gender = (g) => active.filter((r) => r.current.gender === g).length;
+  const current = {
+    male: gender('male'),
+    female: gender('female'),
+    thirdGender: gender('third_gender'),
+    total: active.length,
+  };
+  const difference = Object.fromEntries(
+    Object.keys(PRINTED).map((k) => [k, current[k] - PRINTED[k]]),
+  );
+  const matches = Object.values(difference).every((d) => d === 0);
+  const errors = rows.some(
+    (r) => r.status !== 'rejected' && r.messages.some((m) => m.severity === 'error' && !m.resolved),
+  );
+  const count = (s) => rows.filter((r) => r.status === s).length;
+  Object.assign(file, {
+    rowCount: rows.length,
+    rows: { accepted: count('accepted'), warning: count('warning'), rejected: count('rejected') },
+    voterCount: active.length,
+    totalsMatch: matches,
+    totals: { printed: PRINTED, extracted: PRINTED, current, difference, matches },
+    willCommit: errors
+      ? null
+      : {
+          voters: active.length,
+          households: new Set(active.map((r) => r.current.houseNumber)).size,
+        },
+  });
+  if (file.status === 'extracting' || file.status === 'ready' || file.status === 'needs_review') {
+    file.status = matches && !errors ? 'ready' : 'needs_review';
+  }
+  return rows;
+}
+function filePreview(file, url) {
+  const rows = review(file);
+  const status = url.searchParams.get('status');
+  const lowOnly = url.searchParams.get('lowConfidence') === 'true';
+  const matching = rows.filter(
+    (r) =>
+      (!status || status.split(',').includes(r.status)) &&
+      (!lowOnly ||
+        Object.entries(r.confidence).some(
+          ([field, c]) => c < 0.6 && !(r.corrected && field in r.corrected),
+        )),
+  );
+  const limit = Number(url.searchParams.get('limit') ?? 50);
+  const start = Number(url.searchParams.get('cursor') ?? 0);
+  return {
+    file: fileDetail(file),
+    header: { revisionType: 'Synthetic Revision 2026', revisionYear: 2026, partNumber: 1 },
+    stations: [{ code: '1', name: 'Synthetic School', auxiliary: false, nodeId: null }],
+    previousSourceVersionId: null,
+    issues: [],
+    pages: [{ page: 3, width: 40, height: 60 }],
+    totals: file.totals,
+    willCommit: file.willCommit,
+    rows: {
+      items: matching.slice(start, start + limit),
+      nextCursor: start + limit < matching.length ? String(start + limit) : null,
+      total: matching.length,
+    },
+  };
+}
+/** A 1×1 grey JPEG: the stand-in for a voter page image. */
+const PAGE_JPEG = Buffer.from(
+  '/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgGBgcGBQgHBwcJCQgKDBQNDAsLDBkSEw8UHRofHh0aHBwgJC4nICIsIxwcKDcpLDAxNDQ0Hyc5PTgyPC4zNDL/wAALCAABAAEBAREA/8QAFAABAAAAAAAAAAAAAAAAAAAACf/EABQQAQAAAAAAAAAAAAAAAAAAAAD/2gAIAQEAAD8AKp//2Q==',
+  'base64',
+);
+const fileById = (id) => {
+  for (const batch of batches.values()) {
+    const file = batch.files.find((f) => f.id === id);
+    if (file) {
+      advance(file);
+      return file;
+    }
+  }
+  return null;
+};
 const fileDetail = (f) => ({
   id: f.id,
   originalName: f.originalName,
@@ -414,6 +576,7 @@ function importRoute(req, res, url, body) {
       status: checksums.has(sha) ? 'duplicate' : 'extracting',
       duplicateOfId: checksums.get(sha) ?? null,
       since: Date.now(),
+      target: upload.batch.target,
     };
     if (!checksums.has(sha)) checksums.set(sha, id);
     upload.batch.files.push(file);
@@ -435,7 +598,58 @@ function importRoute(req, res, url, body) {
       skipped: [],
     });
   }
-  return false;
+  const fileRoute =
+    /^\/v1\/imports\/files\/([^/]+)\/(preview|pages\/\d+|rejections\.csv|rows\/[^/]+|confirm)$/.exec(
+      url.pathname,
+    );
+  if (!fileRoute) return false;
+  const file = fileById(fileRoute[1]);
+  if (!file || !file.reviewRows) return error(res, 404, 'NOT_FOUND');
+  const [, , action] = fileRoute;
+  const reviewable = file.status === 'ready' || file.status === 'needs_review';
+  if (req.method === 'GET' && action === 'preview') return send(res, 200, filePreview(file, url));
+  if (req.method === 'GET' && action.startsWith('pages/')) {
+    res.writeHead(200, { 'content-type': 'image/jpeg', 'cache-control': 'private, no-store' });
+    return res.end(PAGE_JPEG);
+  }
+  if (req.method === 'GET' && action === 'rejections.csv') {
+    res.writeHead(200, {
+      'content-type': 'text/csv; charset=utf-8',
+      'content-disposition': 'attachment; filename="rejections.csv"',
+    });
+    return res.end('page,box,status,epic,name\n');
+  }
+  if (req.method === 'PATCH' && action.startsWith('rows/')) {
+    if (!reviewable) return error(res, 409, 'CONFLICT', 'This file is no longer in review');
+    const row = file.reviewRows.find((r) => r.id === action.slice('rows/'.length));
+    if (!row) return error(res, 404, 'NOT_FOUND');
+    if (body.values) row.corrected = { ...(row.corrected ?? {}), ...body.values };
+    if (body.rejected !== undefined) row.rejected = body.rejected;
+    Object.assign(row, {
+      correctedBy: { id: 'u-admin', name: 'Test Admin' },
+      correctedAt: new Date().toISOString(),
+    });
+    review(file);
+    return send(res, 200, rowView(row));
+  }
+  if (req.method === 'POST' && action === 'confirm') {
+    if (!reviewable) return error(res, 409, 'CONFLICT', 'This file has already been confirmed');
+    review(file);
+    if (!file.willCommit) {
+      return error(
+        res,
+        422,
+        'UNPROCESSABLE',
+        'Some rows still have errors; correct or reject them first',
+      );
+    }
+    if (!file.totalsMatch && !body.acceptTotalsMismatch) {
+      return error(res, 422, 'UNPROCESSABLE', "The voters don't add up to the printed totals");
+    }
+    Object.assign(file, { status: 'confirming', since: Date.now() });
+    return send(res, 202, { id: file.id, status: 'confirming', voters: file.voterCount });
+  }
+  return error(res, 404, 'NOT_FOUND');
 }
 
 createServer(async (req, res) => {

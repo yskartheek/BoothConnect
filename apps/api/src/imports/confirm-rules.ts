@@ -214,3 +214,15 @@ function duplicatesBy(voters: VoterRow[], key: (voter: VoterRow) => string): str
   }
   return [...duplicates];
 }
+
+/** The household a voter goes to on commit: by house number, or one of their own. */
+export function householdKeyOf(
+  voter: Pick<VoterRow, 'houseNumber' | 'sectionNo' | 'serialNo'>,
+): string {
+  return houseKeyOf(voter.houseNumber) ?? `~${voter.sectionNo}-${voter.serialNo}`;
+}
+
+/** How many households committing these voters gives the part. */
+export function householdCount(voters: VoterRow[]): number {
+  return new Set(voters.map(householdKeyOf)).size;
+}

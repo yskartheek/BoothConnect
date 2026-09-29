@@ -778,6 +778,79 @@ a.button {
   font: var(--bc-text-label);
 }
 
+/* ---- Roll imports: review and confirm (#73) ---- */
+.details-row {
+  display: contents;
+}
+
+.what-changes h3,
+.correction h3 {
+  margin: 0;
+  font: var(--bc-text-title);
+}
+
+.totals-table th[scope='row'] {
+  font: var(--bc-text-label);
+}
+
+.review-table td.low-confidence,
+.correction-field.low-confidence input,
+.correction-field.low-confidence select {
+  background: var(--bc-color-warning-container);
+}
+
+.review-table td.corrected {
+  font-style: italic;
+}
+
+.review-table tr[aria-selected='true'] {
+  outline: 2px solid var(--bc-color-primary);
+}
+
+.row-messages {
+  margin-top: var(--bc-space-xxs);
+  font: var(--bc-text-caption);
+}
+
+.correction-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 3fr) minmax(16rem, 2fr);
+  gap: var(--bc-space-md);
+  align-items: start;
+}
+
+@media (max-width: 64rem) {
+  .correction-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.page-image {
+  margin: 0;
+  max-height: 80vh;
+  overflow: auto;
+  border: 1px solid var(--bc-color-divider);
+  border-radius: var(--bc-radius-small);
+}
+
+.page-image img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+.correction-field {
+  display: grid;
+  gap: var(--bc-space-xxs);
+}
+
+.confirm-file,
+.confirm-progress {
+  display: grid;
+  gap: var(--bc-space-xs);
+  justify-items: start;
+}
+
 /* ---- Analytics explorer (#74) ---- */
 .analytics-go {
   align-items: flex-end;
