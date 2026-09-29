@@ -471,6 +471,46 @@ Uploads are tracked in `import_upload` (the S3 multipart upload, declared
 size, status); `import_file.upload_id` links each file to the upload it came
 from. The bucket is `S3_BUCKET_IMPORTS` and is never public.
 
+### Review (#46)
+
+| Method  | Path                                | Returns                                                                          |
+| ------- | ----------------------------------- | -------------------------------------------------------------------------------- |
+| `GET`   | `/v1/imports/batches/:id`           | the batch and every file: status, part, pages, rows by status, voters, quality   |
+| `GET`   | `/v1/imports/files/:id/preview`     | header, stations, issues, voter pages, totals check, and a page of rows          |
+| `GET`   | `/v1/imports/files/:id/pages/:n`    | the JPEG of voter page `n` (`Cache-Control: private, no-store`)                  |
+| `PATCH` | `/v1/imports/files/:id/rows/:rowId` | the row after the change: `{ values?: {...}, rejected?: bool, reason?: string }` |
+
+Admins only, within their area (another area's batch or file is 404).
+
+- **Voter count** = rows that would become active voters: not rejected, and
+  not marked deleted on the roll.
+- **Preview rows** are in roll order (page, box), `?limit=&cursor=`, with
+  `total`. Filters: `status=accepted,warning,rejected` and `lowConfidence=true`
+  (a field read below 0.6, the roll-parser's threshold, and not corrected
+  since).
+- **Totals check**: `printed`, `extracted` (as read), `current` (after
+  corrections and rejections), `difference` (current − printed) and
+  `matches`.
+- **Page images**: only pages the roll-parser classified as voter pages, and
+  only objects under that file's `extractions/<fileId>/` prefix. The cover,
+  the maps/photos page and the summary are never served.
+- **Corrections**: fields `epic`, `name`, `relationType`, `relativeName`,
+  `houseNumber`, `age` (18–120), `gender`, `marker` (`deleted`, `modified` or
+  null) and `sectionNumber`. They go to `corrected_values`; `extracted_values`
+  never changes. Setting a field back to the extracted value removes its
+  correction. `corrected_by`/`corrected_at` record who and when.
+- **Re-validation**: extraction messages about a corrected field are marked
+  `resolved`; a corrected EPIC that another row of the file has gets an
+  `epic.duplicate` warning. A rejected row has a `row.rejected` message with
+  the reason. The row is `rejected`, `warning` (something unresolved) or
+  `accepted`.
+- **File status after a change**: `ready` when the current counts match the
+  printed totals and no row or header error is left, else `needs_review`
+  (the batch follows). Only `ready` and `needs_review` files can be reviewed
+  (409 otherwise).
+- Each change is audited as `import.row.correct` with the file id, the field
+  names and the rejection change, never the values.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it

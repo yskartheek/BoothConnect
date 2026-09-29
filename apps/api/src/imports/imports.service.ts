@@ -472,7 +472,7 @@ function viewFile(row: {
   };
 }
 
-const auditBase = (actor: Actor) => ({
+export const auditBase = (actor: Actor) => ({
   result: 'success' as const,
   actorId: actor.userId,
   sessionId: actor.sessionId ?? null,
