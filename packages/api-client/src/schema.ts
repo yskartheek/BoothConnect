@@ -854,18 +854,30 @@ export interface components {
             targetNodeId: string;
         };
         CreateGeographyDto: {
+            /** @description Polling stations: where it is, as printed or announced. */
+            address?: string;
             /** @description Official number: S29, 6, 40… */
             code: string;
+            /** @description Polling stations: must be true (a part's main station comes from its roll). */
+            isAuxiliary?: boolean;
             name: string;
             /**
              * Format: uuid
-             * @description The State of a PC, the PC of an AC; none for a State.
+             * @description The State of a PC, the PC of an AC, the part of a polling station; none for a State.
              */
             parentId?: string;
             /** @description e.g. GEN, SC, ST. */
             reservation?: string;
-            /** @enum {string} */
-            type: "state" | "pc" | "ac";
+            /**
+             * @description Polling stations: general (default), male or female.
+             * @enum {string}
+             */
+            stationType?: "general" | "male" | "female";
+            /**
+             * @description state, pc or ac; or polling_station for an auxiliary station added by hand (#172).
+             * @enum {string}
+             */
+            type: "state" | "pc" | "ac" | "polling_station";
         };
         CreateHouseholdDto: {
             address: components["schemas"]["AddressDto"];
@@ -1322,6 +1334,8 @@ export interface components {
         MasterNodeView: {
             code: string;
             id: string;
+            /** @description Polling stations: an auxiliary station of its part. */
+            isAuxiliary: boolean;
             name: string;
             parentId: string | null;
             reservation: string | null;

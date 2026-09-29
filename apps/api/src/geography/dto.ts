@@ -41,9 +41,12 @@ export class MasterImportDto {
   programId?: string;
 }
 
+export const STATION_TYPES = ['general', 'male', 'female'] as const;
+
 export class CreateGeographyDto {
-  @IsIn(MASTER_LEVELS)
-  type!: MasterLevel;
+  /** state, pc or ac; or polling_station for an auxiliary station added by hand (#172). */
+  @IsIn([...MASTER_LEVELS, 'polling_station'])
+  type!: MasterLevel | 'polling_station';
 
   /** Official number: S29, 6, 40… */
   @Transform(trim)
@@ -64,10 +67,27 @@ export class CreateGeographyDto {
   @Length(1, 50)
   reservation?: string;
 
-  /** The State of a PC, the PC of an AC; none for a State. */
+  /** The State of a PC, the PC of an AC, the part of a polling station; none for a State. */
   @IsOptional()
   @IsUUID()
   parentId?: string;
+
+  /** Polling stations: must be true (a part's main station comes from its roll). */
+  @IsOptional()
+  @IsBoolean()
+  isAuxiliary?: boolean;
+
+  /** Polling stations: where it is, as printed or announced. */
+  @IsOptional()
+  @Transform(trim)
+  @IsString()
+  @Length(1, 500)
+  address?: string;
+
+  /** Polling stations: general (default), male or female. */
+  @IsOptional()
+  @IsIn(STATION_TYPES)
+  stationType?: (typeof STATION_TYPES)[number];
 }
 
 export class UpdateGeographyDto {

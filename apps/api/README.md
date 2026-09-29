@@ -234,6 +234,17 @@ number** it covers; everyone else is at the main station.
   - is audited as `geography.coverage` (the coverage and counts moved).
 - Volunteers are assigned to stations, so their booths follow the move.
 - Import confirm uses the same rules for a new revision of the part.
+- **Adding one by hand (#172):** `POST /v1/geographies`
+  `{ type: "polling_station", isAuxiliary: true, parentId: <part>, code, name, address, stationType? }`
+  (admin of the part or above, `Idempotency-Key`). Use it for a station the
+  roll reader missed, or one announced after the roll was published.
+  - Only auxiliary stations can be added; the main station comes from the
+    roll.
+  - A code already used in the part is 409.
+  - It takes no voters until its coverage is set.
+  - A later import that prints the same code links to it rather than adding
+    another.
+  - Audited as `geography.create`.
 
 ## Households
 
