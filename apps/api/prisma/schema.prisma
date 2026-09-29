@@ -198,6 +198,7 @@ model AppUser {
   grantedRoles       RoleAssignment[]    @relation("GrantedBy")
   uploadedBatches    ImportBatch[]       @relation("BatchUploadedBy")
   confirmedBatches   ImportBatch[]       @relation("BatchConfirmedBy")
+  confirmedFiles     ImportFile[]        @relation("FileConfirmedBy")
   importUploads      ImportUpload[]      @relation("UploadCreatedBy")
   correctedRows      ImportRowResult[]
   collectedValues    FieldValue[]
@@ -346,6 +347,8 @@ enum ImportFileStatus {
   /// Extracted, but the totals don't match or confidence is low.
   needs_review
   ready
+  /// Confirmed by an admin; waiting for its rows to be committed (#47).
+  confirming
   confirmed
   /// The PDF's header is outside the batch's target node, or it isn't a roll.
   rejected
@@ -440,6 +443,8 @@ model ImportFile {
   error            Json?
   extractedAt      DateTime?         @map("extracted_at") @db.Timestamptz
   confirmedAt      DateTime?         @map("confirmed_at") @db.Timestamptz
+  /// Who confirmed it (null for files confirmed before #47, e.g. the seed).
+  confirmedById    String?           @map("confirmed_by") @db.Uuid
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
 
@@ -450,6 +455,7 @@ model ImportFile {
   duplicates    ImportFile[]      @relation("DuplicateOf")
   partNode      GeographyNode?    @relation(fields: [partNodeId], references: [id], onDelete: Restrict)
   sourceVersion SourceVersion?    @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
+  confirmedBy   AppUser?          @relation("FileConfirmedBy", fields: [confirmedById], references: [id], onDelete: Restrict)
   rows          ImportRowResult[]
   voters        Voter[]
 

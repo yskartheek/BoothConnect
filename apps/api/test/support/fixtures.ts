@@ -93,6 +93,7 @@ export async function createImportedPart(
       partNodeId: part.id,
       sourceVersionId: sourceVersion.id,
       status: 'confirmed',
+      confirmedAt: new Date(),
     },
   });
   return { sourceVersion, file };
