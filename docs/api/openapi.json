@@ -130,6 +130,30 @@
         ],
         "type": "object"
       },
+      "AssignedNode": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/GeographyNodeType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "code",
+          "name"
+        ],
+        "type": "object"
+      },
       "AssignmentView": {
         "additionalProperties": false,
         "properties": {
@@ -979,6 +1003,100 @@
         "required": [
           "pollingStationId",
           "address"
+        ],
+        "type": "object"
+      },
+      "CreateRoleAssignmentDto": {
+        "properties": {
+          "geographyNodeId": {
+            "description": "A node at or below one of your admin assignments.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "role": {
+            "description": "admin, campaign_manager or volunteer. A volunteer is assigned to a polling station.",
+            "enum": [
+              "admin",
+              "campaign_manager",
+              "volunteer"
+            ],
+            "type": "string"
+          },
+          "userId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "validFrom": {
+            "description": "Default: now.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "validUntil": {
+            "description": "Default: open-ended.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "userId",
+          "role",
+          "geographyNodeId"
+        ],
+        "type": "object"
+      },
+      "CreateUserDto": {
+        "properties": {
+          "geographyNodeId": {
+            "description": "A node at or below one of your admin assignments.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "phone": {
+            "description": "International format, e.g. +919876543210. Used to sign in.",
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "description": "e.g. en, te. Default: en.",
+            "maxLength": 10,
+            "pattern": "^[a-z]{2,3}(-[A-Z]{2})?$",
+            "type": "string"
+          },
+          "role": {
+            "description": "admin, campaign_manager or volunteer. A volunteer is assigned to a polling station.",
+            "enum": [
+              "admin",
+              "campaign_manager",
+              "volunteer"
+            ],
+            "type": "string"
+          },
+          "validFrom": {
+            "description": "Default: now.",
+            "format": "date-time",
+            "type": "string"
+          },
+          "validUntil": {
+            "description": "Default: open-ended.",
+            "format": "date-time",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "name",
+          "phone",
+          "role",
+          "geographyNodeId"
         ],
         "type": "object"
       },
@@ -3430,6 +3548,77 @@
         ],
         "type": "string"
       },
+      "RoleAssignmentView": {
+        "additionalProperties": false,
+        "properties": {
+          "active": {
+            "description": "Active now: started, and not ended.",
+            "type": "boolean"
+          },
+          "grantedBy": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "node": {
+            "$ref": "#/components/schemas/AssignedNode"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "userId": {
+            "type": "string"
+          },
+          "validFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "validUntil": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Null: open-ended. The assignment stops being active at this time."
+          }
+        },
+        "required": [
+          "id",
+          "userId",
+          "role",
+          "node",
+          "validFrom",
+          "validUntil",
+          "active",
+          "grantedBy"
+        ],
+        "type": "object"
+      },
       "RowAction": {
         "enum": [
           "create",
@@ -4418,6 +4607,93 @@
         "required": [
           "partNumber",
           "etag"
+        ],
+        "type": "object"
+      },
+      "UserCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "assignment": {
+            "$ref": "#/components/schemas/RoleAssignmentView"
+          },
+          "created": {
+            "description": "False when the phone already belonged to a user of the organization, who got the new role.",
+            "type": "boolean"
+          },
+          "user": {
+            "$ref": "#/components/schemas/UserSummary"
+          }
+        },
+        "required": [
+          "user",
+          "assignment",
+          "created"
+        ],
+        "type": "object"
+      },
+      "UserPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/UserSummary"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "description": "Pass as `cursor` to get the next page; null on the last page.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
+      "UserStatus": {
+        "enum": [
+          "active",
+          "suspended"
+        ],
+        "type": "string"
+      },
+      "UserSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "assignments": {
+            "description": "Only the assignments in the caller's area, newest first.",
+            "items": {
+              "$ref": "#/components/schemas/RoleAssignmentView"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/UserStatus"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "status",
+          "preferredLanguage",
+          "assignments"
         ],
         "type": "object"
       },
@@ -6690,6 +6966,116 @@
         ]
       }
     },
+    "/v1/role-assignments": {
+      "post": {
+        "operationId": "RoleAssignments_grant",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoleAssignmentDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleAssignmentView"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/role-assignments/{id}": {
+      "delete": {
+        "operationId": "RoleAssignments_end",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoleAssignmentView"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      }
+    },
     "/v1/sync/pull": {
       "get": {
         "operationId": "Sync_pull",
@@ -6801,6 +7187,206 @@
         ],
         "tags": [
           "Sync"
+        ]
+      }
+    },
+    "/v1/users": {
+      "get": {
+        "operationId": "Users_list",
+        "parameters": [
+          {
+            "description": "Users with an assignment at or below this node (in your area).",
+            "in": "query",
+            "name": "nodeId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "role",
+            "required": false,
+            "schema": {
+              "enum": [
+                "admin",
+                "campaign_manager",
+                "volunteer",
+                "voter"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Part of the name, or the start of the phone number.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "minLength": 1,
+              "type": "string"
+            }
+          },
+          {
+            "description": "true: only users with an active assignment in your area.",
+            "in": "query",
+            "name": "active",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Opaque: the `nextCursor` of the previous page.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserPage"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      },
+      "post": {
+        "operationId": "Users_create",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateUserDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserCreated"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
+        ]
+      }
+    },
+    "/v1/users/{id}": {
+      "get": {
+        "operationId": "Users_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UserSummary"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Users"
         ]
       }
     },

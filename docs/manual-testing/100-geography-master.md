@@ -47,12 +47,14 @@ Test files only; never upload a real roll or real voter data.
    **Expect:** every row is `error`: line 2 "Outside your area" (an AC
    admin can't add States), and the rows below it "Its State (line 2) has
    errors" or "Its PC (line …) has errors".
-3. Make the seed admin an admin of State S99 too (there is no API for role
-   assignments yet):
+3. Make the seed admin an admin of State S99 too. An admin can only give
+   roles at or below their own node, so a State admin is set up from the
+   server (#173). In a second window, from the repository root:
    ```powershell
-   docker compose -f infra/docker-compose.yml exec postgres psql -U boothconnect -d boothconnect -c "INSERT INTO role_assignment (id, user_id, role, geography_node_id) SELECT gen_random_uuid(), u.id, 'admin', n.id FROM app_user u, geography_node n WHERE u.phone = '+919999900001' AND n.type = 'state' AND n.code = 'S99';"
+   pnpm --filter api build
+   pnpm --filter api admin:grant --phone +919999900001 --name "Demo Admin" --node S99
    ```
-   **Expect:** `INSERT 0 1`.
+   **Expect:** "Admin role granted: user …".
 4. Preview again, then confirm:
    ```powershell
    Upload docs/templates/geography-master.csv $false
@@ -104,7 +106,8 @@ Test files only; never upload a real roll or real voter data.
 
 ## Known issues and notes
 
-- There is no API for role assignments yet, hence the SQL in step 3.
+- Step 3 uses `admin:grant`, the server command for setting up the first
+  admin of an area above the caller's own (#173).
 - `GET /v1/geographies` still shows only the caller's own area and the path
   above it, so a State admin of S99 doesn't see S98 in that list. The upload
   report is where to check a new State.

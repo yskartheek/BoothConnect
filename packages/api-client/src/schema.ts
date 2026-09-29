@@ -468,6 +468,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/role-assignments": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["RoleAssignments_grant"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/role-assignments/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["RoleAssignments_end"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sync/pull": {
         parameters: {
             query?: never;
@@ -494,6 +526,38 @@ export interface paths {
         get?: never;
         put?: never;
         post: operations["Sync_push"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Users_list"];
+        put?: never;
+        post: operations["Users_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/users/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Users_get"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -574,6 +638,12 @@ export interface components {
             details?: unknown;
             message: string;
             requestId: string;
+        };
+        AssignedNode: {
+            code: string;
+            id: string;
+            name: string;
+            type: components["schemas"]["GeographyNodeType"];
         };
         AssignmentView: {
             id: string;
@@ -810,6 +880,57 @@ export interface components {
              * @description One of the caller's booths.
              */
             pollingStationId: string;
+        };
+        CreateRoleAssignmentDto: {
+            /**
+             * Format: uuid
+             * @description A node at or below one of your admin assignments.
+             */
+            geographyNodeId: string;
+            /**
+             * @description admin, campaign_manager or volunteer. A volunteer is assigned to a polling station.
+             * @enum {string}
+             */
+            role: "admin" | "campaign_manager" | "volunteer";
+            /** Format: uuid */
+            userId: string;
+            /**
+             * Format: date-time
+             * @description Default: now.
+             */
+            validFrom?: string;
+            /**
+             * Format: date-time
+             * @description Default: open-ended.
+             */
+            validUntil?: string | null;
+        };
+        CreateUserDto: {
+            /**
+             * Format: uuid
+             * @description A node at or below one of your admin assignments.
+             */
+            geographyNodeId: string;
+            name: string;
+            /** @description International format, e.g. +919876543210. Used to sign in. */
+            phone: string;
+            /** @description e.g. en, te. Default: en. */
+            preferredLanguage?: string;
+            /**
+             * @description admin, campaign_manager or volunteer. A volunteer is assigned to a polling station.
+             * @enum {string}
+             */
+            role: "admin" | "campaign_manager" | "volunteer";
+            /**
+             * Format: date-time
+             * @description Default: now.
+             */
+            validFrom?: string;
+            /**
+             * Format: date-time
+             * @description Default: open-ended.
+             */
+            validUntil?: string | null;
         };
         CreateVisitDto: {
             /**
@@ -1420,6 +1541,22 @@ export interface components {
         };
         /** @enum {string} */
         Role: "admin" | "campaign_manager" | "volunteer" | "voter";
+        RoleAssignmentView: {
+            /** @description Active now: started, and not ended. */
+            active: boolean;
+            grantedBy: {
+                id: string;
+                name: string;
+            } | null;
+            id: string;
+            node: components["schemas"]["AssignedNode"];
+            role: components["schemas"]["Role"];
+            userId: string;
+            /** Format: date-time */
+            validFrom: string;
+            /** @description Null: open-ended. The assignment stops being active at this time. */
+            validUntil: string | null;
+        };
         /** @enum {string} */
         RowAction: "create" | "update" | "unchanged" | "error";
         RowCorrectionValuesDto: {
@@ -1662,6 +1799,28 @@ export interface components {
             /** @description The ETag header S3 returned for the part. */
             etag: string;
             partNumber: number;
+        };
+        UserCreated: {
+            assignment: components["schemas"]["RoleAssignmentView"];
+            /** @description False when the phone already belonged to a user of the organization, who got the new role. */
+            created: boolean;
+            user: components["schemas"]["UserSummary"];
+        };
+        UserPage: {
+            items: components["schemas"]["UserSummary"][];
+            /** @description Pass as `cursor` to get the next page; null on the last page. */
+            nextCursor: string | null;
+        };
+        /** @enum {string} */
+        UserStatus: "active" | "suspended";
+        UserSummary: {
+            /** @description Only the assignments in the caller's area, newest first. */
+            assignments: components["schemas"]["RoleAssignmentView"][];
+            id: string;
+            name: string;
+            phone: string;
+            preferredLanguage: string;
+            status: components["schemas"]["UserStatus"];
         };
         /** @enum {string} */
         ValueSource: "official_import" | "voter_self_submitted" | "volunteer_collected" | "admin_corrected" | "derived";
@@ -2858,6 +3017,74 @@ export interface operations {
             };
         };
     };
+    RoleAssignments_grant: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoleAssignmentDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleAssignmentView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    RoleAssignments_end: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleAssignmentView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
     Sync_pull: {
         parameters: {
             query?: {
@@ -2916,6 +3143,110 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["SyncPushResult"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Users_list: {
+        parameters: {
+            query?: {
+                /** @description Users with an assignment at or below this node (in your area). */
+                nodeId?: string;
+                role?: "admin" | "campaign_manager" | "volunteer" | "voter";
+                /** @description Part of the name, or the start of the phone number. */
+                q?: string;
+                /** @description true: only users with an active assignment in your area. */
+                active?: boolean;
+                limit?: number;
+                /** @description Opaque: the `nextCursor` of the previous page. */
+                cursor?: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserPage"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Users_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Users_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UserSummary"];
                 };
             };
             /** @description Error */

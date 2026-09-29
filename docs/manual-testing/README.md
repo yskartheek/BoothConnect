@@ -100,3 +100,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #100  | [Geography master data: States, PCs and ACs from a CSV](100-geography-master.md)                | Ready to test   |
 | #101  | [Auxiliary polling stations: coverage by section or serial range](101-station-coverage.md)      | Ready to test   |
 | #161  | [Carrying volunteer data over to the same voter in a new roll revision](161-carry-over.md)      | Ready to test   |
+| #173  | [Users and role assignments](173-users-roles.md)                                                | Ready to test   |
