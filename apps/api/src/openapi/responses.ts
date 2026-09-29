@@ -8,6 +8,7 @@ import type { GeographyNodeView } from '../geography/geography.service';
 import type { HouseholdSummary } from '../households/households.service';
 import type { UploadTicket } from '../imports/imports.service';
 import type { MutationResult } from '../sync/push.service';
+import type { UserSummary } from '../users/users.service';
 
 export type {
   AnalyticsSummary,
@@ -33,6 +34,7 @@ export type { BatchView, UploadCompleted } from '../imports/imports.service';
 export type { BatchDetail, FilePreview, ReviewRow } from '../imports/review.service';
 export type { SyncPage } from '../sync/sync.service';
 export type { Me } from '../users/me.service';
+export type { RoleAssignmentView, UserCreated, UserSummary } from '../users/users.service';
 export type { VisitCreated } from '../visits/visits.service';
 export type { MemberEdited } from '../voters/voter-writes.service';
 export type { VoterDetail } from '../voters/voters.service';
@@ -41,6 +43,8 @@ export type { VoterDetail } from '../voters/voters.service';
 export interface GeographyNodePage extends Page<GeographyNodeView> {}
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- a named Page<T> for the spec
 export interface HouseholdPage extends Page<HouseholdSummary> {}
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type -- a named Page<T> for the spec
+export interface UserPage extends Page<UserSummary> {}
 export interface SyncPushResult {
   results: MutationResult[];
 }

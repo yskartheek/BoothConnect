@@ -127,6 +127,43 @@ below it.
 - The guards run in order: access token (401) → scope and roles (403);
   `@Public()` routes skip both.
 
+### Users and role assignments (#173)
+
+Admins manage the people of their own **area**: the nodes of their active
+admin assignments and everything below them.
+
+- `GET /v1/users?nodeId=&role=&q=&active=&limit=&cursor=` (admin) lists users
+  with an assignment in the area, by name. It shows only those assignments,
+  never the user's roles elsewhere. `q` matches part of the name or the start
+  of the phone number; `active=true` keeps users with an active assignment
+  there. `GET /v1/users/:id` returns one user with their assignment history
+  in the area.
+- `POST /v1/users` `{ name, phone, preferredLanguage?, role, geographyNodeId, validFrom?, validUntil? }`
+  (admin, `Idempotency-Key`) adds a user of the admin's organization with a
+  first role, so they are in the area from the start.
+  - A phone already used in the organization gets the role on that user
+    instead (`created: false`), e.g. a volunteer moving between areas.
+  - A phone used in another organization is 409, without saying where.
+- `POST /v1/role-assignments` `{ userId, role, geographyNodeId, validFrom?, validUntil? }`
+  (admin, `Idempotency-Key`) gives a role:
+  - `role` is `admin`, `campaign_manager` or `volunteer`;
+  - the node must be at or below one of the admin's own admin nodes, never
+    above or beside them (404 otherwise, as for a user outside the area);
+  - a volunteer is assigned to a polling station;
+  - the same role on the same node can't overlap in time.
+- `DELETE /v1/role-assignments/:id` (admin, `Idempotency-Key`) ends an
+  assignment now. It stays in the history, and ending it twice is 422. An
+  admin can't end their own admin role, so they can't lock themselves out.
+- **Scopes follow at the next request.** A volunteer whose booths changed
+  gets a full snapshot at their next sync.
+- **Audit:** `user.create`, `role.grant` and `role.end`, with ids, role and
+  node only (never the phone or name).
+- **The first admin** (or a new State admin, above everyone's area) is set
+  up on the server, after `build`:
+  `pnpm --filter api admin:grant --phone +91… --name "…" --node S29/6/40`.
+  `--node` is the path of codes from the State down. It creates the user if
+  the phone is new, and is audited as a system event.
+
 ## Geography and pagination
 
 - `GET /v1/geographies?parentId=&type=&q=&limit=&cursor=` lists the direct

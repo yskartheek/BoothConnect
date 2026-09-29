@@ -8,6 +8,7 @@
     "dev": "nest start --watch",
     "start": "node dist/main",
     "stats:rebuild": "node dist/analytics/rebuild",
+    "admin:grant": "node dist/users/grant-admin",
     "openapi": "nest build && node dist/openapi/export",
     "openapi:check": "nest build && node dist/openapi/export --check",
     "lint": "eslint .",
