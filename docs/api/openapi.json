@@ -1901,6 +1901,13 @@
             },
             "type": "array"
           },
+          "reservation": {
+            "description": "States, PCs and ACs: reservation status (GEN, SC, ST…), if recorded.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "type": {
             "$ref": "#/components/schemas/GeographyNodeType"
           }
@@ -1912,6 +1919,7 @@
           "name",
           "parentId",
           "path",
+          "reservation",
           "type"
         ],
         "type": "object"
@@ -1970,6 +1978,13 @@
               "null"
             ]
           },
+          "reservation": {
+            "description": "States, PCs and ACs: reservation status (GEN, SC, ST…), if recorded.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "type": {
             "$ref": "#/components/schemas/GeographyNodeType"
           }
@@ -1980,7 +1995,8 @@
           "type",
           "code",
           "name",
-          "isAuxiliary"
+          "isAuxiliary",
+          "reservation"
         ],
         "type": "object"
       },

@@ -1141,6 +1141,8 @@ export interface components {
             parentId: string | null;
             /** @description From the top (state) down to the node's parent, for breadcrumbs. */
             path: components["schemas"]["GeographyNodeView"][];
+            /** @description States, PCs and ACs: reservation status (GEN, SC, ST…), if recorded. */
+            reservation: string | null;
             type: components["schemas"]["GeographyNodeType"];
         };
         GeographyNodePage: {
@@ -1156,6 +1158,8 @@ export interface components {
             isAuxiliary: boolean;
             name: string;
             parentId: string | null;
+            /** @description States, PCs and ACs: reservation status (GEN, SC, ST…), if recorded. */
+            reservation: string | null;
             type: components["schemas"]["GeographyNodeType"];
         };
         HealthReport: {

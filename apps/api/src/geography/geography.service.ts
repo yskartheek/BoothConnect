@@ -20,6 +20,8 @@ export interface GeographyNodeView {
   code: string;
   name: string;
   isAuxiliary: boolean;
+  /** States, PCs and ACs: reservation status (GEN, SC, ST…), if recorded. */
+  reservation: string | null;
 }
 
 export interface GeographyNodeDetail extends GeographyNodeView {
@@ -36,7 +38,9 @@ const isPosition = (value: Record<string, unknown>): value is Position =>
 
 // A node is visible when it is one of the caller's assigned nodes, below one
 // (what they work on) or above one (the path down to it, for dropdowns and
-// breadcrumbs). Siblings of their areas, like another booth, are not.
+// breadcrumbs). Siblings of their areas, like another booth, are not. An
+// admin of a State manages the program's whole State → PC → AC list (#100),
+// so they also see every State, PC and AC of that program (#103).
 function visible(scope: Scope): Prisma.Sql {
   const assigned =
     scope.nodeIds.length > 0 ? scope.nodeIds : ['00000000-0000-0000-0000-000000000000'];
@@ -45,11 +49,16 @@ function visible(scope: Scope): Prisma.Sql {
             WHERE c.descendant_id = n.id AND c.ancestor_id = ANY(${assigned}::uuid[]))
     OR EXISTS (SELECT 1 FROM geography_closure c
                WHERE c.ancestor_id = n.id AND c.descendant_id = ANY(${assigned}::uuid[]))
+    OR (n.type IN ('state', 'pc', 'ac') AND EXISTS (
+      SELECT 1 FROM role_assignment ra JOIN geography_node sn ON sn.id = ra.geography_node_id
+      WHERE ra.user_id = ${scope.userId}::uuid AND ra.role = 'admin' AND sn.type = 'state'
+        AND sn.program_id = n.program_id
+        AND ra.valid_from <= now() AND (ra.valid_until IS NULL OR ra.valid_until > now())))
   )`;
 }
 
 const COLUMNS = Prisma.sql`n.id, n.parent_id AS "parentId", n.type, n.code, n.name,
-  n.is_auxiliary AS "isAuxiliary"`;
+  n.is_auxiliary AS "isAuxiliary", n.metadata->>'reservation' AS reservation`;
 
 @Injectable()
 export class GeographyService {

@@ -108,7 +108,6 @@ Test files only; never upload a real roll or real voter data.
 
 - Step 3 uses `admin:grant`, the server command for setting up the first
   admin of an area above the caller's own (#173).
-- `GET /v1/geographies` still shows only the caller's own area and the path
-  above it, so a State admin of S99 doesn't see S98 in that list. The upload
-  report is where to check a new State.
+- Since #103, a State admin sees every State, PC and AC of the program in
+  `GET /v1/geographies`, including new States such as S98.
 - To start again, run `pnpm --filter api db:reset` and seed again.
