@@ -777,3 +777,54 @@ a.button {
   color: var(--bc-color-danger);
   font: var(--bc-text-label);
 }
+
+/* ---- Audit explorer (#76) ---- */
+.audit-table code,
+.drawer code {
+  font-size: 0.9em;
+  overflow-wrap: anywhere;
+}
+
+.drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 31;
+  display: flex;
+  flex-direction: column;
+  gap: var(--bc-space-sm);
+  width: min(36rem, 100vw);
+  padding: var(--bc-space-lg);
+  box-sizing: border-box;
+  overflow-y: auto;
+  border-radius: var(--bc-radius-large) 0 0 var(--bc-radius-large);
+  background: var(--bc-color-surface);
+  box-shadow: var(--bc-elevation-high);
+}
+
+.drawer h2 {
+  margin: 0;
+  font: var(--bc-text-title);
+  overflow-wrap: anywhere;
+}
+
+.drawer h3 {
+  margin: var(--bc-space-sm) 0 0;
+  font: var(--bc-text-label);
+}
+
+.drawer .details dd {
+  overflow-wrap: anywhere;
+}
+
+.metadata {
+  margin: 0;
+  padding: var(--bc-space-sm);
+  overflow: auto;
+  max-height: 40vh;
+  border: 1px solid var(--bc-color-divider);
+  border-radius: var(--bc-radius-small);
+  background: var(--bc-color-surface-muted);
+  font-size: 0.85rem;
+}

@@ -178,3 +178,19 @@ file of the batch from `GET /v1/imports/batches/:id`:
 - **Confirm all ready files** counts only `ready` files and asks first. It
   calls `POST /v1/imports/batches/:id/confirm` and lists any file the API
   skipped, with the reason.
+
+## Audit explorer (#76)
+
+`/audit` (`components/audit/`) reads `GET /v1/audit-events`:
+
+- **Filters** live in the address (`filters.ts`): `actor`, `action` (or a
+  `prefix.*`), `resourceType`, `resourceId`, `result`, and `from`/`to` dates.
+  `to` is inclusive on the page; the API gets the start of the next day.
+  They apply on **Apply filters** (`router.replace`), and the page is keyed
+  by them.
+- **Table:** newest first, 50 at a time (`nextCursor`). **Details** opens a
+  side drawer (Radix Dialog) with every field, the metadata as the API
+  redacted it, and the hashes.
+- **Verify chain** calls the same endpoint with `verify=true` and the date
+  range only (the chain is checked over every event in the range).
+- A refused filter shows the API's per-field reasons from `details`.
