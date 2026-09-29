@@ -11,6 +11,7 @@ import { type MessageKey, t } from '@/lib/i18n';
 
 import { AreaPicker, type AreaNode, PlaceBreadcrumb, placeLabel } from '../area-picker';
 import { ErrorState, errorMessage, LoadingState } from '../states';
+import { BatchProgress } from './batch-progress';
 import { UploadFiles } from './upload-files';
 
 export type Batch = Schemas['BatchDetail'];
@@ -101,6 +102,8 @@ function BatchSteps({ batchId, current }: { batchId: string; current: Step }) {
           </p>
           {current === 'upload' ? (
             <UploadFiles batch={batch.data} />
+          ) : current === 'extract' ? (
+            <BatchProgress batchId={batchId} />
           ) : (
             <section className="glass section">
               <p>{t('state.notReadyMessage')}</p>

@@ -162,3 +162,19 @@ so a reload or a shared link comes back to the same import.
   ]
   ```
   Local MinIO allows any origin and exposes `ETag`.
+
+### Extraction progress (#72)
+
+The **Extract** step (`components/imports/batch-progress.tsx`) lists every
+file of the batch from `GET /v1/imports/batches/:id`:
+
+- **Columns:** part (**New** when it will be created), status, pages,
+  voters, quality, and totals ✓/✗ (`totalsMatch`).
+- **Rejections:** rejected and failed files show the API's reason.
+- **Polling:** the page asks again every 3 s while a file is `uploaded`,
+  `extracting` or `confirming`, and stops when none is.
+- **Filtering and paging:** filter by status; 50 rows at a time.
+- **Review** links to `?step=review&file=<id>` (#73).
+- **Confirm all ready files** counts only `ready` files and asks first. It
+  calls `POST /v1/imports/batches/:id/confirm` and lists any file the API
+  skipped, with the reason.

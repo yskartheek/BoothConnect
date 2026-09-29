@@ -107,3 +107,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #103  | [Admin web: geography master data page](103-geography-page.md)                                  | Ready to test   |
 | #176  | [Admin web: Users page](176-users-page.md)                                                      | Ready to test   |
 | #71   | [Roll import step 1: choose the level and upload](71-import-upload.md)                          | Ready to test   |
+| #72   | [Roll import step 2: batch extraction progress](72-import-progress.md)                          | Ready to test   |

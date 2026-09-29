@@ -738,3 +738,42 @@ a.button {
   font: var(--bc-text-label);
   text-align: left;
 }
+
+/* ---- Roll imports: extraction progress (#72) ---- */
+.progress-summary {
+  display: grid;
+  gap: var(--bc-space-xxs);
+}
+
+.progress-summary label {
+  font: var(--bc-text-label);
+}
+
+.progress-summary progress {
+  width: 100%;
+}
+
+.progress-summary p {
+  margin: 0;
+}
+
+.confirm-ready {
+  display: grid;
+  gap: var(--bc-space-xs);
+  margin-left: auto;
+}
+
+.file-reason {
+  margin: var(--bc-space-xxs) 0 0;
+  font: var(--bc-text-caption);
+}
+
+.totals-ok {
+  color: var(--bc-color-success);
+  font: var(--bc-text-label);
+}
+
+.totals-bad {
+  color: var(--bc-color-danger);
+  font: var(--bc-text-label);
+}

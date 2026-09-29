@@ -602,7 +602,9 @@ Admins only, within their area (another area's batch or file is 404).
   since).
 - **Totals check**: `printed`, `extracted` (as read), `current` (after
   corrections and rejections), `difference` (current − printed) and
-  `matches`.
+  `matches`. The batch view has each file's `totalsMatch` (the same
+  `matches`, counted in SQL so polling a large batch stays cheap), or null
+  when the printed totals couldn't be read.
 - **Page images**: only pages the roll-parser classified as voter pages, and
   only objects under that file's `extractions/<fileId>/` prefix. The cover,
   the maps/photos page and the summary are never served.
