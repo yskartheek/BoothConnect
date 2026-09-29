@@ -97,3 +97,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #51   | [Cross-booth authorization test suite](51-cross-booth.md)                                       | Ready to test   |
 | #164  | [Audit log: filtering by booth or area](164-audit-area-filter.md)                               | Ready to test   |
 | #52   | [API documentation (OpenAPI), Swagger UI and the typed client](52-openapi.md)                   | Ready to test   |
+| #100  | [Geography master data: States, PCs and ACs from a CSV](100-geography-master.md)                | Ready to test   |

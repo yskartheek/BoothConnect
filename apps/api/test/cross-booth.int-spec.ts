@@ -32,6 +32,9 @@ const VOLUNTEER_B = '+919999900003';
 const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'public'> = {
   'GET /geographies': 'booth',
   'GET /geographies/:id': 'booth',
+  'POST /geographies/imports': 'admin',
+  'POST /geographies': 'admin',
+  'PATCH /geographies/:id': 'admin',
   'GET /households': 'booth',
   'GET /households/:id': 'booth',
   'POST /households': 'booth',

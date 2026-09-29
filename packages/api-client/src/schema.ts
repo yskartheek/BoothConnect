@@ -157,7 +157,23 @@ export interface paths {
         };
         get: operations["Geography_list"];
         put?: never;
-        post?: never;
+        post: operations["Geography_create"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/geographies/imports": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Geography_importMasterData"];
         delete?: never;
         options?: never;
         head?: never;
@@ -177,7 +193,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        patch?: never;
+        patch: operations["Geography_update"];
         trace?: never;
     };
     "/v1/health": {
@@ -703,6 +719,20 @@ export interface components {
              */
             targetNodeId: string;
         };
+        CreateGeographyDto: {
+            /** @description Official number: S29, 6, 40… */
+            code: string;
+            name: string;
+            /**
+             * Format: uuid
+             * @description The State of a PC, the PC of an AC; none for a State.
+             */
+            parentId?: string;
+            /** @description e.g. GEN, SC, ST. */
+            reservation?: string;
+            /** @enum {string} */
+            type: "state" | "pc" | "ac";
+        };
         CreateHouseholdDto: {
             address: components["schemas"]["AddressDto"];
             /**
@@ -1063,6 +1093,51 @@ export interface components {
             lat: number;
             lng: number;
         };
+        MasterImportDto: {
+            /** @description false (default): only report what would change. true: save it (only when no row has an error). */
+            confirm?: boolean;
+            /**
+             * @description The CSV: columns `level` (state, pc, ac), `code`, `name`,
+             *     `reservation` (optional), `parent_code` (a PC's State code, an AC's PC
+             *     code) and `state_code` (optional, to tell apart PCs with the same code).
+             */
+            csv: string;
+            /**
+             * Format: uuid
+             * @description Needed only by admins of more than one program.
+             */
+            programId?: string;
+        };
+        MasterImportReport: {
+            /** @description False for a preview; true once the rows have been saved. */
+            applied: boolean;
+            counts: {
+                create: number;
+                error: number;
+                unchanged: number;
+                update: number;
+            };
+            programId: string;
+            rows: {
+                action: components["schemas"]["RowAction"];
+                code: string;
+                errors: string[];
+                level: string;
+                line: number;
+                name: string;
+                parentCode: string | null;
+            }[];
+        };
+        /** @enum {string} */
+        MasterLevel: "state" | "pc" | "ac";
+        MasterNodeView: {
+            code: string;
+            id: string;
+            name: string;
+            parentId: string | null;
+            reservation: string | null;
+            type: components["schemas"]["MasterLevel"] | "part" | "polling_station";
+        };
         Me: {
             assignments: components["schemas"]["AssignmentView"][];
             email: string | null;
@@ -1273,6 +1348,8 @@ export interface components {
         };
         /** @enum {string} */
         Role: "admin" | "campaign_manager" | "volunteer" | "voter";
+        /** @enum {string} */
+        RowAction: "create" | "update" | "unchanged" | "error";
         RowCorrectionValuesDto: {
             age?: number;
             epic?: string;
@@ -1432,6 +1509,11 @@ export interface components {
             extracted: components["schemas"]["ElectorCounts"] | null;
             matches: boolean;
             printed: components["schemas"]["ElectorCounts"] | null;
+        };
+        UpdateGeographyDto: {
+            name?: string;
+            /** @description null removes it. */
+            reservation?: string | null;
         };
         UpdateHouseholdDto: {
             address?: components["schemas"]["AddressDto"];
@@ -1891,6 +1973,76 @@ export interface operations {
             };
         };
     };
+    Geography_create: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGeographyDto"];
+            };
+        };
+        responses: {
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterNodeView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Geography_importMasterData: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MasterImportDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterImportReport"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
     Geography_get: {
         parameters: {
             query?: never;
@@ -1908,6 +2060,43 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["GeographyNodeDetail"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Geography_update: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGeographyDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterNodeView"];
                 };
             };
             /** @description Error */

@@ -142,6 +142,37 @@ below it.
   `{ items, nextCursor }`, `limit` default 50, max 200 (`src/common/pagination.ts`).
   Pages stay stable when rows are added elsewhere in the list.
 
+### Master data: States, PCs and ACs (#100)
+
+The State → PC → AC list is loaded from a CSV before any roll is imported
+(template: `docs/templates/geography-master.csv`, synthetic rows only).
+Parts and polling stations come from roll imports, not from here.
+
+- `POST /v1/geographies/imports` `{ csv, confirm?, programId? }` (admin,
+  `Idempotency-Key`). Columns: `level` (state, pc, ac), `code`, `name`,
+  `parent_code` (a PC's State code, an AC's PC code), and optional
+  `reservation` (GEN, SC, ST…) and `state_code` (needed when two States
+  have a PC with the same code).
+  - Without `confirm` it only reports what would happen, row by row:
+    `create`, `update` (name or reservation changed), `unchanged` or
+    `error` with the reasons (unknown parent, duplicate row, missing
+    code…). Rows can be in any order; parents are handled first.
+  - With `confirm: true` it saves every row in one transaction, or nothing
+    (422 with the report in `details`) when any row has an error.
+    Re-uploading the same file changes nothing; nodes are never deleted.
+  - A problem with the file itself (missing or unknown columns, no rows,
+    more than 5,000 rows, a quote never closed) is 422.
+- `POST /v1/geographies` `{ type, code, name, reservation?, parentId? }`
+  adds one node, and `PATCH /v1/geographies/:id` `{ name?, reservation? }`
+  renames it or changes its reservation (`null` removes it). Code, type and
+  parent never change. Both need `Idempotency-Key`.
+- Who can change what: an admin changes their own area (an AC admin only
+  their AC). An admin of a State manages the program's whole list,
+  including adding States. Anything else is "Outside your area" in the
+  report, or 404.
+- Audited as `geography.import` (counts), `geography.create` and
+  `geography.update` (field names only).
+
 ## Households
 
 `GET /v1/households?boothId=&q=&status=&limit=&cursor=` lists **active**
