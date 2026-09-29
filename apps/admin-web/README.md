@@ -178,3 +178,27 @@ file of the batch from `GET /v1/imports/batches/:id`:
 - **Confirm all ready files** counts only `ready` files and asks first. It
   calls `POST /v1/imports/batches/:id/confirm` and lists any file the API
   skipped, with the reason.
+
+### Review, correct and confirm (#73)
+
+`?step=review&file=<id>` (`components/imports/file-review.tsx`) shows one
+file from `GET /v1/imports/files/:id/preview`:
+
+- **What confirming does:** the part and stations to be created or kept, and
+  a new revision if there is one. Also the cover page as read, and the totals
+  check (printed, as read, now and the difference, by gender).
+- **Rows:** filtered by status or low confidence (below 0.6, not corrected),
+  50 at a time. Low-confidence cells are highlighted, corrected ones are
+  italic, and each row shows its open messages.
+- **Correction** (`review-rows.tsx`):
+  - The voter page image (`/api/v1/imports/files/:id/pages/:n`, passed on
+    `private, no-store`) sits next to the fields, each showing its value as
+    read.
+  - `PATCH …/rows/:rowId` sends only the changed fields. Rows can be rejected
+    with a reason, or restored.
+- **Download rejections CSV** links to `…/rejections.csv`.
+- **Confirm this file:**
+  - The dialog states `willCommit` (voters and households) and the part. A
+    totals mismatch must be acknowledged (`acceptTotalsMismatch`).
+  - The page then moves to `step=confirm` and follows the commit.
+  - When done, it links to `/analytics?node=<part>` (#74).

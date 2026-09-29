@@ -39,6 +39,19 @@ describe('/api proxy', () => {
     expect(headers.get('cookie')).toBeNull();
   });
 
+  it('passes a voter page image through as it is, not cacheable', async () => {
+    const jpeg = new Uint8Array([0xff, 0xd8, 0xff, 0xe0, 1, 2, 3]);
+    upstream.mockResolvedValue(
+      new Response(jpeg, {
+        headers: { 'content-type': 'image/jpeg', 'cache-control': 'private, no-store' },
+      }),
+    );
+    const res = await GET(...request(['v1', 'imports', 'files', 'f1', 'pages', '3'], signedIn));
+    expect(res.headers.get('content-type')).toBe('image/jpeg');
+    expect(res.headers.get('cache-control')).toBe('private, no-store');
+    expect(new Uint8Array(await res.arrayBuffer())).toEqual(jpeg);
+  });
+
   it('passes the query, the body and the idempotency key', async () => {
     upstream.mockResolvedValue(Response.json({}, { status: 201 }));
     const [req, ctx] = request(['v1', 'users'], signedIn, {

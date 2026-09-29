@@ -265,8 +265,22 @@ describe('import review: batch status, preview, page images, row corrections', (
       // Printed totals unreadable: no check.
       expect((await totalsOf(unread.id)).totalsMatch).toBeNull();
 
+      // A row with an error: confirm would refuse, so nothing to commit yet.
+      expect(((await preview(file.id)).body as FilePreview).willCommit).toBeNull();
+
       // Correct the missing gender: the totals match, as in the preview.
       await correct(file.id, file.rows[2]!, { values: { gender: 'male' } }).expect(200);
+      // Three voters, each at their own house number; the deleted entry isn't one.
+      expect(((await preview(file.id)).body as FilePreview).willCommit).toEqual({
+        voters: 3,
+        households: 3,
+      });
+      // Two of them at the same house: one household.
+      await correct(file.id, file.rows[1]!, { values: { houseNumber: '1' } }).expect(200);
+      expect(((await preview(file.id)).body as FilePreview).willCommit).toEqual({
+        voters: 3,
+        households: 2,
+      });
       expect(await totalsOf(file.id)).toMatchObject({ totalsMatch: true, voterCount: 3 });
       expect(((await preview(file.id)).body as FilePreview).totals.matches).toBe(true);
 
