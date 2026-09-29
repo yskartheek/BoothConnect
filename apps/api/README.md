@@ -511,6 +511,22 @@ Admins only, within their area (another area's batch or file is 404).
 - Each change is audited as `import.row.correct` with the file id, the field
   names and the rejection change, never the values.
 
+### Rejections CSV (#48)
+
+`GET /v1/imports/files/:id/rejections.csv` downloads the file's `rejected`
+and `warning` rows (admins, within their area; audited as
+`import.file.rejections_export` with the row count), in roll order. It is
+streamed in batches of 500 rows.
+
+- **Columns**: page, box, section, serial, status, the extracted values,
+  `corrections` (`field=value; ...`) and `messages` (`code: text | ...`).
+- **Formula safety**: every cell goes through `safeCsvCell()`
+  (`src/common/csv.ts`). A value starting with `=`, `+`, `-`, `@`, a tab
+  or a carriage return gets a leading `'`, so spreadsheet apps show it as
+  text instead of running it (plan §8).
+- **Encoding**: UTF-8 with a byte-order mark (for Telugu names in Excel),
+  CRLF line ends, `Cache-Control: private, no-store`.
+
 ### Confirm (#47)
 
 | Method | Path                              | Body / returns                                                                 |

@@ -90,3 +90,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #45   | [Roll imports: reading uploaded PDFs (extraction) and checking them](45-import-extraction.md)   | Ready to test   |
 | #46   | [Roll imports: batch progress, preview, page images and row corrections](46-import-review.md)   | Ready to test   |
 | #47   | [Roll imports: confirming a file or batch (making it live)](47-import-confirm.md)               | Ready to test   |
+| #48   | [Roll imports: downloading the rows to fix as a CSV](48-rejections-csv.md)                      | Ready to test   |
