@@ -1,41 +1,18 @@
 'use client';
 
-import { newIdempotencyKey, type Schemas } from '@boothconnect/api-client';
+import { newIdempotencyKey } from '@boothconnect/api-client';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useId, useMemo, useState } from 'react';
 
 import { ApiRequestError, apiClient, unwrap } from '@/lib/api';
-import { type MessageKey, t } from '@/lib/i18n';
+import { allChildren, LEVEL, type Place } from '@/lib/geography';
+import { t } from '@/lib/i18n';
 
 import { EmptyState, ErrorState, errorMessage, LoadingState } from '../states';
 
-export type Place = Schemas['GeographyNodeView'];
+export type { Place };
 export interface MasterNode extends Place {
   children: MasterNode[];
-}
-
-const LEVEL: Record<Place['type'], MessageKey> = {
-  state: 'geography.levelState',
-  pc: 'geography.levelPc',
-  ac: 'geography.levelAc',
-  part: 'geography.levelPart',
-  polling_station: 'geography.levelStation',
-};
-
-/** Every child of a node (or the top level), across pages. */
-async function allChildren(parentId: string | null): Promise<Place[]> {
-  const items: Place[] = [];
-  let cursor: string | undefined;
-  do {
-    const page = await unwrap(
-      apiClient().GET('/v1/geographies', {
-        params: { query: { ...(parentId ? { parentId } : {}), limit: 200, cursor } },
-      }),
-    );
-    items.push(...page.items);
-    cursor = page.nextCursor ?? undefined;
-  } while (cursor);
-  return items;
 }
 
 /** The States, PCs and ACs the admin can see, as a tree. */

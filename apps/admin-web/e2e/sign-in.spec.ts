@@ -18,7 +18,7 @@ test('an admin signs in, passes the MFA step and lands where they were going', a
     page.getByRole('heading', { level: 1, name: 'Users and assignments' }),
   ).toBeVisible();
   // The name comes from /v1/me, through this server's /api.
-  await expect(page.getByText('Test Admin')).toBeVisible();
+  await expect(page.getByRole('banner').getByText('Test Admin')).toBeVisible();
 
   // The tokens are httpOnly cookies: page scripts can't read them.
   const cookies = await context.cookies();

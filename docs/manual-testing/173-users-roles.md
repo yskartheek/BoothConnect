@@ -15,8 +15,8 @@
 - The first admin of a deployment (or a State admin, above everyone's area)
   is set up on the server with `pnpm --filter api admin:grant`.
 - Everything is in the audit log, with ids only.
-- The admin web's Users page will follow once the admin web shell and
-  sign-in (#69, #70) are built.
+- The admin web's Users page is built in #176
+  ([guide](176-users-page.md)).
 
 Use made-up names and phone numbers only.
 
@@ -106,8 +106,6 @@ Use made-up names and phone numbers only.
 
 ## Known issues and notes
 
-- The admin web's Users page waits for the admin web shell and sign-in
-  (#69, #70).
 - A user can't be suspended or renamed yet. Ending all of someone's roles
   removes their access to data.
 - To start again, run `pnpm --filter api db:reset` and seed again.

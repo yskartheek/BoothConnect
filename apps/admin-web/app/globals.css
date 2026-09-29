@@ -300,7 +300,11 @@ a.side-nav-item[aria-current='page'] {
   font: var(--bc-text-label);
 }
 
-.form input {
+.form input,
+.form select,
+.filters input,
+.filters select,
+.area-picker select {
   min-height: var(--bc-touch-target-ios);
   padding: 0 var(--bc-space-sm);
   border: 1px solid var(--bc-color-border);
@@ -472,4 +476,131 @@ a.button {
 .tree-note {
   color: var(--bc-color-text-muted);
   font: var(--bc-text-caption);
+}
+
+/* ---- Users and assignments (#176) ---- */
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--bc-space-md);
+}
+
+.filter,
+.area-picker-level {
+  display: grid;
+  gap: var(--bc-space-xxs);
+}
+
+.filters label,
+.area-picker label,
+.area-picker legend {
+  font: var(--bc-text-label);
+}
+
+.filter-check {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-space-xs);
+  min-height: var(--bc-touch-target-ios);
+}
+
+.area-picker {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--bc-space-sm);
+  margin: 0;
+  padding: 0;
+  border: none;
+}
+
+.area-picker legend {
+  margin-bottom: var(--bc-space-xxs);
+  padding: 0;
+}
+
+.form h3 {
+  margin: var(--bc-space-sm) 0 0;
+  font: var(--bc-text-title);
+}
+
+.form-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bc-space-sm);
+}
+
+.details {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: var(--bc-space-xxs) var(--bc-space-md);
+  margin: 0;
+}
+
+.details dt {
+  font: var(--bc-text-label);
+}
+
+.details dd {
+  margin: 0;
+}
+
+.plain-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.muted {
+  color: var(--bc-color-text-muted);
+}
+
+.badge-active {
+  background: var(--bc-color-success-container);
+}
+
+.badge-upcoming {
+  background: var(--bc-color-warning-container);
+}
+
+.badge-ended {
+  background: var(--bc-color-surface-muted);
+}
+
+.button-danger {
+  background: var(--bc-color-danger);
+  color: var(--bc-color-on-danger);
+}
+
+.dialog-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  background: var(--bc-color-scrim);
+}
+
+.dialog {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  z-index: 31;
+  display: grid;
+  gap: var(--bc-space-sm);
+  width: min(28rem, calc(100vw - 2 * var(--bc-space-md)));
+  padding: var(--bc-space-lg);
+  box-sizing: border-box;
+  border-radius: var(--bc-radius-medium);
+  background: var(--bc-color-surface);
+  box-shadow: var(--bc-elevation-high);
+  transform: translate(-50%, -50%);
+}
+
+.dialog h2 {
+  margin: 0;
+  font: var(--bc-text-title);
+}
+
+.dialog p {
+  margin: 0;
 }

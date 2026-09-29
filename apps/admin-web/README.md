@@ -106,3 +106,24 @@ The browser never holds a token.
     the audit log is exact.
   - Parts and polling stations load when an AC or part is opened. They are
     read-only and labelled "From roll imports".
+
+## Users and assignments (#176)
+
+`/users` manages the people of the admin's area, through `/v1/users` and
+`/v1/role-assignments`:
+
+- **The list** shows each person's active roles in the area, 50 at a time
+  (**Show more** follows `nextCursor`). Filters: area or booth, role, name or
+  phone (`q`), and "Only people with an active role" (on by default).
+- **Place pickers** (`components/users/area-picker.tsx`) are cascading
+  dropdowns. The first lists the admin's own admin nodes from `/v1/me`, and
+  each choice adds the level below, down to polling stations. Nothing
+  outside the admin's area is offered.
+- **Open** shows a person's role history in the area. **Give a role** and
+  **Add a user** check the obvious rules first: volunteers go on a polling
+  station, and the end date comes after the start. The API's 422 messages are
+  shown as they are.
+- **End role** asks for confirmation first. It isn't offered on the admin's
+  own admin role, which the API refuses.
+- Browser tests check the page with axe (`e2e/axe.ts`): no serious or
+  critical WCAG 2.1 A/AA violations.
