@@ -178,3 +178,23 @@ file of the batch from `GET /v1/imports/batches/:id`:
 - **Confirm all ready files** counts only `ready` files and asks first. It
   calls `POST /v1/imports/batches/:id/confirm` and lists any file the API
   skipped, with the reason.
+
+## Voter record (#75)
+
+`/voters` (`components/voters/`):
+
+- **Search:** `GET /v1/households?q=` (address, house number, member name or
+  EPIC). A household expands to its members (`GET /v1/households/:id`), and
+  a member links to `/voters?voter=<id>`.
+- **Record:** `GET /v1/voters/:id?history=true`. Opening it is audited by
+  the API as `voter.view`.
+  - One row per field: the official value (for name, age and gender, from the
+    roll's `official`) and the current value(s), with the source, who and
+    when.
+  - **History** expands the earlier values.
+  - A field with two current values is an open conflict: flagged at the top
+    and on the row, with both values, and no correction.
+  - **Correct** sends `PATCH /v1/voters/:id` with the current value as
+    `baseVersion` (a change meanwhile becomes a conflict, not an overwrite).
+    The API stores it as `admin_corrected`. Consent-gated fields aren't
+    corrected here.

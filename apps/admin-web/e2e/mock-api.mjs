@@ -305,6 +305,199 @@ const batchDetail = (batch) => {
     createdAt: batch.createdAt,
   };
 };
+// Voters (#75): one synthetic household with two members. Member 1's name
+// was corrected once (so it has history) and two offline edits of their
+// mobile number collided (an open conflict).
+let voterData = null;
+let nextValue = 0;
+function resetVoters() {
+  const at = (day) =>
+    `2026-0${day < 10 ? 1 : 2}-${String((day % 28) + 1).padStart(2, '0')}T05:00:00.000Z`;
+  const value = (id, v, extra = {}) => ({
+    id,
+    value: v,
+    sourceType: 'volunteer_collected',
+    collectedBy: { id: 'u-volunteer', name: 'Test Volunteer' },
+    collectedAt: at(10),
+    supersedesId: null,
+    carriedFromId: null,
+    conflictWithId: null,
+    ...extra,
+  });
+  const fields = () =>
+    [
+      { key: 'name', type: 'text', options: null, current: [], history: [] },
+      { key: 'age', type: 'number', options: null, current: [], history: [] },
+      {
+        key: 'gender',
+        type: 'single_select',
+        options: [{ value: 'female' }, { value: 'male' }, { value: 'third_gender' }],
+        current: [],
+        history: [],
+      },
+      { key: 'mobile_number', type: 'phone', options: null, current: [], history: [] },
+      { key: 'occupation', type: 'text', options: null, current: [], history: [] },
+    ].map((f) => ({
+      labelKey: `field.${f.key}`,
+      isRestricted: false,
+      requiresConsent: false,
+      ...f,
+    }));
+  const voter = (serial, name, age, gender) => ({
+    id: `voter-${serial}`,
+    householdId: 'household-1',
+    partId: 'n-4',
+    pollingStationId: 'n-5',
+    origin: 'official_import',
+    recordStatus: 'active',
+    sectionNo: 1,
+    serialNo: serial,
+    epicNumber: `TST${1_000_000 + serial}`,
+    official: {
+      name,
+      age,
+      gender,
+      relationType: 'father',
+      relativeName: `Synthetic Relative ${serial}`,
+      houseNumber: '5-1',
+    },
+    previousVoterIds: [],
+    fields: fields(),
+    visitsMet: [],
+  });
+  const one = voter(1, 'Synthetic Person 1', 34, 'female');
+  const f = (key) => one.fields.find((x) => x.key === key);
+  f('name').history = [value('val-name-1', 'Synthetic Persen 1', { collectedAt: at(5) })];
+  f('name').current = [
+    value('val-name-2', 'Synthetic Person One', {
+      supersedesId: 'val-name-1',
+      sourceType: 'admin_corrected',
+      collectedBy: { id: 'u-admin', name: 'Test Admin' },
+    }),
+  ];
+  f('mobile_number').current = [
+    value('val-mob-1', '+919999900101', { conflictWithId: 'val-mob-2' }),
+    value('val-mob-2', '+919999900102', {
+      conflictWithId: 'val-mob-1',
+      collectedBy: { id: 'u-other', name: 'Other Volunteer' },
+    }),
+  ];
+  voterData = { voters: [one, voter(2, 'Synthetic Person 2', 61, 'male')] };
+}
+resetVoters();
+const memberOf = (v) => {
+  const current = (key) => v.fields.find((f) => f.key === key)?.current[0]?.value;
+  return {
+    id: v.id,
+    origin: v.origin,
+    sectionNo: v.sectionNo,
+    serialNo: v.serialNo,
+    epicNumber: v.epicNumber,
+    name: current('name') ?? v.official.name,
+    age: current('age') ?? v.official.age,
+    gender: current('gender') ?? v.official.gender,
+    relationType: v.official.relationType,
+    relativeName: v.official.relativeName,
+    hasConflict: v.fields.some((f) => f.current.length > 1),
+  };
+};
+/** Answers a voter or household request; false when it isn't one. */
+function voterRequest(req, res, url, body) {
+  if (req.method === 'GET' && url.pathname === '/v1/households') {
+    const q = (url.searchParams.get('q') ?? '').toLowerCase();
+    const matches =
+      !q ||
+      '5-1 h no 5-1'.includes(q) ||
+      voterData.voters.some(
+        (v) => memberOf(v).name.toLowerCase().includes(q) || v.epicNumber.toLowerCase() === q,
+      );
+    const household = {
+      id: 'household-1',
+      partId: 'n-4',
+      pollingStationId: 'n-5',
+      displayAddress: 'H NO 5-1',
+      houseKey: '5-1',
+      origin: 'official_import',
+      voterCount: voterData.voters.length,
+      lastVisit: null,
+    };
+    return send(res, 200, { items: matches ? [household] : [], nextCursor: null });
+  }
+  if (req.method === 'GET' && url.pathname === '/v1/households/household-1') {
+    return send(res, 200, {
+      id: 'household-1',
+      partId: 'n-4',
+      pollingStationId: 'n-5',
+      displayAddress: 'H NO 5-1',
+      houseKey: '5-1',
+      structuredAddress: null,
+      location: null,
+      origin: 'official_import',
+      status: 'active',
+      members: voterData.voters.map(memberOf),
+      lastVisit: null,
+    });
+  }
+  const one = /^\/v1\/voters\/([^/]+)$/.exec(url.pathname);
+  if (!one) return false;
+  const voter = voterData.voters.find((v) => v.id === one[1]);
+  if (!voter) return error(res, 404, 'NOT_FOUND');
+  if (req.method === 'GET') return send(res, 200, voter);
+  if (req.method === 'PATCH') {
+    const results = body.fields.map((edit) => {
+      const field = voter.fields.find((f) => f.key === edit.fieldKey);
+      if (!field)
+        return {
+          fieldKey: edit.fieldKey,
+          status: 'rejected',
+          code: 'unknown_field',
+          message: 'Unknown field',
+        };
+      if (field.key === 'age' && (edit.value < 18 || edit.value > 120)) {
+        return {
+          fieldKey: edit.fieldKey,
+          status: 'rejected',
+          code: 'invalid_value',
+          message: 'age must be between 18 and 120',
+        };
+      }
+      const now = field.current[0] ?? null;
+      const created = {
+        id: `val-new-${(nextValue += 1)}`,
+        value: edit.value,
+        sourceType: 'admin_corrected',
+        collectedBy: { id: 'u-admin', name: 'Test Admin' },
+        collectedAt: new Date().toISOString(),
+        supersedesId: now?.id ?? null,
+        carriedFromId: null,
+        conflictWithId: null,
+      };
+      if (now && now.id !== edit.baseVersion) {
+        created.conflictWithId = now.id;
+        field.current.push(created);
+        return {
+          fieldKey: edit.fieldKey,
+          status: 'conflict',
+          entityId: voter.id,
+          fieldValueId: created.id,
+          conflictWithId: now.id,
+        };
+      }
+      if (now) field.history.unshift(now);
+      field.current = [created];
+      return {
+        fieldKey: edit.fieldKey,
+        status: 'applied',
+        entityId: voter.id,
+        fieldValueId: created.id,
+        supersedesId: now?.id ?? null,
+      };
+    });
+    return send(res, 200, { id: voter.id, fields: results });
+  }
+  return error(res, 404, 'NOT_FOUND');
+}
+
 /** Answers an import request; false when it isn't one. */
 function importRoute(req, res, url, body) {
   if (req.method === 'POST' && url.pathname === '/v1/imports/batches') {
@@ -448,6 +641,7 @@ createServer(async (req, res) => {
       seedUsers(seeded ?? { ac101: find('n-3'), part1: find('n-4'), booth1: find('n-5') });
     }
     if (!only || only === 'imports') resetImports();
+    if (!only || only === 'voters') resetVoters();
     return send(res, 204);
   }
   if (req.method === 'POST' && url.pathname === '/v1/auth/otp/request') return send(res, 202);
@@ -588,6 +782,8 @@ createServer(async (req, res) => {
     a.validUntil = new Date().toISOString();
     return send(res, 200, assignmentView(a));
   }
+  const voterRoute = voterRequest(req, res, url, body);
+  if (voterRoute !== false) return;
   if (req.method === 'GET' && url.pathname === '/v1/geographies') {
     const parentId = url.searchParams.get('parentId');
     const items = nodes

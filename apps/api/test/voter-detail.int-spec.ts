@@ -229,6 +229,40 @@ describe('GET /v1/voters/:id (real Postgres)', () => {
     expect(body(outside)).toMatchObject({ code: 'NOT_FOUND' });
   });
 
+  it('audits every opening of a record, with ids only; a voter outside the area isn’t', async () => {
+    const voter = await freshVoter();
+    const { http, userId } = await loginAs(t, ADMIN);
+    const views = () =>
+      t.prisma.auditEvent.findMany({
+        where: { action: 'voter.view', resourceId: voter.id },
+        orderBy: { seq: 'asc' },
+      });
+    const before = (await views()).length;
+    await http.get(`/v1/voters/${voter.id}?history=true`).expect(200);
+    const events = await views();
+    expect(events).toHaveLength(before + 1);
+    expect(events.at(-1)).toMatchObject({
+      actorId: userId,
+      resourceType: 'voter',
+      result: 'success',
+      metadata: { history: true },
+    });
+    // No names, EPICs or values.
+    const text = JSON.stringify(events.at(-1)!.metadata);
+    expect(text).not.toContain(voter.sourceVoterId ?? 'n/a');
+    expect(text).not.toMatch(/name/i);
+
+    // Not found (or outside the area): nothing to audit as viewed.
+    const other = await t.prisma.voter.findFirstOrThrow({ where: { pollingStationId: station2 } });
+    const volunteerA = await loginAs(t, VOLUNTEER_A);
+    await volunteerA.http.get(`/v1/voters/${other.id}`).expect(404);
+    expect(
+      await t.prisma.auditEvent.count({
+        where: { action: 'voter.view', resourceId: other.id, actorId: volunteerA.userId },
+      }),
+    ).toBe(0);
+  });
+
   it('rejects a bad ID or history flag with 400', async () => {
     const { http } = await loginAs(t, VOLUNTEER_A);
     const voter = await freshVoter();

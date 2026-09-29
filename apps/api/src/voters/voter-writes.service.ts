@@ -60,6 +60,8 @@ export class VoterWritesService {
           value: edit.value as Prisma.InputJsonValue,
           baseVersion: edit.baseVersion,
           consentId: edit.consentId,
+          // An admin's edit is a correction; a volunteer's is collected in the field.
+          sourceType: scope.roles.includes('admin') ? ('admin_corrected' as const) : undefined,
         })),
         client,
       );
