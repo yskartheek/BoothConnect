@@ -10,6 +10,16 @@ export type MessageKey = keyof typeof en;
 // English only for now; a language switch comes with the admin settings.
 const messages: Record<MessageKey, string> = en;
 
-export function t(key: MessageKey): string {
-  return messages[key];
+/** The message, with `{name}` placeholders filled from `params`. */
+export function t(key: MessageKey, params?: Record<string, string | number>): string {
+  const message = messages[key];
+  if (!params) return message;
+  return message.replace(/\{(\w+)\}/g, (match, name: string) =>
+    name in params ? String(params[name]) : match,
+  );
+}
+
+/** Whether a string is a message key (e.g. an API error code as `error.<CODE>`). */
+export function isMessageKey(key: string): key is MessageKey {
+  return key in messages;
 }

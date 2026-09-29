@@ -12,8 +12,6 @@
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },
   "web.appDescription": "Administration portal for BoothConnect field operations",
   "@web.appDescription": { "description": "HTML meta description of the admin portal." },
-  "web.welcome.message": "Sign-in is not available yet. This is the admin portal skeleton.",
-  "@web.welcome.message": { "description": "Shown under the title until sign-in exists." },
   "web.appearance.legend": "Appearance",
   "@web.appearance.legend": { "description": "Heading of the theme and transparency controls." },
   "web.appearance.theme": "Theme",
@@ -27,6 +25,88 @@
   "web.appearance.reduceTransparency": "Reduce transparency",
   "@web.appearance.reduceTransparency": {
     "description": "Checkbox that makes glass panels solid."
+  },
+  "web.skipToContent": "Skip to main content",
+  "@web.skipToContent": {
+    "description": "Link at the top of every page for keyboard and screen-reader users."
+  },
+  "web.nav.label": "Main",
+  "@web.nav.label": { "description": "Accessible name of the side navigation." },
+  "web.nav.groupData": "Data",
+  "@web.nav.groupData": {
+    "description": "Heading of the navigation group for analytics, roll imports and campaigns."
+  },
+  "web.nav.groupAdmin": "Admin",
+  "@web.nav.groupAdmin": {
+    "description": "Heading of the navigation group for users, forms, privacy, audit and settings."
+  },
+  "web.nav.overview": "Overview",
+  "@web.nav.overview": {
+    "description": "Navigation item: the admin's home page with key numbers."
+  },
+  "web.nav.geography": "Geography",
+  "@web.nav.geography": {
+    "description": "Navigation item: States, PCs, ACs, parts and polling stations."
+  },
+  "web.nav.voters": "Voters and households",
+  "@web.nav.voters": { "description": "Navigation item: voter and household records." },
+  "web.nav.fieldOperations": "Field operations",
+  "@web.nav.fieldOperations": {
+    "description": "Navigation item: booth progress and volunteer activity (not in the first release)."
+  },
+  "web.nav.analytics": "Analytics",
+  "@web.nav.analytics": {
+    "description": "Navigation item: numbers for any area, from State down to a booth."
+  },
+  "web.nav.imports": "Roll imports",
+  "@web.nav.imports": { "description": "Navigation item: importing electoral roll PDFs." },
+  "web.nav.campaigns": "Campaigns",
+  "@web.nav.campaigns": { "description": "Navigation item: campaigns (not in the first release)." },
+  "web.nav.users": "Users and assignments",
+  "@web.nav.users": {
+    "description": "Navigation item: people and the booths or areas they are assigned to."
+  },
+  "web.nav.forms": "Form configuration",
+  "@web.nav.forms": {
+    "description": "Navigation item: which fields volunteers collect (not in the first release)."
+  },
+  "web.nav.privacy": "Privacy and consent",
+  "@web.nav.privacy": {
+    "description": "Navigation item: consent records and privacy settings (not in the first release)."
+  },
+  "web.nav.audit": "Audit and security",
+  "@web.nav.audit": { "description": "Navigation item: the audit log." },
+  "web.nav.settings": "Settings",
+  "@web.nav.settings": {
+    "description": "Navigation item: organization settings (not in the first release)."
+  },
+  "web.nav.later": "Later",
+  "@web.nav.later": {
+    "description": "Small label on navigation items that are not available yet."
+  },
+  "web.state.loading": "Loading…",
+  "@web.state.loading": { "description": "Shown while a page or panel is loading." },
+  "web.state.errorTitle": "Something went wrong",
+  "@web.state.errorTitle": {
+    "description": "Heading of the error message shown when a request fails."
+  },
+  "web.state.retry": "Try again",
+  "@web.state.retry": { "description": "Button that repeats a request that failed." },
+  "web.state.reference": "Reference: {requestId}",
+  "@web.state.reference": {
+    "description": "Under an error, the request ID to quote to support. {requestId} is a code."
+  },
+  "web.state.deniedTitle": "No access",
+  "@web.state.deniedTitle": {
+    "description": "Heading shown when the admin may not see a page or record."
+  },
+  "web.state.notReadyTitle": "Not ready yet",
+  "@web.state.notReadyTitle": {
+    "description": "Heading on pages that are planned but not built yet."
+  },
+  "web.state.notReadyMessage": "This page is being built.",
+  "@web.state.notReadyMessage": {
+    "description": "Body text on pages that are planned but not built yet."
   },
 
   "visitOutcome.completed": "Met the family",

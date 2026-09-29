@@ -10,14 +10,6 @@ body {
     var(--bc-color-background);
 }
 
-main {
-  display: grid;
-  gap: var(--bc-space-lg);
-  max-width: 40rem;
-  margin: 0 auto;
-  padding: var(--bc-space-xxl) var(--bc-space-md);
-}
-
 h1 {
   font: var(--bc-text-display);
   margin: 0 0 var(--bc-space-xs);
@@ -67,4 +59,213 @@ p {
 .appearance input {
   min-height: var(--bc-touch-target-ios);
   font: inherit;
+}
+
+/* ---- Portal shell (#69): side navigation, top bar, page ---- */
+.skip-link {
+  position: absolute;
+  top: var(--bc-space-sm);
+  left: var(--bc-space-sm);
+  z-index: 10;
+  padding: var(--bc-space-xs) var(--bc-space-sm);
+  border-radius: var(--bc-radius-small);
+  background: var(--bc-color-primary);
+  color: var(--bc-color-on-primary);
+  transform: translateY(-200%);
+}
+
+.skip-link:focus {
+  transform: none;
+}
+
+.shell {
+  display: grid;
+  grid-template-columns: 16rem minmax(0, 1fr);
+  gap: var(--bc-space-lg);
+  min-height: 100vh;
+  padding: var(--bc-space-md);
+  box-sizing: border-box;
+}
+
+.shell-nav {
+  position: sticky;
+  top: var(--bc-space-md);
+  align-self: start;
+  max-height: calc(100vh - 2 * var(--bc-space-md));
+  overflow-y: auto;
+  box-sizing: border-box;
+}
+
+.shell-brand {
+  margin: 0 0 var(--bc-space-md);
+  font: var(--bc-text-title);
+  color: var(--bc-color-text);
+}
+
+.shell-body {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  gap: var(--bc-space-lg);
+  min-width: 0;
+}
+
+.shell-top {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--bc-space-sm);
+}
+
+.shell-body main {
+  display: grid;
+  align-content: start;
+  gap: var(--bc-space-lg);
+  outline: none;
+}
+
+.side-nav ul {
+  display: grid;
+  gap: var(--bc-space-xxs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.side-nav-group + .side-nav-group {
+  margin-top: var(--bc-space-md);
+}
+
+.side-nav-heading {
+  margin: 0 0 var(--bc-space-xs);
+  font: var(--bc-text-caption);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.side-nav-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bc-space-xs);
+  min-height: var(--bc-touch-target-ios);
+  padding: 0 var(--bc-space-sm);
+  border-radius: var(--bc-radius-small);
+  color: var(--bc-color-text);
+  font: var(--bc-text-body-small);
+  text-decoration: none;
+}
+
+a.side-nav-item:hover {
+  background: var(--bc-color-surface-muted);
+}
+
+a.side-nav-item[aria-current='page'] {
+  background: var(--bc-color-primary-container);
+  font-weight: var(--bc-font-weight-semibold);
+}
+
+.side-nav-item[aria-disabled='true'] {
+  color: var(--bc-color-text-muted);
+  cursor: not-allowed;
+}
+
+.side-nav-badge {
+  padding: 0 var(--bc-space-xs);
+  border: 1px solid var(--bc-color-border);
+  border-radius: var(--bc-radius-pill);
+  font: var(--bc-text-caption);
+}
+
+.page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--bc-space-md);
+}
+
+.page-header h1 {
+  margin: 0;
+}
+
+.page-header-actions {
+  display: flex;
+  gap: var(--bc-space-sm);
+}
+
+/* ---- Buttons and popovers (Radix primitives, styled with tokens) ---- */
+.button {
+  min-height: var(--bc-touch-target-ios);
+  padding: 0 var(--bc-space-md);
+  border: 1px solid transparent;
+  border-radius: var(--bc-radius-medium);
+  background: var(--bc-color-primary);
+  color: var(--bc-color-on-primary);
+  font: var(--bc-text-label);
+  cursor: pointer;
+}
+
+.button-quiet {
+  border-color: var(--bc-color-border);
+  background: var(--bc-color-surface);
+  color: var(--bc-color-text);
+}
+
+.popover {
+  z-index: 20;
+  border-radius: var(--bc-radius-medium);
+  box-shadow: var(--bc-elevation-high);
+}
+
+.popover .appearance {
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+/* ---- Loading, empty, error and denied states ---- */
+.state {
+  display: grid;
+  justify-items: start;
+  gap: var(--bc-space-sm);
+}
+
+.state h2 {
+  margin: 0;
+  font: var(--bc-text-headline);
+}
+
+.state-reference {
+  font: var(--bc-text-caption);
+  font-family: var(--bc-font-mono);
+}
+
+.state-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid var(--bc-color-border);
+  border-top-color: var(--bc-color-primary);
+  border-radius: 50%;
+  animation: spin var(--bc-duration-slow) linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .state-spinner {
+    animation: none;
+  }
+}
+
+@media (max-width: 48rem) {
+  .shell {
+    grid-template-columns: 1fr;
+  }
+
+  .shell-nav {
+    position: static;
+    max-height: none;
+  }
 }

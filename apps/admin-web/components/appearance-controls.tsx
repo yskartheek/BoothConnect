@@ -1,31 +1,29 @@
 'use client';
 
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 
+import {
+  applyReduceTransparency,
+  applyTheme,
+  savedReduceTransparency,
+  savedTheme,
+  type ThemeChoice,
+} from '@/lib/appearance';
 import { t } from '@/lib/i18n';
 
-export type ThemeChoice = 'system' | 'light' | 'dark';
+export type { ThemeChoice };
 
 /**
  * Lets an admin override the system theme and transparency settings. It sets
- * `data-theme` and `data-transparency` on <html>; the design-token CSS does the rest.
+ * `data-theme` and `data-transparency` on <html> (the design-token CSS does
+ * the rest) and remembers the choice in this browser.
  */
 export function AppearanceControls() {
-  const [theme, setTheme] = useState<ThemeChoice>('system');
-  const [reduceTransparency, setReduceTransparency] = useState(false);
+  // Rendered only in the appearance popover, after hydration, so reading
+  // localStorage in the initial state is safe.
+  const [theme, setTheme] = useState<ThemeChoice>(savedTheme);
+  const [reduceTransparency, setReduceTransparency] = useState(savedReduceTransparency);
   const themeId = useId();
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (theme === 'system') delete root.dataset.theme;
-    else root.dataset.theme = theme;
-  }, [theme]);
-
-  useEffect(() => {
-    const root = document.documentElement;
-    if (reduceTransparency) root.dataset.transparency = 'reduced';
-    else delete root.dataset.transparency;
-  }, [reduceTransparency]);
 
   return (
     <fieldset className="appearance">
@@ -34,7 +32,11 @@ export function AppearanceControls() {
       <select
         id={themeId}
         value={theme}
-        onChange={(event) => setTheme(event.target.value as ThemeChoice)}
+        onChange={(event) => {
+          const value = event.target.value as ThemeChoice;
+          setTheme(value);
+          applyTheme(value);
+        }}
       >
         <option value="system">{t('appearance.themeSystem')}</option>
         <option value="light">{t('appearance.themeLight')}</option>
@@ -44,7 +46,10 @@ export function AppearanceControls() {
         <input
           type="checkbox"
           checked={reduceTransparency}
-          onChange={(event) => setReduceTransparency(event.target.checked)}
+          onChange={(event) => {
+            setReduceTransparency(event.target.checked);
+            applyReduceTransparency(event.target.checked);
+          }}
         />
         {t('appearance.reduceTransparency')}
       </label>
