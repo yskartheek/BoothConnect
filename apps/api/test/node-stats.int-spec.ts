@@ -245,7 +245,11 @@ describe('node_stats: per-node analytics with roll-ups', () => {
 
     const byNode = await all();
     // Two EPICs are new; 59 of the 60 previous voters are no longer listed.
-    expect(byNode.get(s2.id)!.metrics.revisions).toEqual({ additions: 2, deletions: 59 });
+    expect(byNode.get(s2.id)!.metrics.revisions).toEqual({
+      additions: 2,
+      deletions: 59,
+      stationsCompared: 1,
+    });
     expect(byNode.get(part2.id)!.metrics.electors.total).toBe(3);
     expect(byNode.get(part2.id)!.own.quality).toMatchObject({
       files: 1,
@@ -255,7 +259,11 @@ describe('node_stats: per-node analytics with roll-ups', () => {
       rowsRejected: 0,
     });
     const ac = await node('ac', '101');
-    expect(byNode.get(ac.id)!.metrics.revisions).toEqual({ additions: 2, deletions: 59 });
+    expect(byNode.get(ac.id)!.metrics.revisions).toEqual({
+      additions: 2,
+      deletions: 59,
+      stationsCompared: 1,
+    });
   });
 
   it('a full rebuild gives the same numbers as the incremental refreshes', async () => {

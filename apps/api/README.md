@@ -638,6 +638,58 @@ text for each metric. Small groups are suppressed by the analytics API
   changes the refresh doesn't follow yet, such as new volunteer
   assignments.
 
+## Analytics API (#49)
+
+Admins and campaign managers (`@Roles`), for any node in their area. A node
+outside it, or above it, is 404.
+
+| Method | Path                                                       | Returns                                                               |
+| ------ | ---------------------------------------------------------- | --------------------------------------------------------------------- |
+| `GET`  | `/v1/analytics/nodes/:id/summary`                          | `{ node, computedAt, minCohort, metrics, definitions }`               |
+| `GET`  | `/v1/analytics/nodes/:id/children?metric=&order=asc\|desc` | `{ node, computedAt, total, average, children: [{ node, metrics }] }` |
+| `GET`  | `/v1/analytics/nodes/:id/revisions`                        | `{ node, current: { additions, deletions, net }, versions: [...] }`   |
+
+**Figures.** `metrics` is flat, with dotted keys:
+
+- counts: `electors.total`, `electors.male`, `ages.18-19` … `ages.80+`,
+  `ages.unknown`, `households.total`, `revisions.additions`,
+  `quality.rowsCorrected`, `fieldWork.householdsVisited`,
+  `fieldWork.outcomes.refused`, …;
+- derived: `genderRatio`, `medianAge`, `votersPerHousehold`,
+  `extractionQuality`, `visitedShare`, `revisions.net`.
+
+Each figure is one of:
+
+- a **number**. `0` is a real zero;
+- **`"suppressed"`**: a group smaller than `ANALYTICS_MIN_COHORT` (default
+  10), or one that could be worked out from the others;
+- **`null`**: not collected. Examples: no earlier revision to compare
+  with, no import quality data, no field work yet.
+
+**Suppression** (`src/analytics/suppression.ts`), in order:
+
+1. every count from 1 to cohort − 1 is suppressed;
+2. within gender, age bands and visit outcomes, a single suppressed category
+   would be the total minus the others, so the smallest other one is
+   suppressed too;
+3. across a node's children, the same rule applies against the parent's
+   total. If no sibling can cover, the parent's figure in that table is
+   suppressed instead;
+4. derived figures are suppressed when a count they are built from is.
+
+Steps 2 and 3 repeat until nothing changes. **A node's summary is its row
+in its parent's children table**, so comparing the two calls can't undo a
+suppression.
+
+**Children table.** `average` gives counts as the parent's total ÷ the
+number of children, and ratios as the parent's. `metric` sorts by any
+figure: numbers first, then suppressed, then not collected.
+
+**Revisions.** `versions` lists a part's source versions, with voters,
+additions and deletions (additions and deletions are suppressed together).
+Above part level, `versions` is empty and `current` gives the summed
+changes.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it
