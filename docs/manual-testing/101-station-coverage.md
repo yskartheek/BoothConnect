@@ -111,9 +111,8 @@ real roll.
 
 ## Known issues and notes
 
-- There is no API yet to add an auxiliary station by hand. They come from
-  the roll's cover page at import confirm. The overlap between two
-  auxiliary stations is covered by the tests.
+- Auxiliary stations can be added by hand since #172. The
+  `172-add-auxiliary-station.md` guide shows two of them overlapping.
 - Voters without a section or serial number (added by volunteers) move with
   their household. A household whose members are split between stations
   goes to the station most of them are at.

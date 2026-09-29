@@ -240,6 +240,7 @@ describe('Geography master data (real Postgres)', () => {
         code: '31',
         name: 'Single AC',
         reservation: 'ST',
+        isAuxiliary: false,
       });
       expect(await t.prisma.geographyClosure.count({ where: { descendantId: ac.id } })).toBe(3);
       const audit = await t.prisma.auditEvent.findFirstOrThrow({

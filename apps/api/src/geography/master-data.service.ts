@@ -41,6 +41,8 @@ export interface MasterNodeView {
   code: string;
   name: string;
   reservation: string | null;
+  /** Polling stations: an auxiliary station of its part. */
+  isAuxiliary: boolean;
 }
 
 const PARENT_OF: Record<MasterLevel, MasterLevel | null> = { state: null, pc: 'state', ac: 'pc' };
@@ -133,12 +135,24 @@ export class MasterDataService {
     return { ...report, applied: true };
   }
 
-  /** Adds one State, PC or AC. */
+  /** Adds one State, PC or AC, or an auxiliary polling station. */
   async create(
     scope: Scope,
     actor: Actor,
-    dto: { type: MasterLevel; code: string; name: string; reservation?: string; parentId?: string },
+    dto: {
+      type: MasterLevel | 'polling_station';
+      code: string;
+      name: string;
+      reservation?: string;
+      parentId?: string;
+      isAuxiliary?: boolean;
+      address?: string;
+      stationType?: string;
+    },
   ): Promise<MasterNodeView> {
+    if (dto.type === 'polling_station') {
+      return this.addAuxiliaryStation(scope, actor, { ...dto, type: dto.type });
+    }
     const parentType = PARENT_OF[dto.type];
     let programId: string;
     if (parentType === null) {
@@ -176,6 +190,77 @@ export class MasterDataService {
           sessionId: actor.sessionId ?? null,
           requestId: actor.requestId ?? null,
           metadata: { type: dto.type, parentId: dto.parentId ?? null },
+        },
+        tx,
+      );
+      return created;
+    });
+    return view(node);
+  }
+
+  /**
+   * Adds an auxiliary polling station to a part by hand (#172): one the roll
+   * reader missed, or one announced after the roll was published. It takes no
+   * voters until its coverage is set (#101). A later import of the part links
+   * to it by code instead of adding another.
+   */
+  private async addAuxiliaryStation(
+    scope: Scope,
+    actor: Actor,
+    dto: {
+      type: 'polling_station';
+      code: string;
+      name: string;
+      parentId?: string;
+      isAuxiliary?: boolean;
+      address?: string;
+      stationType?: string;
+      reservation?: string;
+    },
+  ): Promise<MasterNodeView> {
+    if (!dto.parentId) throw unprocessable('A polling station needs its part');
+    const part = await this.prisma.geographyNode.findUnique({ where: { id: dto.parentId } });
+    if (!part || !(await this.adminWithin(scope, part))) throw notFound('Geography node');
+    if (part.type !== 'part') throw unprocessable('A polling station goes under a part');
+    if (dto.isAuxiliary !== true) {
+      throw unprocessable(
+        'Only an auxiliary station can be added by hand; the main station comes from the roll',
+      );
+    }
+    if (!dto.address) throw unprocessable('An auxiliary station needs its address');
+    if (dto.reservation) throw unprocessable('A polling station has no reservation');
+    const node = await this.prisma.$transaction(async (tx) => {
+      const taken = await tx.geographyNode.findFirst({
+        where: { parentId: part.id, code: dto.code },
+      });
+      if (taken) {
+        throw new AppException(
+          HttpStatus.CONFLICT,
+          ErrorCode.CONFLICT,
+          `Part ${part.code} already has a station ${dto.code}`,
+        );
+      }
+      const created = await tx.geographyNode.create({
+        data: {
+          programId: part.programId,
+          parentId: part.id,
+          type: 'polling_station',
+          code: dto.code,
+          name: dto.name,
+          isAuxiliary: true,
+          metadata: { address: dto.address, stationType: dto.stationType ?? 'general' },
+        },
+      });
+      await this.audit.record(
+        {
+          action: 'geography.create',
+          resourceType: 'geography_node',
+          resourceId: created.id,
+          result: 'success',
+          actorId: actor.userId,
+          sessionId: actor.sessionId ?? null,
+          requestId: actor.requestId ?? null,
+          metadata: { type: 'polling_station', parentId: part.id, isAuxiliary: true },
         },
         tx,
       );
@@ -342,6 +427,7 @@ function view(node: {
   type: string;
   code: string;
   name: string;
+  isAuxiliary: boolean;
   metadata: unknown;
 }): MasterNodeView {
   return {
@@ -351,6 +437,7 @@ function view(node: {
     code: node.code,
     name: node.name,
     reservation: reservationOf(node.metadata),
+    isAuxiliary: node.isAuxiliary,
   };
 }
 

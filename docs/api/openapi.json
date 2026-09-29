@@ -942,6 +942,12 @@
       },
       "CreateGeographyDto": {
         "properties": {
+          "address": {
+            "description": "Polling stations: where it is, as printed or announced.",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
           "code": {
             "description": "Official number: S29, 6, 40…",
             "maxLength": 50,
@@ -949,13 +955,17 @@
             "pattern": "^[^/]+$",
             "type": "string"
           },
+          "isAuxiliary": {
+            "description": "Polling stations: must be true (a part's main station comes from its roll).",
+            "type": "boolean"
+          },
           "name": {
             "maxLength": 200,
             "minLength": 1,
             "type": "string"
           },
           "parentId": {
-            "description": "The State of a PC, the PC of an AC; none for a State.",
+            "description": "The State of a PC, the PC of an AC, the part of a polling station; none for a State.",
             "format": "uuid",
             "type": "string"
           },
@@ -965,11 +975,22 @@
             "minLength": 1,
             "type": "string"
           },
+          "stationType": {
+            "description": "Polling stations: general (default), male or female.",
+            "enum": [
+              "general",
+              "male",
+              "female"
+            ],
+            "type": "string"
+          },
           "type": {
+            "description": "state, pc or ac; or polling_station for an auxiliary station added by hand (#172).",
             "enum": [
               "state",
               "pc",
-              "ac"
+              "ac",
+              "polling_station"
             ],
             "type": "string"
           }
@@ -2696,6 +2717,10 @@
           "id": {
             "type": "string"
           },
+          "isAuxiliary": {
+            "description": "Polling stations: an auxiliary station of its part.",
+            "type": "boolean"
+          },
           "name": {
             "type": "string"
           },
@@ -2733,7 +2758,8 @@
           "type",
           "code",
           "name",
-          "reservation"
+          "reservation",
+          "isAuxiliary"
         ],
         "type": "object"
       },
