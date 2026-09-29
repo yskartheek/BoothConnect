@@ -1,5 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../../data/local/local_store.dart';
+
 enum AuthStatus { signedOut, signedIn }
 
 /// Whether a volunteer is signed in. The router sends a signed-out user to
@@ -11,7 +13,13 @@ class AuthController extends Notifier<AuthStatus> {
 
   void signedIn() => state = AuthStatus.signedIn;
 
-  void signOut() => state = AuthStatus.signedOut;
+  /// Signs out and wipes the phone's database and its key first: the next
+  /// volunteer on this phone starts empty.
+  Future<void> signOut() async {
+    await ref.read(localStoreProvider).wipe();
+    ref.invalidate(appDatabaseProvider);
+    state = AuthStatus.signedOut;
+  }
 }
 
 final authProvider = NotifierProvider<AuthController, AuthStatus>(

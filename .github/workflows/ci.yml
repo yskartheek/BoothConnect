@@ -196,6 +196,9 @@ jobs:
           flutter-version: ${{ env.FLUTTER_VERSION }}
           cache: true
       - run: flutter pub get
+      # Drift's generated code (*.g.dart) is committed: fail if it is stale.
+      - run: dart run build_runner build
+      - run: git diff --exit-code -- lib
       - run: dart format --output=none --set-exit-if-changed lib test
       - run: flutter analyze
       - run: flutter test

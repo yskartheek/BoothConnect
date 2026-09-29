@@ -9,6 +9,7 @@
     "lint": "flutter pub get && dart format --output=none --set-exit-if-changed lib test && flutter analyze",
     "analyze": "flutter pub get && flutter analyze",
     "format": "dart format lib test",
+    "generate": "flutter pub get && dart run build_runner build",
     "format:check": "dart format --output=none --set-exit-if-changed lib test",
     "test": "flutter pub get && flutter test"
   }

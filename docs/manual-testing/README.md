@@ -113,3 +113,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #75   | [Admin web: voter record view](75-voter-record.md)                                              | Ready to test   |
 | #57   | [Mobile app shell: navigation, sign-in redirect, theme](57-mobile-shell.md)                     | Ready to test   |
 | #58   | [Mobile shared state widgets and sync status chip](58-mobile-states.md)                         | Ready to test   |
+| #59   | [Mobile encrypted local database](59-mobile-encrypted-db.md)                                    | Ready to test   |
