@@ -1,5 +1,6 @@
 import { HttpStatus, Injectable } from '@nestjs/common';
 
+import { notFound } from '../authz/scoped-query';
 import type { Actor } from '../common/actor';
 import { AppException } from '../common/errors/app.exception';
 import { ErrorCode } from '../common/errors/error-codes';
@@ -7,11 +8,12 @@ import {
   DEFAULT_PAGE_SIZE,
   decodeCursor,
   encodeCursor,
+  escapeLike,
   type Page,
   toPage,
 } from '../common/pagination';
 import { PrismaService } from '../database/prisma.service';
-import type { AuditResult, Prisma } from '../generated/prisma/client';
+import { type AuditResult, Prisma } from '../generated/prisma/client';
 import type { AuditEventsQuery } from './audit-events.dto';
 import { AuditService } from './audit.service';
 
@@ -73,23 +75,34 @@ export class AuditEventsService {
           ).s,
         )
       : null;
-    const where: Prisma.AuditEventWhereInput = {
-      ...(query.actorId ? { actorId: query.actorId } : {}),
-      ...(query.action
-        ? query.action.endsWith('*')
-          ? { action: { startsWith: query.action.slice(0, -1) } }
-          : { action: query.action }
-        : {}),
-      ...(query.resourceType ? { resourceType: query.resourceType } : {}),
-      ...(query.resourceId ? { resourceId: query.resourceId } : {}),
-      ...(query.result ? { result: query.result as AuditResult } : {}),
-      ...(from || to ? { at: { ...(from ? { gte: from } : {}), ...(to ? { lt: to } : {}) } } : {}),
-      ...(before !== null ? { seq: { lt: before } } : {}),
-    };
+    if (
+      query.nodeId &&
+      !(await this.prisma.geographyNode.findUnique({ where: { id: query.nodeId } }))
+    ) {
+      throw notFound('Geography node');
+    }
+    const conditions: Prisma.Sql[] = [Prisma.sql`TRUE`];
+    if (query.actorId) conditions.push(Prisma.sql`e.actor_id = ${query.actorId}::uuid`);
+    if (query.action) {
+      conditions.push(
+        query.action.endsWith('*')
+          ? Prisma.sql`e.action LIKE ${`${escapeLike(query.action.slice(0, -1))}%`}`
+          : Prisma.sql`e.action = ${query.action}`,
+      );
+    }
+    if (query.resourceType) conditions.push(Prisma.sql`e.resource_type = ${query.resourceType}`);
+    if (query.resourceId) conditions.push(Prisma.sql`e.resource_id = ${query.resourceId}`);
+    if (query.result) conditions.push(Prisma.sql`e.result = ${query.result}::audit_result`);
+    if (from) conditions.push(Prisma.sql`e.at >= ${from}`);
+    if (to) conditions.push(Prisma.sql`e.at < ${to}`);
+    if (before !== null) conditions.push(Prisma.sql`e.seq < ${before}`);
+    if (query.nodeId) conditions.push(inArea(query.nodeId));
+    const seqs = await this.prisma.$queryRaw<{ seq: bigint }[]>`
+      SELECT e.seq FROM audit_event e WHERE ${Prisma.join(conditions, ' AND ')}
+      ORDER BY e.seq DESC LIMIT ${limit + 1}`;
     const rows = await this.prisma.auditEvent.findMany({
-      where,
+      where: { seq: { in: seqs.map((r) => r.seq) } },
       orderBy: { seq: 'desc' },
-      take: limit + 1,
       include: { actor: { select: { id: true, name: true } } },
     });
     const page = toPage(rows.map(view), limit, (e) => encodeCursor({ s: e.seq }));
@@ -110,6 +123,7 @@ export class AuditEventsService {
             resourceType: query.resourceType,
             resourceId: query.resourceId,
             result: query.result,
+            nodeId: query.nodeId,
             from: query.from,
             to: query.to,
           }).filter(([, v]) => v !== undefined),
@@ -176,4 +190,38 @@ function view(e: {
     prevHash: e.prevHash,
     hash: e.hash,
   };
+}
+
+/** A resource id that is a UUID, as a uuid; otherwise null (never matches). */
+const asUuid = Prisma.sql`CASE WHEN e.resource_id ~* '^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+  THEN e.resource_id::uuid END`;
+
+/**
+ * Events that belong to an area (a booth, or any node above it): about a
+ * household, member or visit at one of its booths, an import file of one of
+ * its parts or an import batch opened for it or below; or by a volunteer
+ * who was assigned in the area when the event happened.
+ */
+function inArea(nodeId: string): Prisma.Sql {
+  const under = (column: Prisma.Sql) =>
+    Prisma.sql`EXISTS (SELECT 1 FROM geography_closure c
+                       WHERE c.ancestor_id = ${nodeId}::uuid AND c.descendant_id = ${column})`;
+  return Prisma.sql`(
+    (e.resource_type = 'household' AND EXISTS (
+      SELECT 1 FROM household h WHERE h.id = ${asUuid} AND ${under(Prisma.sql`h.polling_station_id`)}))
+    OR (e.resource_type = 'voter' AND EXISTS (
+      SELECT 1 FROM voter v WHERE v.id = ${asUuid} AND ${under(Prisma.sql`v.polling_station_id`)}))
+    OR (e.resource_type = 'visit' AND EXISTS (
+      SELECT 1 FROM visit vi JOIN household h ON h.id = vi.household_id
+      WHERE vi.id = ${asUuid} AND ${under(Prisma.sql`h.polling_station_id`)}))
+    OR (e.resource_type = 'import_file' AND EXISTS (
+      SELECT 1 FROM import_file f WHERE f.id = ${asUuid} AND ${under(Prisma.sql`f.part_node_id`)}))
+    OR (e.resource_type = 'import_batch' AND EXISTS (
+      SELECT 1 FROM import_batch b WHERE b.id = ${asUuid} AND ${under(Prisma.sql`b.target_node_id`)}))
+    OR (e.actor_id IS NOT NULL AND EXISTS (
+      SELECT 1 FROM role_assignment r
+      WHERE r.user_id = e.actor_id AND r.role = 'volunteer'
+        AND r.valid_from <= e.at AND (r.valid_until IS NULL OR r.valid_until > e.at)
+        AND ${under(Prisma.sql`r.geography_node_id`)}))
+  )`;
 }

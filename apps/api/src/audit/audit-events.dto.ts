@@ -13,7 +13,15 @@ import {
 import { PageQuery } from '../common/pagination';
 
 export class AuditEventsQuery extends PageQuery {
-  /** Events by this user. */
+  /**
+   * A booth, or any area above it: events about its households, members,
+   * visits and imports, and events by volunteers assigned there at the time.
+   */
+  @IsOptional()
+  @IsUUID()
+  nodeId?: string;
+
+  /** Events by this user (e.g. one volunteer). */
   @IsOptional()
   @IsUUID()
   actorId?: string;

@@ -7,6 +7,7 @@ import { loginAs, type SignedIn } from './support/auth';
 
 const ADMIN = '+919999900001';
 const VOLUNTEER_A = '+919999900002';
+const VOLUNTEER_B = '+919999900003';
 
 describe('GET /v1/audit-events (real Postgres)', () => {
   let t: TestApp;
@@ -139,6 +140,112 @@ describe('GET /v1/audit-events (real Postgres)', () => {
     expect(ok.verification).toMatchObject({ intact: true, firstBrokenSeq: null });
     expect(ok.verification!.checked).toBeGreaterThan(3);
     expect((await list('?limit=1')).verification).toBeUndefined();
+  });
+
+  describe('by booth or area (nodeId)', () => {
+    const ids: Record<string, string> = {};
+    const node = (type: 'ac' | 'part' | 'polling_station', code: string) =>
+      t.prisma.geographyNode.findFirstOrThrow({ where: { type, code } });
+    const actions = async (query: string) =>
+      (await list(`?limit=200&${query}`)).items
+        .filter((e) => e.action.startsWith('area.') || e.action === 'visit.create')
+        .map((e) => `${e.action}:${e.resourceId ?? e.actor?.id}`);
+
+    beforeAll(async () => {
+      const a = await loginAs(t, VOLUNTEER_A);
+      const b = await loginAs(t, VOLUNTEER_B);
+      ids.a = a.userId;
+      ids.b = b.userId;
+      for (const [who, code] of [
+        [a, '1'],
+        [b, '2'],
+      ] as const) {
+        const station = await node('polling_station', code);
+        const household = await t.prisma.household.findFirstOrThrow({
+          where: { pollingStationId: station.id, status: 'active' },
+          include: { voters: { take: 1 } },
+        });
+        ids[`household${code}`] = household.id;
+        ids[`voter${code}`] = household.voters[0]!.id;
+        // A visit (audited as visit.create on the visit), a household and a
+        // member event, and a sign-in by the booth's volunteer.
+        const visit = await who.http
+          .post('/v1/visits')
+          .set('Idempotency-Key', randomUUID())
+          .send({
+            clientId: randomUUID(),
+            householdId: household.id,
+            startedAt: '2026-09-20T10:00:00.000Z',
+            outcome: 'completed',
+            formVersion: '2026.1',
+          })
+          .expect(201);
+        ids[`visit${code}`] = (visit.body as { id: string }).id;
+        for (const [action, resourceType, resourceId] of [
+          ['area.visit', 'visit', ids[`visit${code}`]],
+          ['area.household', 'household', household.id],
+          ['area.voter', 'voter', household.voters[0]!.id],
+        ] as const) {
+          await audit.record({ action, resourceType, resourceId, result: 'success' });
+        }
+        await audit.record({
+          action: 'area.login',
+          resourceType: 'session',
+          result: 'success',
+          actorId: who.userId,
+        });
+      }
+    });
+
+    it("a booth: its records' events and its volunteer's, nothing from the other booth", async () => {
+      const station1 = await node('polling_station', '1');
+      const got = await actions(`nodeId=${station1.id}`);
+      expect(got).toEqual(
+        expect.arrayContaining([
+          `visit.create:${ids.visit1}`,
+          `area.visit:${ids.visit1}`,
+          `area.household:${ids.household1}`,
+          `area.voter:${ids.voter1}`,
+          `area.login:${ids.a}`,
+        ]),
+      );
+      for (const id of [ids.visit2, ids.household2, ids.voter2, ids.b]) {
+        expect(got.some((g) => g.endsWith(`:${id}`))).toBe(false);
+      }
+    });
+
+    it('a part or an AC includes its booths', async () => {
+      const [part1, part2, ac] = [
+        await node('part', '1'),
+        await node('part', '2'),
+        await node('ac', '101'),
+      ];
+      const inPart1 = await actions(`nodeId=${part1.id}`);
+      expect(inPart1).toContain(`area.household:${ids.household1}`);
+      expect(inPart1).not.toContain(`area.household:${ids.household2}`);
+      expect(await actions(`nodeId=${part2.id}`)).toContain(`area.login:${ids.b}`);
+      const inAc = await actions(`nodeId=${ac.id}`);
+      for (const want of [`visit.create:${ids.visit1}`, `visit.create:${ids.visit2}`]) {
+        expect(inAc).toContain(want);
+      }
+    });
+
+    it('combines with the other filters, and is recorded', async () => {
+      const station2 = await node('polling_station', '2');
+      // Volunteer A did nothing in booth B.
+      expect(await actions(`nodeId=${station2.id}&actorId=${ids.a}`)).toEqual([]);
+      expect(await actions(`nodeId=${station2.id}&action=area.login`)).toEqual([
+        `area.login:${ids.b}`,
+      ]);
+      await list(`?nodeId=${randomUUID()}`, 404);
+      const view = await t.prisma.auditEvent.findFirstOrThrow({
+        where: { action: 'audit.view' },
+        orderBy: { seq: 'desc' },
+      });
+      expect(view.metadata).toMatchObject({
+        filters: { nodeId: station2.id, action: 'area.login' },
+      });
+    });
   });
 
   // Last: it breaks the chain of this test database.
