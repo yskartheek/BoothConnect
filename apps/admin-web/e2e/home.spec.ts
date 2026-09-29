@@ -1,5 +1,11 @@
 import { expect, test } from '@playwright/test';
 
+import { signInAsAdmin } from './auth';
+
+test.beforeEach(async ({ page }) => {
+  await signInAsAdmin(page);
+});
+
 test('the portal opens on the overview', async ({ page }) => {
   const response = await page.goto('/');
   expect(response?.status()).toBe(200);

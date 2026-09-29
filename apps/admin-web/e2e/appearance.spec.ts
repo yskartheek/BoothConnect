@@ -20,7 +20,7 @@ const DARK_OPAQUE = 'rgb(22, 29, 43)';
 
 test('light glass by default, dark glass when the system is dark', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/');
+  await page.goto('/sign-in');
   await expectGlass(page, LIGHT_GLASS, 'blur(20px)');
 
   await page.emulateMedia({ colorScheme: 'dark' });
@@ -29,7 +29,7 @@ test('light glass by default, dark glass when the system is dark', async ({ page
 
 test('the theme control overrides the system theme', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/');
+  await page.goto('/sign-in');
   await openAppearance(page);
   const theme = page.getByLabel('Theme');
 
@@ -44,7 +44,7 @@ test('the theme control overrides the system theme', async ({ page }) => {
 
 test('"Reduce transparency" swaps glass for an opaque surface without blur', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/');
+  await page.goto('/sign-in');
   await openAppearance(page);
   await page.getByLabel('Reduce transparency').check();
   await expectGlass(page, LIGHT_OPAQUE, 'blur(0px)');
@@ -58,7 +58,7 @@ test('"Reduce transparency" swaps glass for an opaque surface without blur', asy
 
 test('the system reduced-transparency setting is honoured', async ({ page, context }) => {
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/');
+  await page.goto('/sign-in');
   // Playwright has no option for this media feature yet, so ask Chromium directly.
   const cdp = await context.newCDPSession(page);
   await cdp.send('Emulation.setEmulatedMedia', {
@@ -79,7 +79,7 @@ test('reduced motion sets the motion durations to 0', async ({ page }) => {
         .trim();
       return value.endsWith('ms') ? parseFloat(value) : parseFloat(value) * 1000;
     });
-  await page.goto('/');
+  await page.goto('/sign-in');
   expect(await durationMs()).toBe(220);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await durationMs()).toBe(0);
@@ -87,7 +87,7 @@ test('reduced motion sets the motion durations to 0', async ({ page }) => {
 
 test('the choice is remembered after a reload, without a light flash', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
-  await page.goto('/');
+  await page.goto('/sign-in');
   await openAppearance(page);
   await page.getByLabel('Theme').selectOption('dark');
   await page.getByLabel('Reduce transparency').check();

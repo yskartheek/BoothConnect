@@ -5,10 +5,15 @@ import {
   type Middleware,
 } from '@boothconnect/api-client';
 
-import { endSession, getAccessToken } from './session';
+import { endSession } from './session';
 
-/** Where the API is: NEXT_PUBLIC_API_URL, or the local API in development. */
-export const API_URL = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:4000';
+/**
+ * Where the page sends API calls: this server's `/api`, which adds the
+ * session's token and forwards to the API (#70).
+ */
+export function apiBaseUrl(): string {
+  return `${typeof window === 'undefined' ? 'http://localhost:3000' : window.location.origin}/api`;
+}
 
 /** An error body as received; `code` may be one this client doesn't know yet. */
 type ErrorBody = Partial<Omit<ApiError, 'code'>> & { code?: string };
@@ -49,17 +54,17 @@ const sessionGuard: Middleware = {
 
 /**
  * The typed BoothConnect API client (#52): paths, parameters, bodies and
- * responses are checked against the OpenAPI spec at compile time. By
- * default it sends the session's access token and ends the session on 401.
+ * responses are checked against the OpenAPI spec at compile time. Calls go
+ * through this server's `/api` with the session cookie; a 401 ends the
+ * session.
  */
 export function apiClient(
-  getToken: () => string | null | undefined = getAccessToken,
-  fetch?: typeof globalThis.fetch,
+  options: { baseUrl?: string; fetch?: typeof globalThis.fetch } = {},
 ): ApiClient {
   const client = createApiClient({
-    baseUrl: API_URL,
-    getAccessToken: getToken,
-    ...(fetch ? { fetch } : {}),
+    baseUrl: options.baseUrl ?? apiBaseUrl(),
+    credentials: 'same-origin',
+    ...(options.fetch ? { fetch: options.fetch } : {}),
   });
   client.use(sessionGuard);
   return client;
