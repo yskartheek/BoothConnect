@@ -6,7 +6,7 @@ import { expectAccessible } from './axe';
 // These tests share the mock API's users: one at a time, from the seed.
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async ({ request }) => {
-  await request.post('http://localhost:4100/__reset');
+  await request.post('http://localhost:4100/__reset?only=users');
 });
 
 test('list and filter the users of the area', async ({ page }) => {

@@ -9,7 +9,7 @@ const TEMPLATE = path.join(__dirname, '../public/templates/geography-master.csv'
 // These tests share the mock API's geography: one at a time, from the seed.
 test.describe.configure({ mode: 'serial' });
 test.beforeEach(async ({ request }) => {
-  await request.post('http://localhost:4100/__reset');
+  await request.post('http://localhost:4100/__reset?only=geography');
 });
 
 test('upload the synthetic template, check it, confirm it, and see the new ACs', async ({

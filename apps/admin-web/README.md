@@ -115,7 +115,7 @@ The browser never holds a token.
 - **The list** shows each person's active roles in the area, 50 at a time
   (**Show more** follows `nextCursor`). Filters: area or booth, role, name or
   phone (`q`), and "Only people with an active role" (on by default).
-- **Place pickers** (`components/users/area-picker.tsx`) are cascading
+- **Place pickers** (`components/area-picker.tsx`) are cascading
   dropdowns. The first lists the admin's own admin nodes from `/v1/me`, and
   each choice adds the level below, down to polling stations. Nothing
   outside the admin's area is offered.
@@ -127,3 +127,38 @@ The browser never holds a token.
   own admin role, which the API refuses.
 - Browser tests check the page with axe (`e2e/axe.ts`): no serious or
   critical WCAG 2.1 A/AA violations.
+
+## Roll imports (#71)
+
+`/imports` is a wizard: Choose level → Upload → Extract → Review → Confirm.
+The batch and step are in the address (`/imports?batch=<id>&step=upload`),
+so a reload or a shared link comes back to the same import.
+
+- **Choose level:** the place picker, stopping at Part (`deepest="part"`).
+  Long lists get a search box, and `PlaceBreadcrumb` shows the path from the
+  State. **Continue** opens a batch (`POST /v1/imports/batches`).
+- **Upload** (`components/imports/upload-files.tsx`):
+  - `upload-rules.ts` checks the files first: one PDF at Part level, PDFs or
+    ZIPs above it, sizes, and files already listed.
+  - Upload links come from `POST /v1/imports/batches/:id/files`, 50 files per
+    request.
+  - `lib/upload.ts` PUTs each 16 MiB part straight to storage with
+    XMLHttpRequest, for progress. A failed part is retried after 1, 2, 4 and
+    8 s, once the browser is back online. **Retry** continues from the parts
+    already sent, and expired links start the file again.
+  - `complete` returns each PDF's status. A duplicate shows "Already
+    imported".
+- **Storage CORS:** browsers upload straight to the imports bucket. Its CORS
+  rules must allow `PUT` from the portal's origin and expose the `ETag`
+  header. For S3, for example:
+  ```json
+  [
+    {
+      "AllowedOrigins": ["https://admin.example.org"],
+      "AllowedMethods": ["PUT"],
+      "AllowedHeaders": ["*"],
+      "ExposeHeaders": ["ETag"]
+    }
+  ]
+  ```
+  Local MinIO allows any origin and exposes `ETag`.

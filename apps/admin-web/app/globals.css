@@ -604,3 +604,137 @@ a.button {
 .dialog p {
   margin: 0;
 }
+
+/* ---- Roll imports (#71) ---- */
+.stepper {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bc-space-sm) var(--bc-space-md);
+  margin: 0 0 var(--bc-space-md);
+  padding: 0;
+  list-style: none;
+  font: var(--bc-text-label);
+}
+
+.stepper li {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-space-xs);
+  color: var(--bc-color-text-muted);
+}
+
+.stepper-number {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border: 1px solid var(--bc-color-border);
+  border-radius: var(--bc-radius-pill);
+}
+
+.stepper .stepper-current {
+  color: var(--bc-color-text);
+}
+
+.stepper-current .stepper-number {
+  border-color: var(--bc-color-primary);
+  background: var(--bc-color-primary);
+  color: var(--bc-color-on-primary);
+}
+
+.stepper-done .stepper-number {
+  background: var(--bc-color-success-container);
+}
+
+.breadcrumb ol {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--bc-space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.breadcrumb li + li::before {
+  content: '›';
+  margin-right: var(--bc-space-xs);
+  color: var(--bc-color-text-muted);
+}
+
+.breadcrumb [aria-current] {
+  font: var(--bc-text-label);
+}
+
+.area-picker-level input[type='search'] {
+  margin-bottom: var(--bc-space-xxs);
+}
+
+.import-target {
+  margin: 0 0 var(--bc-space-md);
+}
+
+.dropzone {
+  display: grid;
+  justify-items: center;
+  gap: var(--bc-space-sm);
+  padding: var(--bc-space-lg);
+  border: 2px dashed var(--bc-color-border);
+  border-radius: var(--bc-radius-medium);
+  text-align: center;
+}
+
+.dropzone-active {
+  border-color: var(--bc-color-primary);
+  background: var(--bc-color-primary-container);
+}
+
+.dropzone label.button {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dropzone:focus-within label.button {
+  outline: 2px solid var(--bc-color-focus-ring);
+  outline-offset: 2px;
+}
+
+.upload-list {
+  display: grid;
+  gap: var(--bc-space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.upload-item {
+  display: grid;
+  gap: var(--bc-space-xxs);
+  padding: var(--bc-space-sm);
+  border: 1px solid var(--bc-color-divider);
+  border-radius: var(--bc-radius-small);
+}
+
+.upload-item-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--bc-space-sm);
+}
+
+.upload-item progress {
+  width: 100%;
+}
+
+.upload-result {
+  font: var(--bc-text-body-small);
+}
+
+.badge-info {
+  background: var(--bc-color-surface-muted);
+}
+
+.table-caption {
+  font: var(--bc-text-label);
+  text-align: left;
+}

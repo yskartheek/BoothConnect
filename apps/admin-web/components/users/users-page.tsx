@@ -9,7 +9,7 @@ import { t } from '@/lib/i18n';
 import { PageHeader } from '../page-header';
 import { EmptyState, ErrorState, LoadingState } from '../states';
 import { AddUser } from './add-user';
-import { AreaPicker, type AreaNode, placeLabel } from './area-picker';
+import { AreaPicker, type AreaNode, placeLabel } from '../area-picker';
 import { ROLE, type Role, type UserSummary } from './roles';
 import { UserDetail } from './user-detail';
 

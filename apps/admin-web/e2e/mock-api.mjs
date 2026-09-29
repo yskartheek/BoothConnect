@@ -1,6 +1,7 @@
 // A stand-in for the BoothConnect API in the browser tests (CI runs them
 // without the API or a database). It knows two synthetic people: an admin
 // and a volunteer; the code is always 123456.
+import { createHash } from 'node:crypto';
 import { createServer } from 'node:http';
 
 const PORT = Number(process.env.MOCK_API_PORT ?? 4100);
@@ -15,6 +16,8 @@ let issued = 0;
 // A small synthetic geography, like the development seed.
 let nextId = 0;
 let nodes = [];
+/** The admin's AC: users and imports are scoped to it. */
+let adminNode = null;
 const add = (parent, type, code, name, extra = {}) => {
   const node = {
     id: `n-${(nextId += 1)}`,
@@ -38,15 +41,15 @@ function seedGeography() {
   const part1 = add(ac101, 'part', '1', 'Demo Nagar');
   const booth1 = add(part1, 'polling_station', '1', 'Demo Primary School, Room 1');
   add(part1, 'polling_station', '1A', 'Demo Primary School, Room 2', { isAuxiliary: true });
-  seedUsers(ac101, part1, booth1);
+  // The same ids every time, so users and imports keep pointing at them.
+  adminNode = ac101;
+  return { ac101, part1, booth1 };
 }
 
 // Users and role assignments (#176). The admin manages AC 101 and below.
 let users = [];
 let assignments = [];
-let adminNode = null;
-function seedUsers(ac, part, booth) {
-  adminNode = ac;
+function seedUsers({ ac101: ac, part1: part, booth1: booth }) {
   users = [
     { id: 'u-admin', name: 'Test Admin', phone: '+919999900001' },
     { id: 'u-volunteer', name: 'Test Volunteer', phone: '+919999900002' },
@@ -75,6 +78,14 @@ function seedUsers(ac, part, booth) {
   ].map((a) => ({ validFrom: '2026-01-01T00:00:00.000Z', validUntil: null, ...a }));
 }
 let nextUser = 0;
+/** From the State down to the node. */
+const pathOf = (nodeId) => {
+  const path = [];
+  for (let n = nodes.find((x) => x.id === nodeId); n; n = nodes.find((x) => x.id === n.parentId)) {
+    path.unshift({ id: n.id, type: n.type, code: n.code, name: n.name });
+  }
+  return path;
+};
 /** At or below `ancestorId`. */
 const below = (nodeId, ancestorId) => {
   for (let n = nodes.find((x) => x.id === nodeId); n; n = nodes.find((x) => x.id === n.parentId)) {
@@ -135,7 +146,7 @@ const grant = (userId, body) => {
   return a;
 };
 
-seedGeography();
+seedUsers(seedGeography());
 const keyOf = (node) =>
   node.parentId ? `${keyOf(nodes.find((n) => n.id === node.parentId))}/${node.code}` : node.code;
 
@@ -206,16 +217,181 @@ const send = (res, status, body) => {
 const error = (res, status, code, message = code) =>
   send(res, status, { requestId: `mock-${Date.now()}`, code, message });
 
+// Roll imports (#71): batches, uploads, and a stand-in for object storage
+// (presigned part URLs point at /__s3 here, from the browser).
+let batches = new Map();
+let uploads = new Map();
+let checksums = new Map(); // sha256 -> first file id
+let nextImport = 0;
+const PART_SIZE = 16 * 1024 * 1024;
+const STORAGE_CORS = {
+  'access-control-allow-origin': '*',
+  'access-control-allow-methods': 'PUT',
+  'access-control-allow-headers': '*',
+  'access-control-expose-headers': 'ETag',
+};
+function resetImports() {
+  batches = new Map();
+  uploads = new Map();
+  checksums = new Map();
+}
+const nodeView = (n) => ({ id: n.id, type: n.type, code: n.code, name: n.name });
+const batchDetail = (batch) => {
+  const statusCounts = {};
+  for (const f of batch.files) statusCounts[f.status] = (statusCounts[f.status] ?? 0) + 1;
+  return {
+    id: batch.id,
+    targetNode: nodeView(batch.target),
+    status: 'uploading',
+    fileCount: batch.files.length,
+    statusCounts,
+    files: batch.files.map((f) => ({
+      id: f.id,
+      originalName: f.originalName,
+      sizeBytes: f.sizeBytes,
+      status: f.status,
+      duplicateOfId: f.duplicateOfId,
+      error: null,
+      part: null,
+      proposedPart: null,
+      pageCount: null,
+      rowCount: 0,
+      rows: { accepted: 0, warning: 0, rejected: 0 },
+      voterCount: 0,
+      qualityScore: null,
+      extractedAt: null,
+      confirmedAt: null,
+    })),
+    createdAt: batch.createdAt,
+  };
+};
+/** Answers an import request; false when it isn't one. */
+function importRoute(req, res, url, body) {
+  if (req.method === 'POST' && url.pathname === '/v1/imports/batches') {
+    const target = nodes.find((n) => n.id === body.targetNodeId);
+    if (!target || !below(target.id, adminNode.id)) return error(res, 404, 'NOT_FOUND');
+    if (target.type === 'polling_station') {
+      return error(res, 422, 'UNPROCESSABLE', 'Upload rolls at State, PC, AC or Part level');
+    }
+    const batch = {
+      id: `batch-${(nextImport += 1)}`,
+      target,
+      files: [],
+      uploads: 0,
+      createdAt: new Date().toISOString(),
+    };
+    batches.set(batch.id, batch);
+    const { files, ...view } = batchDetail(batch);
+    return send(res, 201, { ...view, fileCount: files.length });
+  }
+  const one = /^\/v1\/imports\/batches\/([^/]+)$/.exec(url.pathname);
+  if (req.method === 'GET' && one) {
+    const batch = batches.get(one[1]);
+    return batch ? send(res, 200, batchDetail(batch)) : error(res, 404, 'NOT_FOUND');
+  }
+  const start = /^\/v1\/imports\/batches\/([^/]+)\/files$/.exec(url.pathname);
+  if (req.method === 'POST' && start) {
+    const batch = batches.get(start[1]);
+    if (!batch) return error(res, 404, 'NOT_FOUND');
+    if (batch.target.type === 'part' && (batch.uploads > 0 || body.files.length !== 1)) {
+      return error(res, 422, 'UNPROCESSABLE', 'A part-level batch takes exactly one PDF');
+    }
+    const tickets = body.files.map((file) => {
+      const id = `up-${(nextImport += 1)}`;
+      const partCount = Math.max(1, Math.ceil(file.sizeBytes / PART_SIZE));
+      uploads.set(id, { id, batch, name: file.name, size: file.sizeBytes, parts: new Map() });
+      batch.uploads += 1;
+      return {
+        id,
+        kind: file.name.toLowerCase().endsWith('.zip') ? 'zip' : 'pdf',
+        originalName: file.name,
+        sizeBytes: file.sizeBytes,
+        partSizeBytes: PART_SIZE,
+        parts: Array.from({ length: partCount }, (_, i) => ({
+          partNumber: i + 1,
+          url: `http://localhost:${PORT}/__s3/${id}/${i + 1}`,
+        })),
+        expiresAt: new Date(Date.now() + 3600_000).toISOString(),
+      };
+    });
+    return send(res, 201, { uploads: tickets });
+  }
+  const complete = /^\/v1\/imports\/batches\/([^/]+)\/files\/([^/]+)\/complete$/.exec(url.pathname);
+  if (req.method === 'POST' && complete) {
+    const upload = uploads.get(complete[2]);
+    if (!upload) return error(res, 404, 'NOT_FOUND');
+    if (upload.result) return send(res, 200, upload.result);
+    const bytes = Buffer.concat(
+      body.parts.map((p) => upload.parts.get(p.partNumber) ?? Buffer.alloc(0)),
+    );
+    if (bytes.length !== upload.size) {
+      return send(res, 422, {
+        requestId: 'mock',
+        code: 'UNPROCESSABLE',
+        message: 'The upload is incomplete: every part must be uploaded first',
+        details: { reason: 'InvalidPart' },
+      });
+    }
+    if (!bytes.subarray(0, 5).equals(Buffer.from('%PDF-'))) {
+      return error(res, 422, 'UNPROCESSABLE', 'The file is not a PDF');
+    }
+    const sha = createHash('sha256').update(bytes).digest('hex');
+    const id = `file-${(nextImport += 1)}`;
+    const file = {
+      id,
+      originalName: upload.name,
+      sizeBytes: upload.size,
+      status: checksums.has(sha) ? 'duplicate' : 'extracting',
+      duplicateOfId: checksums.get(sha) ?? null,
+    };
+    if (!checksums.has(sha)) checksums.set(sha, id);
+    upload.batch.files.push(file);
+    upload.result = { uploadId: upload.id, files: [file], skipped: [] };
+    return send(res, 200, upload.result);
+  }
+  return false;
+}
+
 createServer(async (req, res) => {
-  let raw = '';
-  for await (const chunk of req) raw += chunk;
-  const body = raw ? JSON.parse(raw) : {};
-  const person = tokens.get((req.headers.authorization ?? '').replace('Bearer ', ''));
+  const chunks = [];
+  for await (const chunk of req) chunks.push(chunk);
   const url = new URL(req.url, 'http://mock');
 
-  // Tests only: back to the seed geography and users.
+  // Object storage: a part of an upload, straight from the browser.
+  const part = /^\/__s3\/([^/]+)\/(\d+)$/.exec(url.pathname);
+  if (part) {
+    if (req.method === 'OPTIONS') {
+      res.writeHead(204, STORAGE_CORS);
+      return res.end();
+    }
+    const upload = uploads.get(part[1]);
+    if (req.method !== 'PUT' || !upload) {
+      res.writeHead(404, STORAGE_CORS);
+      return res.end();
+    }
+    const bytes = Buffer.concat(chunks);
+    upload.parts.set(Number(part[2]), bytes);
+    res.writeHead(200, {
+      ...STORAGE_CORS,
+      etag: `"${createHash('md5').update(bytes).digest('hex')}"`,
+    });
+    return res.end();
+  }
+
+  const raw = Buffer.concat(chunks).toString();
+  const body = raw ? JSON.parse(raw) : {};
+  const person = tokens.get((req.headers.authorization ?? '').replace('Bearer ', ''));
+
+  // Tests only: back to the seed. Each spec resets only its own part
+  // (`?only=geography|users|imports`), since specs run side by side.
   if (req.method === 'POST' && url.pathname === '/__reset') {
-    seedGeography();
+    const only = url.searchParams.get('only');
+    const seeded = !only || only === 'geography' ? seedGeography() : null;
+    if (!only || only === 'users') {
+      const find = (id) => nodes.find((n) => n.id === id);
+      seedUsers(seeded ?? { ac101: find('n-3'), part1: find('n-4'), booth1: find('n-5') });
+    }
+    if (!only || only === 'imports') resetImports();
     return send(res, 204);
   }
   if (req.method === 'POST' && url.pathname === '/v1/auth/otp/request') return send(res, 202);
@@ -233,7 +409,8 @@ createServer(async (req, res) => {
   }
   if (req.method === 'POST' && url.pathname === '/v1/auth/logout') {
     if (!person) return error(res, 401, 'UNAUTHENTICATED');
-    for (const [token, who] of tokens) if (who === person) tokens.delete(token);
+    // This session only, like the API: other sign-ins (other tests) stay.
+    tokens.delete((req.headers.authorization ?? '').replace('Bearer ', ''));
     return send(res, 204);
   }
   if (req.method === 'POST' && url.pathname === '/v1/auth/refresh') {
@@ -260,13 +437,17 @@ createServer(async (req, res) => {
             ...assignmentView(assignments.find((a) => a.userId === person.id)).node,
             isAuxiliary: false,
           },
-          path: [],
+          path: pathOf(assignments.find((a) => a.userId === person.id).nodeId),
         },
       ],
     });
   }
   if (!person) return error(res, 401, 'UNAUTHENTICATED');
   if (person.role !== 'admin') return error(res, 403, 'FORBIDDEN');
+  if (url.pathname.startsWith('/v1/imports/')) {
+    const handled = importRoute(req, res, url, body);
+    if (handled !== false) return;
+  }
   if (req.method === 'GET' && url.pathname === '/v1/users') {
     const q = (url.searchParams.get('q') ?? '').toLowerCase();
     const role = url.searchParams.get('role');
