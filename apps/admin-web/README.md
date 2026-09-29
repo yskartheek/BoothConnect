@@ -178,3 +178,27 @@ file of the batch from `GET /v1/imports/batches/:id`:
 - **Confirm all ready files** counts only `ready` files and asks first. It
   calls `POST /v1/imports/batches/:id/confirm` and lists any file the API
   skipped, with the reason.
+
+## Analytics explorer (#74)
+
+`/analytics?node=<id>` (`components/analytics/`) shows any node of the
+admin's area, from the API's `/v1/analytics/nodes/:id/summary` and
+`/children`. Without `node`, the admin's own area opens.
+
+- `figures.ts` formats every figure:
+  - a suppressed count is `<minCohort`, and a suppressed ratio or share is
+    "Suppressed";
+  - `null` is "Not collected";
+  - zero is a real zero.
+
+  It also sorts children (numbers either way, suppressed and then missing
+  always last) and flags figures more than 25% from the average.
+
+- **Breadcrumbs** come from `GET /v1/geographies/:id` (`path`). Nodes from
+  the admin's own node down are links.
+- **Cards** show every figure with the API's definition. The gender and
+  age-band bars are single-series (one colour, value labels in text colour),
+  with no bar for a suppressed or missing figure.
+- **Comparison** with the parent's summary, when it is in the area.
+- **Children table:** sortable headers (`aria-sort`), a total and average in
+  the footer, highlighted outliers, and drill-down links.

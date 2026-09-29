@@ -236,6 +236,36 @@ function resetImports() {
   checksums = new Map();
 }
 const nodeView = (n) => ({ id: n.id, type: n.type, code: n.code, name: n.name });
+/**
+ * Synthetic analytics (#74): 420 electors at station 1, 380 at any other
+ * station, summed up the tree. Small groups are "suppressed"; field work
+ * isn't collected.
+ */
+function figuresOf(node) {
+  const stations = nodes.filter((n) => n.type === 'polling_station' && below(n.id, node.id));
+  const electors = stations.reduce((sum, s) => sum + (s.code === '1' ? 420 : 380), 0);
+  const women = Math.round(electors * 0.49);
+  return {
+    'electors.total': electors,
+    'electors.male': electors - women,
+    'electors.female': women,
+    'electors.thirdGender': 'suppressed',
+    'electors.unknown': 'suppressed',
+    genderRatio: electors ? Math.round((women / (electors - women)) * 1000) : null,
+    medianAge: 41,
+    'ages.18-19': Math.round(electors * 0.04),
+    'ages.20-29': Math.round(electors * 0.2),
+    'households.total': Math.round(electors / 3),
+    votersPerHousehold: 3,
+    'revisions.additions': null,
+    'revisions.deletions': null,
+    'revisions.net': null,
+    extractionQuality: 0.93,
+    'fieldWork.householdsAssigned': null,
+    'fieldWork.householdsVisited': null,
+    visitedShare: null,
+  };
+}
 /** How long the stand-in takes to extract or commit a file. */
 const WORK_MS = 1500;
 /**
@@ -619,6 +649,44 @@ createServer(async (req, res) => {
     return send(res, 200, report(planned, true));
   }
   const edit = /^\/v1\/geographies\/([^/]+)$/.exec(url.pathname);
+  if (req.method === 'GET' && edit) {
+    const node = nodes.find((n) => n.id === edit[1]);
+    if (!node) return error(res, 404, 'NOT_FOUND');
+    const path = pathOf(node.id)
+      .slice(0, -1)
+      .map((p) => nodes.find((n) => n.id === p.id));
+    return send(res, 200, { ...node, path });
+  }
+  const analytics = /^\/v1\/analytics\/nodes\/([^/]+)\/(summary|children)$/.exec(url.pathname);
+  if (req.method === 'GET' && analytics) {
+    const node = nodes.find((n) => n.id === analytics[1]);
+    if (!node || !below(node.id, adminNode.id)) return error(res, 404, 'NOT_FOUND');
+    const common = {
+      node: nodeView(node),
+      minCohort: 10,
+      definitions: { 'electors.total': 'Active voters on the roll.' },
+      computedAt: '2026-09-29T10:00:00.000Z',
+    };
+    if (analytics[2] === 'summary') return send(res, 200, { ...common, metrics: figuresOf(node) });
+    const kids = nodes.filter((n) => n.parentId === node.id);
+    const total = figuresOf(node);
+    const average = Object.fromEntries(
+      Object.entries(total).map(([k, v]) => [
+        k,
+        typeof v === 'number' && k.includes('.') ? Math.round(v / Math.max(1, kids.length)) : v,
+      ]),
+    );
+    return send(res, 200, {
+      ...common,
+      total,
+      average,
+      children: kids.map((n) => ({
+        node: nodeView(n),
+        computedAt: common.computedAt,
+        metrics: figuresOf(n),
+      })),
+    });
+  }
   if (req.method === 'PATCH' && edit) {
     const node = nodes.find((n) => n.id === edit[1]);
     if (!node) return error(res, 404, 'NOT_FOUND');
