@@ -609,6 +609,9 @@ model Voter {
   sourceVersionId  String?           @map("source_version_id") @db.Uuid
   importFileId     String?           @map("import_file_id") @db.Uuid
   recordStatus     VoterRecordStatus @default(active) @map("record_status")
+  /// The same voter (same EPIC) in the revision this one replaced (#161): the
+  /// volunteer data carried over came from there, and visits follow the link.
+  previousVoterId  String?           @unique @map("previous_voter_id") @db.Uuid
   createdAt        DateTime          @default(now()) @map("created_at") @db.Timestamptz
   updatedAt        DateTime          @updatedAt @map("updated_at") @db.Timestamptz
   /// Sync change marker: the ID of the transaction that last wrote the row
@@ -621,6 +624,8 @@ model Voter {
   pollingStation GeographyNode   @relation("VoterStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
   sourceVersion  SourceVersion?  @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
   importFile     ImportFile?     @relation(fields: [importFileId], references: [id], onDelete: Restrict)
+  previousVoter  Voter?          @relation("VoterRevisions", fields: [previousVoterId], references: [id], onDelete: Restrict)
+  nextVoter      Voter?          @relation("VoterRevisions")
   visitsMet      VisitMember[]
   consents       Consent[]
 
@@ -728,6 +733,9 @@ model FieldValue {
   baseVersion       String?     @map("base_version") @db.Uuid
   /// False once another value supersedes this one.
   isCurrent         Boolean     @default(true) @map("is_current")
+  /// A copy of this value on the voter's previous record, made when a new
+  /// revision replaced it (#161).
+  carriedFromId     String?     @unique @map("carried_from_id") @db.Uuid
   /// Set when two offline edits of the same field collide: the value this one
   /// conflicts with. Cleared when the volunteer chooses which value to keep.
   conflictWithId    String?     @map("conflict_with_id") @db.Uuid
@@ -743,6 +751,8 @@ model FieldValue {
   supersededBy    FieldValue?     @relation("FieldValueHistory")
   conflictWith    FieldValue?     @relation("FieldValueConflict", fields: [conflictWithId], references: [id], onDelete: Restrict)
   conflictsWithMe FieldValue[]    @relation("FieldValueConflict")
+  carriedFrom     FieldValue?     @relation("FieldValueCarryOver", fields: [carriedFromId], references: [id], onDelete: Restrict)
+  carriedTo       FieldValue?     @relation("FieldValueCarryOver")
 
   /// "Current value(s) for each (entity, field)". Usually one; two edits that
   /// conflict are both current until the volunteer chooses one.

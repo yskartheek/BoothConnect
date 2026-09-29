@@ -59,6 +59,12 @@ export interface SyncVoter {
   serialNo: number | null;
   epicNumber: string | null;
   official: Prisma.JsonValue;
+  /**
+   * The voter's earlier records, newest first, that newer rolls replaced
+   * (#161). Visits list the members met by the record current at the time,
+   * so a visit met this voter if it lists this ID or one of these.
+   */
+  previousVoterIds: string[];
 }
 
 export interface SyncFieldValue {
@@ -72,6 +78,8 @@ export interface SyncFieldValue {
   collectedBy: { id: string; name: string } | null;
   collectedAt: Date;
   supersedesId: string | null;
+  /** The value on the voter's previous record this one was copied from (#161). */
+  carriedFromId: string | null;
   /** False once another value replaced it. */
   isCurrent: boolean;
   conflictWithId: string | null;
@@ -183,6 +191,7 @@ interface FieldValueRow {
   collectedByName: string | null;
   collectedAt: Date;
   supersedesId: string | null;
+  carriedFromId: string | null;
   isCurrent: boolean;
   conflictWithId: string | null;
   sortXid: bigint;
@@ -377,6 +386,10 @@ export class SyncService {
           orderBy: order,
           take,
         });
+        const previous = await previousRecordsOf(
+          this.prisma,
+          rows.filter((v) => v.previousVoterId).map((v) => v.id),
+        );
         return {
           rows: rows.map((v) => ({
             id: v.id,
@@ -389,6 +402,7 @@ export class SyncService {
             serialNo: v.serialNo,
             epicNumber: v.sourceVoterId,
             official: v.sourceData,
+            previousVoterIds: previous.get(v.id) ?? [],
           })),
           ...positions(rows),
         };
@@ -441,15 +455,16 @@ export class SyncService {
       SELECT fv.id, fv.entity_type AS "entityType", fv.entity_id AS "entityId", fd.key AS "fieldKey",
              fv.value, fv.source_type AS "sourceType", fv.collected_by AS "collectedById",
              u.name AS "collectedByName", fv.collected_at AS "collectedAt",
-             fv.supersedes_id AS "supersedesId", fv.is_current AS "isCurrent",
-             fv.conflict_with_id AS "conflictWithId", ${sortXid} AS "sortXid"
+             fv.supersedes_id AS "supersedesId", fv.carried_from_id AS "carriedFromId",
+             fv.is_current AS "isCurrent", fv.conflict_with_id AS "conflictWithId", ${sortXid} AS "sortXid"
       FROM field_value fv
       ${visibleValueJoins}
       WHERE ${visibleValue(ctx)}
         AND (fd.requires_consent = false OR c.status = 'granted')
         AND ${
           ctx.since === null
-            ? Prisma.sql`fv.is_current`
+            ? // A snapshot has only active voters, so only their values.
+              Prisma.sql`fv.is_current AND (v.id IS NULL OR v.record_status = 'active')`
             : Prisma.sql`(${changedSince(Prisma.sql`fv.change_xid`, ctx.since)}
                 OR ${changedSince(Prisma.sql`c.change_xid`, ctx.since)})`
         }
@@ -478,7 +493,7 @@ export class SyncService {
              fd.key AS "fieldKey", x.value, x.source_type AS "sourceType",
              x.collected_by AS "collectedById", xu.name AS "collectedByName",
              x.collected_at AS "collectedAt", x.supersedes_id AS "supersedesId",
-             x.is_current AS "isCurrent", x.conflict_with_id AS "conflictWithId", 0::bigint AS "sortXid"
+             x.carried_from_id AS "carriedFromId", x.is_current AS "isCurrent", x.conflict_with_id AS "conflictWithId", 0::bigint AS "sortXid"
       FROM field_value fv
       ${visibleValueJoins}
       JOIN LATERAL (VALUES (fv.id, 0), (fv.conflict_with_id, 1)) AS pair(id, n) ON true
@@ -487,6 +502,8 @@ export class SyncService {
       WHERE ${visibleValue(ctx)}
         AND fv.is_current AND fv.conflict_with_id IS NOT NULL
         AND (fd.requires_consent = false OR c.status = 'granted')
+        -- A record a newer roll replaced: its conflict was carried over (#161).
+        AND (v.id IS NULL OR v.record_status = 'active')
       ORDER BY fv.id, pair.n`;
     const conflicts: SyncConflict[] = [];
     for (let i = 0; i + 1 < rows.length; i += 2) {
@@ -541,6 +558,7 @@ function toSyncFieldValue(row: FieldValueRow): SyncFieldValue {
         : null,
     collectedAt: row.collectedAt,
     supersedesId: row.supersedesId,
+    carriedFromId: row.carriedFromId,
     isCurrent: row.isCurrent,
     conflictWithId: row.conflictWithId,
   };
@@ -579,4 +597,17 @@ function toSyncHousehold(h: {
     origin: h.origin,
     status: h.status,
   };
+}
+
+/** Each voter's earlier records (#161), newest first. */
+async function previousRecordsOf(
+  db: PrismaService,
+  voterIds: string[],
+): Promise<Map<string, string[]>> {
+  if (voterIds.length === 0) return new Map();
+  const rows = await db.$queryRaw<{ voterId: string; previousIds: string[] }[]>`
+    SELECT v.id AS "voterId",
+           ARRAY(SELECT l.id FROM voter_lineage(v.id) l WHERE l.depth > 0 ORDER BY l.depth)::text[] AS "previousIds"
+    FROM voter v WHERE v.id = ANY(${voterIds}::uuid[])`;
+  return new Map(rows.map((r) => [r.voterId, r.previousIds]));
 }

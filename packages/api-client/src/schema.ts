@@ -885,12 +885,14 @@ export interface components {
             value: Record<string, never>;
         };
         FieldChangeResult: {
+            entityId: string;
             fieldValueId: string;
             /** @constant */
             status: "applied";
             supersedesId: string | null;
         } | {
             conflictWithId: string;
+            entityId: string;
             fieldValueId: string;
             /** @constant */
             status: "conflict";
@@ -905,6 +907,8 @@ export interface components {
         /** @enum {string} */
         FieldType: "text" | "number" | "boolean" | "date" | "phone" | "single_select" | "multi_select" | "address" | "location";
         FieldValueView: {
+            /** @description Copied from this value on the voter's previous record, when a newer roll replaced it (#161). */
+            carriedFromId: string | null;
             /** Format: date-time */
             collectedAt: string;
             collectedBy: {
@@ -1215,6 +1219,7 @@ export interface components {
             duplicate: boolean;
             /** @description name, age, gender, then `fields`, in that order. */
             fields: ({
+                entityId: string;
                 fieldKey: string;
                 fieldValueId: string;
                 /** @constant */
@@ -1222,6 +1227,7 @@ export interface components {
                 supersedesId: string | null;
             } | {
                 conflictWithId: string;
+                entityId: string;
                 fieldKey: string;
                 fieldValueId: string;
                 /** @constant */
@@ -1254,6 +1260,7 @@ export interface components {
         MemberEdited: {
             /** @description One result per field, in request order. */
             fields: ({
+                entityId: string;
                 fieldKey: string;
                 fieldValueId: string;
                 /** @constant */
@@ -1261,6 +1268,7 @@ export interface components {
                 supersedesId: string | null;
             } | {
                 conflictWithId: string;
+                entityId: string;
                 fieldKey: string;
                 fieldValueId: string;
                 /** @constant */
@@ -1492,6 +1500,8 @@ export interface components {
             type: components["schemas"]["FieldType"];
         };
         SyncFieldValue: {
+            /** @description The value on the voter's previous record this one was copied from (#161). */
+            carriedFromId: string | null;
             /** Format: date-time */
             collectedAt: string;
             collectedBy: {
@@ -1572,6 +1582,8 @@ export interface components {
             origin: components["schemas"]["RecordOrigin"];
             partId: string;
             pollingStationId: string;
+            /** @description The voter's earlier records, newest first, that newer rolls replaced (#161). Visits list the members met by the record current at the time, so a visit met this voter if it lists this ID or one of these. */
+            previousVoterIds: string[];
             /** @description Anything but `active`: drop it from the household. */
             recordStatus: components["schemas"]["VoterRecordStatus"];
             sectionNo: number | null;
@@ -1694,9 +1706,13 @@ export interface components {
             origin: components["schemas"]["RecordOrigin"];
             partId: string;
             pollingStationId: string;
+            /** @description The voter's earlier records, newest first, that newer rolls replaced (#161). */
+            previousVoterIds: string[];
             recordStatus: components["schemas"]["VoterRecordStatus"];
             sectionNo: number | null;
             serialNo: number | null;
+            /** @description Visits that met this voter, on this record or an earlier one; newest first. */
+            visitsMet: components["schemas"]["VoterVisit"][];
         };
         VoterField: {
             /** @description Usually one; two while an offline conflict waits for a choice. Empty: never set. */
@@ -1712,6 +1728,19 @@ export interface components {
         };
         /** @enum {string} */
         VoterRecordStatus: "active" | "superseded" | "deleted";
+        VoterVisit: {
+            /** @description The later visit that corrects this one, if any. */
+            correctedById: string | null;
+            householdId: string;
+            id: string;
+            outcome: components["schemas"]["VisitOutcome"];
+            /** Format: date-time */
+            startedAt: string;
+            volunteer: {
+                id: string;
+                name: string;
+            };
+        };
     };
     responses: never;
     parameters: never;
