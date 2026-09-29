@@ -1,6 +1,10 @@
 import { randomUUID } from 'node:crypto';
 
-import type { ChildrenBreakdown, NodeSummary, Revisions } from '../src/analytics/analytics.service';
+import type {
+  ChildrenBreakdown,
+  AnalyticsSummary,
+  Revisions,
+} from '../src/analytics/analytics.service';
 import { NodeStatsService } from '../src/analytics/node-stats.service';
 import { COUNT_KEYS, SUPPRESSED } from '../src/analytics/suppression';
 import { createTestApp, type TestApp } from './support/app';
@@ -37,7 +41,7 @@ describe('analytics API (real Postgres)', () => {
 
   it('a node summary matches the seed, with definitions and computed_at', async () => {
     const part2 = await node('part', '2');
-    const summary = await get<NodeSummary>(`nodes/${part2.id}/summary`);
+    const summary = await get<AnalyticsSummary>(`nodes/${part2.id}/summary`);
     const voters = await t.prisma.voter.findMany({
       where: { partId: part2.id, recordStatus: 'active' },
       select: { sourceData: true },
@@ -133,10 +137,10 @@ describe('analytics API (real Postgres)', () => {
     }
     // A summary shows the same as its row in the parent's table.
     for (const code of ['1', '2', '3']) {
-      const summary = await get<NodeSummary>(`nodes/${(await node('part', code)).id}/summary`);
+      const summary = await get<AnalyticsSummary>(`nodes/${(await node('part', code)).id}/summary`);
       expect(summary.metrics).toEqual(row(code));
     }
-    const s3 = await get<NodeSummary>(`nodes/${station3.id}/summary`);
+    const s3 = await get<AnalyticsSummary>(`nodes/${station3.id}/summary`);
     expect(s3.metrics['electors.total']).toBe(SUPPRESSED);
     expect(s3.metrics.votersPerHousehold).toBe(SUPPRESSED);
   });

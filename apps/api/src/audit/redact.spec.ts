@@ -57,6 +57,23 @@ describe('redact', () => {
     expect(redact(safe)).toEqual(safe);
   });
 
+  it('keeps ids whose hex digits look like a phone number (#167)', () => {
+    const ids = {
+      // The last group starts with ten digits.
+      importFileId: '43ff6220-fb18-47d2-b640-4330754093f1',
+      allDigits: '12345678-1234-4234-8234-123456789012',
+      upper: '43FF6220-FB18-47D2-B640-4330754093F1',
+      path: 'imports/43ff6220-fb18-47d2-b640-4330754093f1/file.pdf',
+    };
+    expect(redact(ids)).toEqual(ids);
+    // Still redacted: a phone number on its own, or in a sentence.
+    expect(redact({ a: '9876543210', b: 'ring 9876543210.', c: 'x+919876543210' })).toEqual({
+      a: REDACTED,
+      b: REDACTED,
+      c: REDACTED,
+    });
+  });
+
   it('does not modify its input', () => {
     const input = { phone: '+919876543210' };
     redact(input);

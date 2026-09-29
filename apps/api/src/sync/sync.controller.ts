@@ -12,6 +12,8 @@ import { Idempotent } from '../idempotency/idempotency.interceptor';
 import { SyncPushDto } from './push.dto';
 import { type MutationResult, SyncPushService } from './push.service';
 import { DEFAULT_SYNC_LIMIT, MAX_SYNC_LIMIT, type SyncPage, SyncService } from './sync.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiResult } from '../openapi/api-result';
 
 export class SyncPullQuery {
   /**
@@ -32,6 +34,7 @@ export class SyncPullQuery {
   limit?: number;
 }
 
+@ApiTags('Sync')
 @Controller('sync')
 export class SyncController {
   constructor(
@@ -39,6 +42,7 @@ export class SyncController {
     private readonly pushes: SyncPushService,
   ) {}
 
+  @ApiResult('SyncPage')
   @Get('pull')
   pull(@CurrentScope() scope: Scope, @Query() query: SyncPullQuery): Promise<SyncPage> {
     return this.sync.pull(scope, query.since, query.limit ?? DEFAULT_SYNC_LIMIT);
@@ -48,6 +52,7 @@ export class SyncController {
    * A batch of queued changes from the phone, applied in order; one result
    * per mutation. A bad item doesn't stop the others.
    */
+  @ApiResult('SyncPushResult')
   @Post('push')
   @HttpCode(HttpStatus.OK)
   @Idempotent()

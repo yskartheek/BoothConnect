@@ -16,6 +16,8 @@ import { CurrentScope, Roles } from '../authz/decorators';
 import type { Scope } from '../authz/scope.service';
 import { actorOf } from '../common/actor';
 import { type ConflictResolved, ConflictsService } from './conflicts.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiResult } from '../openapi/api-result';
 
 export class ResolveConflictDto {
   /** One of the conflicting values; it stays current. */
@@ -23,6 +25,7 @@ export class ResolveConflictDto {
   keepFieldValueId!: string;
 }
 
+@ApiTags('Conflicts')
 @Controller('conflicts')
 export class ConflictsController {
   constructor(private readonly conflicts: ConflictsService) {}
@@ -31,6 +34,7 @@ export class ConflictsController {
    * `:id` is either value of the conflict (as listed by sync pull). A second
    * call keeping the same value is a no-op (`already_resolved`).
    */
+  @ApiResult('ConflictResolved')
   @Post(':id/resolve')
   @HttpCode(HttpStatus.OK)
   @Roles('volunteer', 'admin')

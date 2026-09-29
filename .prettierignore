@@ -16,3 +16,6 @@ docs/IMPLEMENTATION_PLAN.md
 **/src/generated
 # Design mockups are standalone HTML pages
 docs/design/*.html
+# Generated from the API code (pnpm --filter api openapi) and from that spec
+docs/api/openapi.json
+packages/api-client/src/schema.ts

@@ -10,6 +10,8 @@ import {
   type GeographyNodeView,
   GeographyService,
 } from './geography.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiResult } from '../openapi/api-result';
 
 export class ListGeographiesQuery extends PageQuery {
   /** List this node's children; omit for the top level (states). */
@@ -29,10 +31,12 @@ export class ListGeographiesQuery extends PageQuery {
 }
 
 // Drives the State → PC → AC → Part → Booth dropdowns in both apps.
+@ApiTags('Geographies')
 @Controller('geographies')
 export class GeographyController {
   constructor(private readonly geography: GeographyService) {}
 
+  @ApiResult('GeographyNodePage')
   @Get()
   list(
     @CurrentScope() scope: Scope,
@@ -41,6 +45,7 @@ export class GeographyController {
     return this.geography.list(scope, query);
   }
 
+  @ApiResult('GeographyNodeDetail')
   @Get(':id')
   get(
     @CurrentScope() scope: Scope,

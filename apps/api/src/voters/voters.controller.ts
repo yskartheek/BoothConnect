@@ -22,6 +22,8 @@ import { actorOf } from '../common/actor';
 import { Idempotent } from '../idempotency/idempotency.interceptor';
 import { type MemberEdited, VoterWritesService } from './voter-writes.service';
 import { type VoterDetail, VotersService } from './voters.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiResult } from '../openapi/api-result';
 
 export class VoterQuery {
   /** Include every earlier value of each field. */
@@ -62,6 +64,7 @@ export class EditMemberDto {
   fields!: MemberEditDto[];
 }
 
+@ApiTags('Voters')
 @Controller('voters')
 export class VotersController {
   constructor(
@@ -69,6 +72,7 @@ export class VotersController {
     private readonly writes: VoterWritesService,
   ) {}
 
+  @ApiResult('VoterDetail')
   @Get(':id')
   get(
     @CurrentScope() scope: Scope,
@@ -79,6 +83,7 @@ export class VotersController {
   }
 
   /** Edit member details; each field is `applied`, `conflict` or `rejected`. */
+  @ApiResult('MemberEdited')
   @Patch(':id')
   @Idempotent()
   @Roles('volunteer', 'admin')

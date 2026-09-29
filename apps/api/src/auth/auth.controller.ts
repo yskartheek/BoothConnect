@@ -9,10 +9,13 @@ import { type AuthUser, CurrentUser, Public } from './decorators';
 import { RefreshDto, RequestOtpDto, type TokenPair, VerifyOtpDto } from './dto';
 import { OtpService } from './otp.service';
 import { TokenService } from './token.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiNoBody, ApiResult } from '../openapi/api-result';
 
 const requestIdOf = (req: Request & { id?: unknown }) =>
   typeof req.id === 'string' ? req.id : null;
 
+@ApiTags('Auth')
 @Controller('auth')
 export class AuthController {
   constructor(
@@ -24,6 +27,7 @@ export class AuthController {
 
   /** Sends a sign-in code. Always 202, whether or not the phone is registered. */
   @Public()
+  @ApiNoBody(202)
   @Post('otp/request')
   @HttpCode(HttpStatus.ACCEPTED)
   async requestOtp(@Body() body: RequestOtpDto): Promise<void> {
@@ -35,6 +39,7 @@ export class AuthController {
    * attempt is audited (`auth.login`), without the phone number or the code.
    */
   @Public()
+  @ApiResult('TokenPair')
   @Post('otp/verify')
   @HttpCode(HttpStatus.OK)
   async verifyOtp(@Body() body: VerifyOtpDto, @Req() req: Request): Promise<TokenPair> {
@@ -77,6 +82,7 @@ export class AuthController {
 
   /** Rotates the refresh token and issues a new access token. */
   @Public()
+  @ApiResult('TokenPair')
   @Post('refresh')
   @HttpCode(HttpStatus.OK)
   refresh(@Body() body: RefreshDto): Promise<TokenPair> {
@@ -89,6 +95,7 @@ export class AuthController {
     resourceType: 'session',
     resourceId: (req) => req.user?.sessionId,
   })
+  @ApiNoBody(204)
   @Post('logout')
   @HttpCode(HttpStatus.NO_CONTENT)
   async logout(@CurrentUser() user: AuthUser): Promise<void> {

@@ -690,6 +690,43 @@ additions and deletions (additions and deletions are suppressed together).
 Above part level, `versions` is empty and `current` gives the summed
 changes.
 
+## OpenAPI spec and typed client (#52)
+
+`docs/api/openapi.json` (OpenAPI 3.1) describes every route. It is
+generated, never edited by hand:
+
+- **Requests** (paths, query parameters, bodies) come from the controllers
+  and DTOs. The `@nestjs/swagger` CLI plugin (`nest-cli.json`) reads their
+  types, validation decorators and doc comments at build time.
+- **Responses** come from TypeScript types:
+  - each route names its type with `@ApiResult('Name')`, or uses
+    `@ApiNoBody()` or `@ApiFile(type)` (`src/openapi/api-result.ts`);
+  - the type must be exported from `src/openapi/responses.ts`;
+  - the export turns those types into JSON schemas with
+    ts-json-schema-generator;
+  - a route without a response type fails the export.
+- **Also added by the export**:
+  - bearer auth on every route except `@Public()` ones;
+  - the `Idempotency-Key` header on `@Idempotent()` routes;
+  - the error body (`ApiErrorBody`) as every route's default response.
+
+Commands:
+
+- `pnpm --filter api openapi` builds, then writes the file.
+- `pnpm --filter api openapi:check` fails if the committed file is out of
+  date. CI runs it in the JS job. The app is created in preview mode, so
+  nothing connects to a database or Redis.
+
+**When you add or change a route:** give it `@ApiResult`, run
+`pnpm --filter api openapi` and `pnpm --filter @boothconnect/api-client
+generate`, and commit both files.
+
+**Swagger UI** is served at `/v1/docs` outside production. It shows the
+committed spec, and the spec itself is at `/v1/docs/openapi.json`.
+
+The typed client is `packages/api-client`, which the admin web uses through
+`lib/api.ts`.
+
 ## Audit log
 
 `audit_event` is append-only and hash-chained **by the database**: on insert it

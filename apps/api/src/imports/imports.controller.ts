@@ -46,8 +46,11 @@ import {
   ImportReviewService,
   type ReviewRow,
 } from './review.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiFile, ApiResult } from '../openapi/api-result';
 
 /** Roll imports (admins only; design §3, §6). */
+@ApiTags('Imports')
 @Controller('imports')
 @Roles('admin')
 export class ImportsController {
@@ -57,6 +60,7 @@ export class ImportsController {
     private readonly confirm: ImportConfirmService,
   ) {}
 
+  @ApiResult('BatchView', 201)
   @Post('batches')
   @HttpCode(HttpStatus.CREATED)
   @Idempotent()
@@ -70,6 +74,7 @@ export class ImportsController {
   }
 
   /** Presigned multipart upload URLs, one upload per file (PDF or ZIP of PDFs). */
+  @ApiResult('UploadTickets', 201)
   @Post('batches/:id/files')
   @HttpCode(HttpStatus.CREATED)
   @Idempotent()
@@ -84,6 +89,7 @@ export class ImportsController {
   }
 
   /** Finish an upload: verify, hash, unpack ZIPs, flag duplicates, queue extraction. */
+  @ApiResult('UploadCompleted')
   @Post('batches/:id/files/:fileId/complete')
   @HttpCode(HttpStatus.OK)
   complete(
@@ -98,6 +104,7 @@ export class ImportsController {
   }
 
   /** Progress of every file: status, part, page and voter counts, quality score. */
+  @ApiResult('BatchDetail')
   @Get('batches/:id')
   batch(
     @CurrentScope() scope: Scope,
@@ -107,6 +114,7 @@ export class ImportsController {
   }
 
   /** Header, proposed part and stations, totals check, and rows to review (paged). */
+  @ApiResult('FilePreview')
   @Get('files/:id/preview')
   preview(
     @CurrentScope() scope: Scope,
@@ -117,6 +125,7 @@ export class ImportsController {
   }
 
   /** A voter page as JPEG, for checking rows against the roll. Never cached. */
+  @ApiFile('image/jpeg')
   @Get('files/:id/pages/:page')
   @Header('Cache-Control', 'private, no-store')
   async pageImage(
@@ -129,6 +138,7 @@ export class ImportsController {
   }
 
   /** The rejected and warning rows as CSV (formula-injection safe); audited. */
+  @ApiFile('text/csv')
   @Get('files/:id/rejections.csv')
   @Header('Cache-Control', 'private, no-store')
   async rejectionsCsv(
@@ -145,6 +155,7 @@ export class ImportsController {
   }
 
   /** Correct fields of a row, or reject it; the extracted values are kept. */
+  @ApiResult('ReviewRow')
   @Patch('files/:id/rows/:rowId')
   correctRow(
     @CurrentScope() scope: Scope,
@@ -161,6 +172,7 @@ export class ImportsController {
    * Confirm a reviewed file: its rows are committed to the active dataset
    * in the background (the file is `confirming`, then `confirmed`).
    */
+  @ApiResult('ConfirmQueued', 202)
   @Post('files/:id/confirm')
   @HttpCode(HttpStatus.ACCEPTED)
   confirmFile(
@@ -179,6 +191,7 @@ export class ImportsController {
   }
 
   /** Confirm every `ready` file of the batch; files that still need review are left. */
+  @ApiResult('BatchConfirmResult', 202)
   @Post('batches/:id/confirm')
   @HttpCode(HttpStatus.ACCEPTED)
   confirmBatch(
