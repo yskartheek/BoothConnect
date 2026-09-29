@@ -1,0 +1,30 @@
+{
+  "name": "@boothconnect/api-client",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Typed client for the BoothConnect API, generated from docs/api/openapi.json",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "generate": "openapi-typescript ../../docs/api/openapi.json -o src/schema.ts",
+    "build": "tsc -p tsconfig.json",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "openapi-typescript ../../docs/api/openapi.json -o src/schema.ts --check && tsc -p tsconfig.json && node --test test/*.test.js"
+  },
+  "dependencies": {
+    "openapi-fetch": "^0.17.0"
+  },
+  "devDependencies": {
+    "@boothconnect/eslint-config": "workspace:*",
+    "eslint": "^10.11.0",
+    "globals": "^17.12.0",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "~6.0.3"
+  }
+}

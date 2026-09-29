@@ -89,6 +89,11 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm format:check
+      # docs/api/openapi.json must match the API code (regenerate with
+      # `pnpm --filter api openapi`); the api-client tests check its types
+      # against the spec.
+      - name: OpenAPI spec is up to date
+        run: pnpm --filter @boothconnect/api openapi:check
       # The Flutter app and the Python roll-parser have their own jobs below.
       - run: pnpm turbo run lint typecheck test build --filter=!@boothconnect/mobile --filter=!@boothconnect/roll-parser
 

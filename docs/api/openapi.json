@@ -1,0 +1,6130 @@
+{
+  "components": {
+    "schemas": {
+      "AddMemberDto": {
+        "properties": {
+          "age": {
+            "maximum": 130,
+            "minimum": 0,
+            "type": "number"
+          },
+          "fields": {
+            "description": "Other member fields (mobile number, occupation…).",
+            "items": {
+              "$ref": "#/components/schemas/MemberFieldDto"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "gender": {
+            "description": "One of the gender field's options.",
+            "maxLength": 32,
+            "type": "string"
+          },
+          "id": {
+            "description": "Generated on the phone, so later offline changes can refer to it.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "type": "object"
+      },
+      "AddressDto": {
+        "properties": {
+          "area": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "house_no": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "landmark": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "pin_code": {
+            "pattern": "^\\d{6}$",
+            "type": "string"
+          },
+          "street": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "type": "object"
+      },
+      "AnalyticsSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "computedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "When the figures were last computed; null if they haven't been yet."
+          },
+          "definitions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What each figure means (design §7: every card shows its definition).",
+            "type": "object"
+          },
+          "metrics": {
+            "$ref": "#/components/schemas/Figures"
+          },
+          "minCohort": {
+            "description": "Groups smaller than this are suppressed.",
+            "type": "number"
+          },
+          "node": {
+            "$ref": "#/components/schemas/NodeRef"
+          }
+        },
+        "required": [
+          "computedAt",
+          "definitions",
+          "metrics",
+          "minCohort",
+          "node"
+        ],
+        "type": "object"
+      },
+      "ApiErrorBody": {
+        "additionalProperties": false,
+        "description": "The body of every error response.",
+        "properties": {
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "details": {},
+          "message": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "requestId",
+          "code",
+          "message"
+        ],
+        "type": "object"
+      },
+      "AssignmentView": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "node": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "isAuxiliary": {
+                "type": "boolean"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "$ref": "#/components/schemas/GeographyNodeType"
+              }
+            },
+            "required": [
+              "code",
+              "id",
+              "isAuxiliary",
+              "name",
+              "type"
+            ],
+            "type": "object"
+          },
+          "path": {
+            "description": "From the state down to the assigned node itself, e.g. S29 → PC 6 → AC 40 → part 408 → station 408.",
+            "items": {
+              "$ref": "#/components/schemas/NodeSummary"
+            },
+            "type": "array"
+          },
+          "role": {
+            "$ref": "#/components/schemas/Role"
+          },
+          "validFrom": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "validUntil": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "role",
+          "validFrom",
+          "validUntil",
+          "node",
+          "path"
+        ],
+        "type": "object"
+      },
+      "AuditEventView": {
+        "additionalProperties": false,
+        "properties": {
+          "action": {
+            "type": "string"
+          },
+          "actor": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "at": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "hash": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "metadata": {},
+          "prevHash": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "requestId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resourceId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "resourceType": {
+            "type": "string"
+          },
+          "result": {
+            "$ref": "#/components/schemas/AuditResult"
+          },
+          "seq": {
+            "description": "Position in the chain (a string: it can exceed JavaScript's safe integers).",
+            "type": "string"
+          },
+          "sessionId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "seq",
+          "at",
+          "action",
+          "resourceType",
+          "resourceId",
+          "result",
+          "actor",
+          "sessionId",
+          "requestId",
+          "metadata",
+          "prevHash",
+          "hash"
+        ],
+        "type": "object"
+      },
+      "AuditEventsPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AuditEventView"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "description": "Pass as `cursor` to get the next page; null on the last page.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "verification": {
+            "$ref": "#/components/schemas/ChainCheck"
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
+      "AuditResult": {
+        "enum": [
+          "success",
+          "denied",
+          "failure"
+        ],
+        "type": "string"
+      },
+      "BatchConfirmResult": {
+        "additionalProperties": false,
+        "properties": {
+          "queued": {
+            "items": {
+              "$ref": "#/components/schemas/ConfirmQueued"
+            },
+            "type": "array"
+          },
+          "skipped": {
+            "description": "Ready files that couldn't be confirmed, and why.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "code": {
+                  "type": "string"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "message": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "id",
+                "code",
+                "message"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "queued",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "BatchDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fileCount": {
+            "type": "number"
+          },
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/FileStatusView"
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportBatchStatus"
+          },
+          "statusCounts": {
+            "additionalProperties": false,
+            "description": "Files per status.",
+            "properties": {
+              "confirmed": {
+                "type": "number"
+              },
+              "confirming": {
+                "type": "number"
+              },
+              "duplicate": {
+                "type": "number"
+              },
+              "extracting": {
+                "type": "number"
+              },
+              "failed": {
+                "type": "number"
+              },
+              "needs_review": {
+                "type": "number"
+              },
+              "ready": {
+                "type": "number"
+              },
+              "rejected": {
+                "type": "number"
+              },
+              "uploaded": {
+                "type": "number"
+              }
+            },
+            "type": "object"
+          },
+          "targetNode": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "$ref": "#/components/schemas/GeographyNodeType"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "code",
+              "name"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "targetNode",
+          "status",
+          "fileCount",
+          "statusCounts",
+          "files",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "BatchView": {
+        "additionalProperties": false,
+        "properties": {
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "fileCount": {
+            "type": "number"
+          },
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportBatchStatus"
+          },
+          "targetNode": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              },
+              "type": {
+                "$ref": "#/components/schemas/GeographyNodeType"
+              }
+            },
+            "required": [
+              "id",
+              "type",
+              "code",
+              "name"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "targetNode",
+          "status",
+          "fileCount",
+          "createdAt"
+        ],
+        "type": "object"
+      },
+      "ChainCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "checked": {
+            "description": "Events checked: every event in the from/to range, whatever the other filters.",
+            "type": "number"
+          },
+          "firstBrokenSeq": {
+            "description": "The first event whose hash or link to the previous event doesn't match.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "intact": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "checked",
+          "intact",
+          "firstBrokenSeq"
+        ],
+        "type": "object"
+      },
+      "ChildrenBreakdown": {
+        "additionalProperties": false,
+        "properties": {
+          "average": {
+            "$ref": "#/components/schemas/Figures",
+            "description": "Per child: counts are the parent's total ÷ the number of children; ratios the parent's."
+          },
+          "children": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "computedAt": {
+                  "anyOf": [
+                    {
+                      "format": "date-time",
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "metrics": {
+                  "$ref": "#/components/schemas/Figures"
+                },
+                "node": {
+                  "$ref": "#/components/schemas/NodeRef"
+                }
+              },
+              "required": [
+                "node",
+                "computedAt",
+                "metrics"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "computedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "definitions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What each figure means (design §7: every card shows its definition).",
+            "type": "object"
+          },
+          "minCohort": {
+            "description": "Groups smaller than this are suppressed.",
+            "type": "number"
+          },
+          "node": {
+            "$ref": "#/components/schemas/NodeRef"
+          },
+          "total": {
+            "$ref": "#/components/schemas/Figures",
+            "description": "The parent's figures, as shown next to the children."
+          }
+        },
+        "required": [
+          "average",
+          "children",
+          "computedAt",
+          "definitions",
+          "minCohort",
+          "node",
+          "total"
+        ],
+        "type": "object"
+      },
+      "CompleteUploadDto": {
+        "properties": {
+          "parts": {
+            "items": {
+              "$ref": "#/components/schemas/UploadedPartDto"
+            },
+            "maxItems": 10000,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "parts"
+        ],
+        "type": "object"
+      },
+      "ComponentStatus": {
+        "enum": [
+          "up",
+          "down"
+        ],
+        "type": "string"
+      },
+      "ConfirmFileDto": {
+        "properties": {
+          "acceptTotalsMismatch": {
+            "description": "Confirm although the voters don't add up to the totals printed on the\nroll (after the admin has checked why).",
+            "type": "boolean"
+          }
+        },
+        "type": "object"
+      },
+      "ConfirmQueued": {
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportFileStatus"
+          },
+          "voters": {
+            "description": "Voters the file will add.",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "status",
+          "voters"
+        ],
+        "type": "object"
+      },
+      "ConflictResolved": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "discardedIds": {
+                "items": {
+                  "type": "string"
+                },
+                "type": "array"
+              },
+              "entityId": {
+                "type": "string"
+              },
+              "entityType": {
+                "$ref": "#/components/schemas/FieldEntity"
+              },
+              "fieldKey": {
+                "type": "string"
+              },
+              "keptId": {
+                "type": "string"
+              },
+              "status": {
+                "const": "resolved",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "keptId",
+              "discardedIds",
+              "entityType",
+              "entityId",
+              "fieldKey"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "keptId": {
+                "type": "string"
+              },
+              "status": {
+                "const": "already_resolved",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "keptId"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "ConsentCaptureDto": {
+        "properties": {
+          "method": {
+            "enum": [
+              "in_person_verbal",
+              "in_person_signed"
+            ],
+            "type": "string"
+          },
+          "noticeVersion": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "purpose": {
+            "description": "A field key (e.g. \"caste_community\") or \"household_location\".",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "ref": {
+            "type": "string"
+          },
+          "voterId": {
+            "description": "The member who agreed; omit for a household-level consent (e.g. location).",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "ref",
+          "purpose",
+          "noticeVersion",
+          "method"
+        ],
+        "type": "object"
+      },
+      "CorrectRowDto": {
+        "properties": {
+          "reason": {
+            "description": "Why the row is rejected; shown to other reviewers.",
+            "maxLength": 500,
+            "minLength": 1,
+            "type": "string"
+          },
+          "rejected": {
+            "description": "true rejects the row (it won't be imported); false takes the rejection back.",
+            "type": "boolean"
+          },
+          "values": {
+            "$ref": "#/components/schemas/RowCorrectionValuesDto"
+          }
+        },
+        "type": "object"
+      },
+      "CreateBatchDto": {
+        "properties": {
+          "targetNodeId": {
+            "description": "The State, PC, AC or Part the files belong under (in the caller's scope).",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "targetNodeId"
+        ],
+        "type": "object"
+      },
+      "CreateHouseholdDto": {
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/AddressDto"
+          },
+          "id": {
+            "description": "Generated on the phone, so later offline changes can refer to it.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "location": {
+            "$ref": "#/components/schemas/LocationDto"
+          },
+          "pollingStationId": {
+            "description": "One of the caller's booths.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "pollingStationId",
+          "address"
+        ],
+        "type": "object"
+      },
+      "CreateVisitDto": {
+        "properties": {
+          "clientId": {
+            "description": "Generated on the phone; the same visit is never stored twice.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "completedAt": {
+            "type": "string"
+          },
+          "consents": {
+            "items": {
+              "$ref": "#/components/schemas/ConsentCaptureDto"
+            },
+            "maxItems": 50,
+            "type": "array"
+          },
+          "correctsVisitId": {
+            "description": "Set when this visit corrects an earlier one to the same household (\"edit from list\").",
+            "format": "uuid",
+            "type": "string"
+          },
+          "fieldChanges": {
+            "items": {
+              "$ref": "#/components/schemas/FieldChangeDto"
+            },
+            "maxItems": 200,
+            "type": "array"
+          },
+          "formVersion": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          },
+          "householdId": {
+            "format": "uuid",
+            "type": "string"
+          },
+          "memberIdsMet": {
+            "description": "Members the volunteer met; each must belong to the household.",
+            "items": {
+              "format": "uuid",
+              "type": "string"
+            },
+            "maxItems": 50,
+            "type": "array",
+            "uniqueItems": true
+          },
+          "notes": {
+            "maxLength": 1000,
+            "type": "string"
+          },
+          "outcome": {
+            "enum": [
+              "completed",
+              "partially_completed",
+              "no_one_available",
+              "refused",
+              "address_not_found",
+              "household_moved",
+              "voter_deceased",
+              "duplicate_or_incorrect_listing",
+              "follow_up_requested",
+              "unsafe_or_inaccessible"
+            ],
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "clientId",
+          "householdId",
+          "startedAt",
+          "outcome",
+          "formVersion"
+        ],
+        "type": "object"
+      },
+      "CurrentValue": {
+        "additionalProperties": false,
+        "description": "A field's current value(s), sent back with a conflict.",
+        "properties": {
+          "collectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "collectedBy": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "value": {}
+        },
+        "required": [
+          "id",
+          "value",
+          "collectedBy",
+          "collectedAt"
+        ],
+        "type": "object"
+      },
+      "EditMemberDto": {
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/MemberEditDto"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "type": "object"
+      },
+      "ElectorCounts": {
+        "additionalProperties": false,
+        "properties": {
+          "female": {
+            "type": "number"
+          },
+          "male": {
+            "type": "number"
+          },
+          "thirdGender": {
+            "type": "number"
+          },
+          "total": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "male",
+          "female",
+          "thirdGender",
+          "total"
+        ],
+        "type": "object"
+      },
+      "ErrorCode": {
+        "description": "Stable, machine-readable error codes returned in every error response. Clients branch on `code`, never on `message`, so codes are never renamed.",
+        "enum": [
+          "VALIDATION_FAILED",
+          "MALFORMED_JSON",
+          "BAD_REQUEST",
+          "UNAUTHENTICATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "METHOD_NOT_ALLOWED",
+          "CONFLICT",
+          "UNIQUE_VIOLATION",
+          "FOREIGN_KEY_VIOLATION",
+          "PAYLOAD_TOO_LARGE",
+          "UNSUPPORTED_MEDIA_TYPE",
+          "UNPROCESSABLE",
+          "RATE_LIMITED",
+          "OTP_INVALID",
+          "OTP_LOCKED",
+          "IDEMPOTENCY_KEY_REQUIRED",
+          "IDEMPOTENCY_KEY_REUSED",
+          "IDEMPOTENCY_IN_PROGRESS",
+          "FIELD_UNKNOWN",
+          "FIELD_DISABLED",
+          "CONSENT_REQUIRED",
+          "INVALID_VALUE",
+          "BASE_VERSION_INVALID",
+          "INTERNAL_ERROR",
+          "SERVICE_UNAVAILABLE"
+        ],
+        "type": "string"
+      },
+      "FieldChangeDto": {
+        "properties": {
+          "baseVersion": {
+            "description": "The field_value ID the phone last saw; null if it saw none.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "collectedAt": {
+            "type": "string"
+          },
+          "consentId": {
+            "description": "An existing consent, or the `ref` of one captured in this visit.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "consentRef": {
+            "type": "string"
+          },
+          "entityId": {
+            "description": "The visit's household, or one of its members.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "entityType": {
+            "enum": [
+              "voter",
+              "household"
+            ],
+            "type": "string"
+          },
+          "fieldKey": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "description": "Checked against the field's type by the field-value service.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "entityType",
+          "entityId",
+          "fieldKey",
+          "value",
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "FieldChangeResult": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "fieldValueId": {
+                "type": "string"
+              },
+              "status": {
+                "const": "applied",
+                "type": "string"
+              },
+              "supersedesId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "status",
+              "fieldValueId",
+              "supersedesId"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "conflictWithId": {
+                "type": "string"
+              },
+              "fieldValueId": {
+                "type": "string"
+              },
+              "status": {
+                "const": "conflict",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "fieldValueId",
+              "conflictWithId"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/RejectionCode"
+              },
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "const": "rejected",
+                "type": "string"
+              }
+            },
+            "required": [
+              "status",
+              "code",
+              "message"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "FieldEntity": {
+        "enum": [
+          "voter",
+          "household"
+        ],
+        "type": "string"
+      },
+      "FieldType": {
+        "enum": [
+          "text",
+          "number",
+          "boolean",
+          "date",
+          "phone",
+          "single_select",
+          "multi_select",
+          "address",
+          "location"
+        ],
+        "type": "string"
+      },
+      "FieldValueView": {
+        "additionalProperties": false,
+        "properties": {
+          "collectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "collectedBy": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conflictWithId": {
+            "description": "Set while this value conflicts with another current value.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "description": "Send this as `base_version` when editing the field.",
+            "type": "string"
+          },
+          "sourceType": {
+            "$ref": "#/components/schemas/ValueSource"
+          },
+          "supersedesId": {
+            "description": "The value this one replaced.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {}
+        },
+        "required": [
+          "id",
+          "value",
+          "sourceType",
+          "collectedBy",
+          "collectedAt",
+          "supersedesId",
+          "conflictWithId"
+        ],
+        "type": "object"
+      },
+      "Figure": {
+        "anyOf": [
+          {
+            "type": "number"
+          },
+          {
+            "const": "suppressed",
+            "type": "string"
+          },
+          {
+            "type": "null"
+          }
+        ],
+        "description": "What the analytics API shows (#49; design §7, spec §8.2): a flat set of figures per node, each a number, `\"suppressed\"` (a group smaller than the minimum cohort, or one that could be worked out from the others), or `null` (not collected: e.g. no visits yet, no earlier revision). Zero is a real zero.\n\nSuppression, in order: 1. every count of people or households between 1 and cohort − 1; 2. within a breakdown (gender, age bands, visit outcomes) with its total    shown, a single suppressed category would be total − the others, so    the smallest other non-zero category is suppressed too; 3. across a node's children: a single suppressed child would be parent −    the other children, so the smallest other child is suppressed too (or    the parent's figure, if no other child has one); 4. derived figures (ratios, median, averages) are suppressed when a count    they are built from is. Steps 2 and 3 repeat until nothing changes."
+      },
+      "Figures": {
+        "additionalProperties": {
+          "$ref": "#/components/schemas/Figure"
+        },
+        "type": "object"
+      },
+      "FilePreview": {
+        "additionalProperties": false,
+        "properties": {
+          "file": {
+            "$ref": "#/components/schemas/FileStatusView"
+          },
+          "header": {
+            "anyOf": [
+              {
+                "additionalProperties": {},
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The cover page as read: state, AC, part, revision, stations…"
+          },
+          "issues": {
+            "description": "File-level issues from extraction (header, pages, totals).",
+            "items": {
+              "$ref": "#/components/schemas/Issue"
+            },
+            "type": "array"
+          },
+          "pages": {
+            "description": "Voter pages with an image for side-by-side correction.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "height": {
+                  "type": "number"
+                },
+                "page": {
+                  "type": "number"
+                },
+                "width": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "page",
+                "width",
+                "height"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "previousSourceVersionId": {
+            "description": "The part's current revision; confirming makes a new source version after it.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "rows": {
+            "additionalProperties": false,
+            "properties": {
+              "items": {
+                "items": {
+                  "$ref": "#/components/schemas/ReviewRow"
+                },
+                "type": "array"
+              },
+              "nextCursor": {
+                "description": "Pass as `cursor` to get the next page; null on the last page.",
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "total": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "items",
+              "nextCursor",
+              "total"
+            ],
+            "type": "object"
+          },
+          "stations": {
+            "description": "Main station first; `nodeId` null for a station that will be created on confirm.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "auxiliary": {
+                  "type": "boolean"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "name": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "nodeId": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "code",
+                "name",
+                "auxiliary",
+                "nodeId"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TotalsCheck"
+          }
+        },
+        "required": [
+          "file",
+          "header",
+          "stations",
+          "previousSourceVersionId",
+          "issues",
+          "pages",
+          "totals",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "FileStatusView": {
+        "additionalProperties": false,
+        "properties": {
+          "confirmedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "duplicateOfId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "error": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "message"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Why the file was rejected or failed."
+          },
+          "extractedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "originalName": {
+            "type": "string"
+          },
+          "pageCount": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "part": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "code",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The existing part it was matched to."
+          },
+          "proposedPart": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "code": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "A part that will be created on confirm."
+          },
+          "qualityScore": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "rowCount": {
+            "description": "Voter boxes read from the roll.",
+            "type": "number"
+          },
+          "rows": {
+            "additionalProperties": false,
+            "properties": {
+              "accepted": {
+                "type": "number"
+              },
+              "rejected": {
+                "type": "number"
+              },
+              "warning": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "accepted",
+              "warning",
+              "rejected"
+            ],
+            "type": "object"
+          },
+          "sizeBytes": {
+            "type": "number"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportFileStatus"
+          },
+          "voterCount": {
+            "description": "Rows that would become active voters (not rejected, not marked deleted).",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "originalName",
+          "sizeBytes",
+          "status",
+          "duplicateOfId",
+          "error",
+          "part",
+          "proposedPart",
+          "pageCount",
+          "rowCount",
+          "rows",
+          "voterCount",
+          "qualityScore",
+          "extractedAt",
+          "confirmedAt"
+        ],
+        "type": "object"
+      },
+      "GeographyNodeDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isAuxiliary": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "description": "From the top (state) down to the node's parent, for breadcrumbs.",
+            "items": {
+              "$ref": "#/components/schemas/GeographyNodeView"
+            },
+            "type": "array"
+          },
+          "type": {
+            "$ref": "#/components/schemas/GeographyNodeType"
+          }
+        },
+        "required": [
+          "code",
+          "id",
+          "isAuxiliary",
+          "name",
+          "parentId",
+          "path",
+          "type"
+        ],
+        "type": "object"
+      },
+      "GeographyNodePage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/GeographyNodeView"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "description": "Pass as `cursor` to get the next page; null on the last page.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
+      "GeographyNodeType": {
+        "enum": [
+          "state",
+          "pc",
+          "ac",
+          "part",
+          "polling_station"
+        ],
+        "type": "string"
+      },
+      "GeographyNodeView": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isAuxiliary": {
+            "type": "boolean"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "$ref": "#/components/schemas/GeographyNodeType"
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "type",
+          "code",
+          "name",
+          "isAuxiliary"
+        ],
+        "type": "object"
+      },
+      "HealthReport": {
+        "additionalProperties": false,
+        "properties": {
+          "checks": {
+            "additionalProperties": {
+              "additionalProperties": false,
+              "properties": {
+                "latencyMs": {
+                  "type": "number"
+                },
+                "status": {
+                  "$ref": "#/components/schemas/ComponentStatus"
+                }
+              },
+              "required": [
+                "status",
+                "latencyMs"
+              ],
+              "type": "object"
+            },
+            "type": "object"
+          },
+          "status": {
+            "enum": [
+              "ok",
+              "error"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "status",
+          "checks"
+        ],
+        "type": "object"
+      },
+      "HouseholdCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "displayAddress": {
+            "type": "string"
+          },
+          "duplicate": {
+            "description": "True when a household with this client-generated `id` already existed.",
+            "type": "boolean"
+          },
+          "houseKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastVisit": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "completedAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "memberIdsMet": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "outcome": {
+                    "$ref": "#/components/schemas/VisitOutcome"
+                  },
+                  "startedAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "volunteerId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "outcome",
+                  "startedAt",
+                  "completedAt",
+                  "volunteerId",
+                  "memberIdsMet"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The latest visit that no later visit corrects."
+          },
+          "location": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "accuracyM": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "capturedAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lng",
+                  "accuracyM",
+                  "capturedAt"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Captured with consent; null when there is none."
+          },
+          "members": {
+            "description": "Active members, in roll order; volunteer-added members last.",
+            "items": {
+              "$ref": "#/components/schemas/MemberSummary"
+            },
+            "type": "array"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/RecordOrigin"
+          },
+          "partId": {
+            "type": "string"
+          },
+          "pollingStationId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HouseholdStatus"
+          },
+          "structuredAddress": {}
+        },
+        "required": [
+          "displayAddress",
+          "duplicate",
+          "houseKey",
+          "id",
+          "lastVisit",
+          "location",
+          "members",
+          "origin",
+          "partId",
+          "pollingStationId",
+          "status",
+          "structuredAddress"
+        ],
+        "type": "object"
+      },
+      "HouseholdDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "displayAddress": {
+            "type": "string"
+          },
+          "houseKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastVisit": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "completedAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "id": {
+                    "type": "string"
+                  },
+                  "memberIdsMet": {
+                    "items": {
+                      "type": "string"
+                    },
+                    "type": "array"
+                  },
+                  "outcome": {
+                    "$ref": "#/components/schemas/VisitOutcome"
+                  },
+                  "startedAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  },
+                  "volunteerId": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "outcome",
+                  "startedAt",
+                  "completedAt",
+                  "volunteerId",
+                  "memberIdsMet"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The latest visit that no later visit corrects."
+          },
+          "location": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "accuracyM": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "capturedAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lng",
+                  "accuracyM",
+                  "capturedAt"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Captured with consent; null when there is none."
+          },
+          "members": {
+            "description": "Active members, in roll order; volunteer-added members last.",
+            "items": {
+              "$ref": "#/components/schemas/MemberSummary"
+            },
+            "type": "array"
+          },
+          "origin": {
+            "$ref": "#/components/schemas/RecordOrigin"
+          },
+          "partId": {
+            "type": "string"
+          },
+          "pollingStationId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HouseholdStatus"
+          },
+          "structuredAddress": {}
+        },
+        "required": [
+          "id",
+          "partId",
+          "pollingStationId",
+          "displayAddress",
+          "houseKey",
+          "structuredAddress",
+          "location",
+          "origin",
+          "status",
+          "members",
+          "lastVisit"
+        ],
+        "type": "object"
+      },
+      "HouseholdPage": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/HouseholdSummary"
+            },
+            "type": "array"
+          },
+          "nextCursor": {
+            "description": "Pass as `cursor` to get the next page; null on the last page.",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "items",
+          "nextCursor"
+        ],
+        "type": "object"
+      },
+      "HouseholdStatus": {
+        "enum": [
+          "active",
+          "removed"
+        ],
+        "type": "string"
+      },
+      "HouseholdSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "displayAddress": {
+            "type": "string"
+          },
+          "houseKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "lastVisit": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "outcome": {
+                    "$ref": "#/components/schemas/VisitOutcome"
+                  },
+                  "startedAt": {
+                    "format": "date-time",
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "outcome",
+                  "startedAt"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin": {
+            "$ref": "#/components/schemas/RecordOrigin"
+          },
+          "partId": {
+            "type": "string"
+          },
+          "pollingStationId": {
+            "type": "string"
+          },
+          "voterCount": {
+            "description": "Active members (official and volunteer-added).",
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "partId",
+          "pollingStationId",
+          "displayAddress",
+          "houseKey",
+          "origin",
+          "voterCount",
+          "lastVisit"
+        ],
+        "type": "object"
+      },
+      "HouseholdUpdated": {
+        "additionalProperties": false,
+        "properties": {
+          "household": {
+            "$ref": "#/components/schemas/HouseholdDetail"
+          },
+          "results": {
+            "additionalProperties": false,
+            "description": "One result per field sent.",
+            "properties": {
+              "address": {
+                "$ref": "#/components/schemas/FieldChangeResult"
+              },
+              "location": {
+                "$ref": "#/components/schemas/FieldChangeResult"
+              }
+            },
+            "type": "object"
+          }
+        },
+        "required": [
+          "household",
+          "results"
+        ],
+        "type": "object"
+      },
+      "ImportBatchStatus": {
+        "enum": [
+          "uploading",
+          "processing",
+          "review",
+          "completed",
+          "cancelled"
+        ],
+        "type": "string"
+      },
+      "ImportFileStatus": {
+        "enum": [
+          "uploaded",
+          "extracting",
+          "needs_review",
+          "ready",
+          "confirming",
+          "confirmed",
+          "rejected",
+          "duplicate",
+          "failed"
+        ],
+        "type": "string"
+      },
+      "ImportRowStatus": {
+        "enum": [
+          "accepted",
+          "warning",
+          "rejected"
+        ],
+        "type": "string"
+      },
+      "ImportUploadKind": {
+        "enum": [
+          "pdf",
+          "zip"
+        ],
+        "type": "string"
+      },
+      "ImportedFile": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicateOfId": {
+            "description": "For a duplicate: the file already imported with the same content.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "originalName": {
+            "type": "string"
+          },
+          "sizeBytes": {
+            "type": "number"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportFileStatus"
+          }
+        },
+        "required": [
+          "id",
+          "originalName",
+          "sizeBytes",
+          "status",
+          "duplicateOfId"
+        ],
+        "type": "object"
+      },
+      "Issue": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "field": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "page": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "message"
+        ],
+        "type": "object"
+      },
+      "LocationConsentDto": {
+        "properties": {
+          "method": {
+            "enum": [
+              "in_person_verbal",
+              "in_person_signed"
+            ],
+            "type": "string"
+          },
+          "noticeVersion": {
+            "maxLength": 32,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "noticeVersion",
+          "method"
+        ],
+        "type": "object"
+      },
+      "LocationDto": {
+        "properties": {
+          "accuracyM": {
+            "maximum": 100000,
+            "minimum": 0,
+            "type": "number"
+          },
+          "capturedAt": {
+            "type": "string"
+          },
+          "consent": {
+            "$ref": "#/components/schemas/LocationConsentDto"
+          },
+          "lat": {
+            "maximum": 90,
+            "minimum": -90,
+            "type": "number"
+          },
+          "lng": {
+            "maximum": 180,
+            "minimum": -180,
+            "type": "number"
+          }
+        },
+        "required": [
+          "lat",
+          "lng",
+          "capturedAt",
+          "consent"
+        ],
+        "type": "object"
+      },
+      "Me": {
+        "additionalProperties": false,
+        "properties": {
+          "assignments": {
+            "items": {
+              "$ref": "#/components/schemas/AssignmentView"
+            },
+            "type": "array"
+          },
+          "email": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "mfaState": {
+            "$ref": "#/components/schemas/MfaState"
+          },
+          "name": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          },
+          "preferredLanguage": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "phone",
+          "email",
+          "preferredLanguage",
+          "mfaState",
+          "assignments"
+        ],
+        "type": "object"
+      },
+      "MemberCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "duplicate": {
+            "type": "boolean"
+          },
+          "fields": {
+            "description": "name, age, gender, then `fields`, in that order.",
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "fieldKey": {
+                      "type": "string"
+                    },
+                    "fieldValueId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "applied",
+                      "type": "string"
+                    },
+                    "supersedesId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "fieldKey",
+                    "fieldValueId",
+                    "status",
+                    "supersedesId"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "conflictWithId": {
+                      "type": "string"
+                    },
+                    "fieldKey": {
+                      "type": "string"
+                    },
+                    "fieldValueId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "conflict",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "conflictWithId",
+                    "fieldKey",
+                    "fieldValueId",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "$ref": "#/components/schemas/RejectionCode"
+                    },
+                    "fieldKey": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "rejected",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "fieldKey",
+                    "message",
+                    "status"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "householdId",
+          "duplicate",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "MemberEditDto": {
+        "properties": {
+          "baseVersion": {
+            "description": "The value ID the phone last saw for this field; null if it saw none.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "consentId": {
+            "description": "Required for consent-gated fields such as caste/community.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "fieldKey": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "description": "Checked against the field's type by the field-value service.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "fieldKey",
+          "value",
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "MemberEdited": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "description": "One result per field, in request order.",
+            "items": {
+              "anyOf": [
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "fieldKey": {
+                      "type": "string"
+                    },
+                    "fieldValueId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "applied",
+                      "type": "string"
+                    },
+                    "supersedesId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ]
+                    }
+                  },
+                  "required": [
+                    "fieldKey",
+                    "fieldValueId",
+                    "status",
+                    "supersedesId"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "conflictWithId": {
+                      "type": "string"
+                    },
+                    "fieldKey": {
+                      "type": "string"
+                    },
+                    "fieldValueId": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "conflict",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "conflictWithId",
+                    "fieldKey",
+                    "fieldValueId",
+                    "status"
+                  ],
+                  "type": "object"
+                },
+                {
+                  "additionalProperties": false,
+                  "properties": {
+                    "code": {
+                      "$ref": "#/components/schemas/RejectionCode"
+                    },
+                    "fieldKey": {
+                      "type": "string"
+                    },
+                    "message": {
+                      "type": "string"
+                    },
+                    "status": {
+                      "const": "rejected",
+                      "type": "string"
+                    }
+                  },
+                  "required": [
+                    "code",
+                    "fieldKey",
+                    "message",
+                    "status"
+                  ],
+                  "type": "object"
+                }
+              ]
+            },
+            "type": "array"
+          },
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "MemberFieldDto": {
+        "properties": {
+          "consentId": {
+            "description": "Required for consent-gated fields such as caste/community.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "fieldKey": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "type": "object"
+          }
+        },
+        "required": [
+          "fieldKey",
+          "value"
+        ],
+        "type": "object"
+      },
+      "MemberSummary": {
+        "additionalProperties": false,
+        "description": "A member as shown on the household screen: current values over the roll's.",
+        "properties": {
+          "age": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "epicNumber": {
+            "description": "EPIC number; null for volunteer-added members.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "gender": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "hasConflict": {
+            "description": "Two offline edits of one of this member's fields collided (plan §4).",
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "origin": {
+            "$ref": "#/components/schemas/RecordOrigin"
+          },
+          "relationType": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relativeName": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sectionNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "serialNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "origin",
+          "sectionNo",
+          "serialNo",
+          "epicNumber",
+          "name",
+          "age",
+          "gender",
+          "relationType",
+          "relativeName",
+          "hasConflict"
+        ],
+        "type": "object"
+      },
+      "MfaState": {
+        "enum": [
+          "not_enrolled",
+          "enrolled"
+        ],
+        "type": "string"
+      },
+      "MutationDto": {
+        "properties": {
+          "key": {
+            "description": "Made on the phone, one per queued change and reused on every retry of\nit, like an Idempotency-Key.",
+            "pattern": "^[A-Za-z0-9_-]{8,128}$",
+            "type": "string"
+          },
+          "payload": {
+            "additionalProperties": true,
+            "description": "Checked against the type's own shape, item by item.",
+            "type": "object"
+          },
+          "type": {
+            "enum": [
+              "visit.create",
+              "field.change",
+              "consent.capture",
+              "household.create",
+              "household.update",
+              "member.create",
+              "conflict.resolve"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "payload"
+        ],
+        "type": "object"
+      },
+      "MutationResult": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "current": {
+            "items": {
+              "$ref": "#/components/schemas/CurrentValue"
+            },
+            "type": "array"
+          },
+          "details": {},
+          "key": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "result": {},
+          "status": {
+            "description": "applied: stored. duplicate: this change was already stored (resent item, or a record with this client id exists); `result` is what it was. conflict: stored, but the field had moved on (`current` has the server's values; resolve it with conflict.resolve). rejected: nothing stored (`code`, `message`).",
+            "enum": [
+              "applied",
+              "duplicate",
+              "conflict",
+              "rejected"
+            ],
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/MutationType"
+          }
+        },
+        "required": [
+          "key",
+          "type",
+          "status"
+        ],
+        "type": "object"
+      },
+      "MutationType": {
+        "enum": [
+          "visit.create",
+          "field.change",
+          "consent.capture",
+          "household.create",
+          "household.update",
+          "member.create",
+          "conflict.resolve"
+        ],
+        "type": "string"
+      },
+      "NodeRef": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/GeographyNodeType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "code",
+          "name"
+        ],
+        "type": "object"
+      },
+      "NodeSummary": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "type": {
+            "$ref": "#/components/schemas/GeographyNodeType"
+          }
+        },
+        "required": [
+          "id",
+          "type",
+          "code",
+          "name"
+        ],
+        "type": "object"
+      },
+      "RecordOrigin": {
+        "enum": [
+          "official_import",
+          "volunteer_added"
+        ],
+        "type": "string"
+      },
+      "RefreshDto": {
+        "properties": {
+          "refreshToken": {
+            "maxLength": 256,
+            "minLength": 1,
+            "type": "string"
+          }
+        },
+        "required": [
+          "refreshToken"
+        ],
+        "type": "object"
+      },
+      "RejectionCode": {
+        "enum": [
+          "NOT_FOUND",
+          "FIELD_UNKNOWN",
+          "FIELD_DISABLED",
+          "CONSENT_REQUIRED",
+          "INVALID_VALUE",
+          "BASE_VERSION_INVALID"
+        ],
+        "type": "string"
+      },
+      "RequestOtpDto": {
+        "properties": {
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone"
+        ],
+        "type": "object"
+      },
+      "ResolveConflictDto": {
+        "properties": {
+          "keepFieldValueId": {
+            "description": "One of the conflicting values; it stays current.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "keepFieldValueId"
+        ],
+        "type": "object"
+      },
+      "ReviewRow": {
+        "additionalProperties": false,
+        "properties": {
+          "boxIndex": {
+            "type": "number"
+          },
+          "confidence": {
+            "additionalProperties": {
+              "type": [
+                "number",
+                "null"
+              ]
+            },
+            "description": "0–1 per field.",
+            "type": "object"
+          },
+          "corrected": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/RowValues"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "The admin's corrections, if any."
+          },
+          "correctedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correctedBy": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "current": {
+            "$ref": "#/components/schemas/RowValues",
+            "description": "What confirm will import: extracted values with the corrections on top."
+          },
+          "extracted": {
+            "$ref": "#/components/schemas/RowValues",
+            "description": "As read from the roll (never changed)."
+          },
+          "id": {
+            "type": "string"
+          },
+          "messages": {
+            "items": {
+              "$ref": "#/components/schemas/RowMessage"
+            },
+            "type": "array"
+          },
+          "page": {
+            "type": "number"
+          },
+          "rawText": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "sectionNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "serialNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "status": {
+            "$ref": "#/components/schemas/ImportRowStatus"
+          }
+        },
+        "required": [
+          "id",
+          "page",
+          "boxIndex",
+          "sectionNo",
+          "serialNo",
+          "status",
+          "messages",
+          "rawText",
+          "extracted",
+          "confidence",
+          "corrected",
+          "current",
+          "correctedBy",
+          "correctedAt"
+        ],
+        "type": "object"
+      },
+      "Revisions": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "additionalProperties": false,
+            "description": "Against the previous revision, summed over the parts below (design §7).",
+            "properties": {
+              "additions": {
+                "$ref": "#/components/schemas/Figure"
+              },
+              "deletions": {
+                "$ref": "#/components/schemas/Figure"
+              },
+              "net": {
+                "$ref": "#/components/schemas/Figure"
+              }
+            },
+            "required": [
+              "additions",
+              "deletions",
+              "net"
+            ],
+            "type": "object"
+          },
+          "definitions": {
+            "additionalProperties": {
+              "type": "string"
+            },
+            "description": "What each figure means (design §7: every card shows its definition).",
+            "type": "object"
+          },
+          "minCohort": {
+            "description": "Groups smaller than this are suppressed.",
+            "type": "number"
+          },
+          "node": {
+            "$ref": "#/components/schemas/NodeRef"
+          },
+          "versions": {
+            "description": "A part's revisions, oldest first (empty above part level).",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "additions": {
+                  "$ref": "#/components/schemas/Figure"
+                },
+                "createdAt": {
+                  "format": "date-time",
+                  "type": "string"
+                },
+                "deletions": {
+                  "$ref": "#/components/schemas/Figure"
+                },
+                "id": {
+                  "type": "string"
+                },
+                "revisionType": {
+                  "type": "string"
+                },
+                "revisionYear": {
+                  "type": "number"
+                },
+                "voters": {
+                  "$ref": "#/components/schemas/Figure"
+                }
+              },
+              "required": [
+                "id",
+                "revisionYear",
+                "revisionType",
+                "createdAt",
+                "voters",
+                "additions",
+                "deletions"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "current",
+          "definitions",
+          "minCohort",
+          "node",
+          "versions"
+        ],
+        "type": "object"
+      },
+      "Role": {
+        "enum": [
+          "admin",
+          "campaign_manager",
+          "volunteer",
+          "voter"
+        ],
+        "type": "string"
+      },
+      "RowCorrectionValuesDto": {
+        "properties": {
+          "age": {
+            "maximum": 120,
+            "minimum": 18,
+            "type": "number"
+          },
+          "epic": {
+            "pattern": "^[A-Z]{3}\\d{7}$",
+            "type": "string"
+          },
+          "gender": {
+            "enum": [
+              "male",
+              "female",
+              "third_gender"
+            ],
+            "type": "string"
+          },
+          "houseNumber": {
+            "maxLength": 50,
+            "minLength": 1,
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "marker": {
+            "enum": [
+              "deleted",
+              "modified",
+              null
+            ],
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "relationType": {
+            "enum": [
+              "father",
+              "mother",
+              "husband",
+              "other"
+            ],
+            "type": "string"
+          },
+          "relativeName": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sectionNumber": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "type": "object"
+      },
+      "RowMessage": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "field": {
+            "description": "The field it is about (camelCase), or null for the whole row.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "message": {
+            "type": "string"
+          },
+          "resolved": {
+            "description": "An extraction message about a field an admin has since corrected.",
+            "type": "boolean"
+          },
+          "severity": {
+            "enum": [
+              "error",
+              "warning",
+              "info"
+            ],
+            "type": "string"
+          },
+          "source": {
+            "const": "review",
+            "description": "Set on messages added during review (rather than by extraction).",
+            "type": "string"
+          }
+        },
+        "required": [
+          "code",
+          "severity",
+          "message",
+          "field"
+        ],
+        "type": "object"
+      },
+      "RowValues": {
+        "additionalProperties": {},
+        "type": "object"
+      },
+      "StartUploadsDto": {
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/UploadRequestDto"
+            },
+            "maxItems": 50,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "files"
+        ],
+        "type": "object"
+      },
+      "SyncConflict": {
+        "additionalProperties": false,
+        "description": "Two current values of one field, waiting for the volunteer to choose one.",
+        "properties": {
+          "entityId": {
+            "type": "string"
+          },
+          "entityType": {
+            "$ref": "#/components/schemas/FieldEntity"
+          },
+          "fieldKey": {
+            "type": "string"
+          },
+          "values": {
+            "description": "The newer value (the one that arrived second) first.",
+            "items": {
+              "$ref": "#/components/schemas/SyncFieldValue"
+            },
+            "maxItems": 2,
+            "minItems": 2,
+            "type": "array"
+          }
+        },
+        "required": [
+          "entityType",
+          "entityId",
+          "fieldKey",
+          "values"
+        ],
+        "type": "object"
+      },
+      "SyncFieldDefinition": {
+        "additionalProperties": false,
+        "properties": {
+          "appliesTo": {
+            "$ref": "#/components/schemas/FieldEntity"
+          },
+          "enabled": {
+            "description": "False: the field is no longer collected; hide it and its values.",
+            "type": "boolean"
+          },
+          "id": {
+            "type": "string"
+          },
+          "isRestricted": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "labelKey": {
+            "type": "string"
+          },
+          "options": {},
+          "purpose": {
+            "type": "string"
+          },
+          "requiresConsent": {
+            "type": "boolean"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FieldType"
+          }
+        },
+        "required": [
+          "id",
+          "key",
+          "labelKey",
+          "appliesTo",
+          "type",
+          "options",
+          "isRestricted",
+          "requiresConsent",
+          "enabled",
+          "purpose"
+        ],
+        "type": "object"
+      },
+      "SyncFieldValue": {
+        "additionalProperties": false,
+        "properties": {
+          "collectedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "collectedBy": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "conflictWithId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "entityId": {
+            "type": "string"
+          },
+          "entityType": {
+            "$ref": "#/components/schemas/FieldEntity"
+          },
+          "fieldKey": {
+            "type": "string"
+          },
+          "id": {
+            "description": "The `base_version` for the next edit of this field.",
+            "type": "string"
+          },
+          "isCurrent": {
+            "description": "False once another value replaced it.",
+            "type": "boolean"
+          },
+          "sourceType": {
+            "$ref": "#/components/schemas/ValueSource"
+          },
+          "supersedesId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "value": {}
+        },
+        "required": [
+          "id",
+          "entityType",
+          "entityId",
+          "fieldKey",
+          "value",
+          "sourceType",
+          "collectedBy",
+          "collectedAt",
+          "supersedesId",
+          "isCurrent",
+          "conflictWithId"
+        ],
+        "type": "object"
+      },
+      "SyncHousehold": {
+        "additionalProperties": false,
+        "properties": {
+          "displayAddress": {
+            "type": "string"
+          },
+          "houseKey": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "location": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "accuracyM": {
+                    "type": [
+                      "number",
+                      "null"
+                    ]
+                  },
+                  "capturedAt": {
+                    "anyOf": [
+                      {
+                        "format": "date-time",
+                        "type": "string"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ]
+                  },
+                  "lat": {
+                    "type": "number"
+                  },
+                  "lng": {
+                    "type": "number"
+                  }
+                },
+                "required": [
+                  "lat",
+                  "lng",
+                  "accuracyM",
+                  "capturedAt"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "origin": {
+            "$ref": "#/components/schemas/RecordOrigin"
+          },
+          "partId": {
+            "type": "string"
+          },
+          "pollingStationId": {
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/HouseholdStatus",
+            "description": "`removed`: no longer in the roll; drop it from the list."
+          },
+          "structuredAddress": {}
+        },
+        "required": [
+          "id",
+          "partId",
+          "pollingStationId",
+          "displayAddress",
+          "houseKey",
+          "structuredAddress",
+          "location",
+          "origin",
+          "status"
+        ],
+        "type": "object"
+      },
+      "SyncPage": {
+        "additionalProperties": false,
+        "properties": {
+          "conflicts": {
+            "description": "Last page only: every open conflict on the caller's booths.",
+            "items": {
+              "$ref": "#/components/schemas/SyncConflict"
+            },
+            "type": "array"
+          },
+          "cursor": {
+            "description": "Pass as `since`: the next page, or (when `hasMore` is false) the next pull.",
+            "type": "string"
+          },
+          "fieldDefinitions": {
+            "items": {
+              "$ref": "#/components/schemas/SyncFieldDefinition"
+            },
+            "type": "array"
+          },
+          "fieldValues": {
+            "items": {
+              "$ref": "#/components/schemas/SyncFieldValue"
+            },
+            "type": "array"
+          },
+          "hasMore": {
+            "description": "More pages follow: call again with `since=cursor` straight away.",
+            "type": "boolean"
+          },
+          "households": {
+            "items": {
+              "$ref": "#/components/schemas/SyncHousehold"
+            },
+            "type": "array"
+          },
+          "removedFieldValueIds": {
+            "description": "Last page only: values to delete because their consent was withdrawn.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "reset": {
+            "description": "True when this is a full snapshot: replace everything stored on the phone.",
+            "type": "boolean"
+          },
+          "visits": {
+            "items": {
+              "$ref": "#/components/schemas/SyncVisit"
+            },
+            "type": "array"
+          },
+          "voters": {
+            "items": {
+              "$ref": "#/components/schemas/SyncVoter"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "reset",
+          "fieldDefinitions",
+          "households",
+          "voters",
+          "fieldValues",
+          "visits",
+          "removedFieldValueIds",
+          "conflicts",
+          "hasMore",
+          "cursor"
+        ],
+        "type": "object"
+      },
+      "SyncPushDto": {
+        "properties": {
+          "mutations": {
+            "items": {
+              "$ref": "#/components/schemas/MutationDto"
+            },
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "mutations"
+        ],
+        "type": "object"
+      },
+      "SyncPushResult": {
+        "additionalProperties": false,
+        "properties": {
+          "results": {
+            "items": {
+              "$ref": "#/components/schemas/MutationResult"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "results"
+        ],
+        "type": "object"
+      },
+      "SyncVisit": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "correctsVisitId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "formVersion": {
+            "type": "string"
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "memberIdsMet": {
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
+          "notes": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/VisitOutcome"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "volunteerId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "householdId",
+          "volunteerId",
+          "startedAt",
+          "completedAt",
+          "outcome",
+          "formVersion",
+          "notes",
+          "correctsVisitId",
+          "memberIdsMet"
+        ],
+        "type": "object"
+      },
+      "SyncVoter": {
+        "additionalProperties": false,
+        "properties": {
+          "epicNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "official": {},
+          "origin": {
+            "$ref": "#/components/schemas/RecordOrigin"
+          },
+          "partId": {
+            "type": "string"
+          },
+          "pollingStationId": {
+            "type": "string"
+          },
+          "recordStatus": {
+            "$ref": "#/components/schemas/VoterRecordStatus",
+            "description": "Anything but `active`: drop it from the household."
+          },
+          "sectionNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "serialNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "householdId",
+          "partId",
+          "pollingStationId",
+          "origin",
+          "recordStatus",
+          "sectionNo",
+          "serialNo",
+          "epicNumber",
+          "official"
+        ],
+        "type": "object"
+      },
+      "TokenPair": {
+        "additionalProperties": false,
+        "properties": {
+          "accessToken": {
+            "type": "string"
+          },
+          "expiresIn": {
+            "description": "Access-token lifetime in seconds.",
+            "type": "number"
+          },
+          "refreshToken": {
+            "type": "string"
+          },
+          "tokenType": {
+            "const": "Bearer",
+            "type": "string"
+          }
+        },
+        "required": [
+          "accessToken",
+          "refreshToken",
+          "tokenType",
+          "expiresIn"
+        ],
+        "type": "object"
+      },
+      "TotalsCheck": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "$ref": "#/components/schemas/ElectorCounts",
+            "description": "After corrections and rejected rows."
+          },
+          "difference": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ElectorCounts"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "current − printed, per count; null when the printed totals couldn't be read."
+          },
+          "extracted": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ElectorCounts"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "As extracted, before review."
+          },
+          "matches": {
+            "type": "boolean"
+          },
+          "printed": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/ElectorCounts"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "printed",
+          "extracted",
+          "current",
+          "difference",
+          "matches"
+        ],
+        "type": "object"
+      },
+      "UpdateHouseholdDto": {
+        "properties": {
+          "address": {
+            "$ref": "#/components/schemas/AddressDto"
+          },
+          "addressBaseVersion": {
+            "description": "The address value ID the phone last saw (null: none); required with `address`.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "location": {
+            "$ref": "#/components/schemas/LocationDto"
+          },
+          "locationBaseVersion": {
+            "description": "The location value ID the phone last saw (null: none); required with `location`.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "type": "object"
+      },
+      "UploadCompleted": {
+        "additionalProperties": false,
+        "properties": {
+          "files": {
+            "items": {
+              "$ref": "#/components/schemas/ImportedFile"
+            },
+            "type": "array"
+          },
+          "skipped": {
+            "description": "ZIP entries that weren't imported, and why.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "name": {
+                  "type": "string"
+                },
+                "reason": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "name",
+                "reason"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "uploadId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "uploadId",
+          "files",
+          "skipped"
+        ],
+        "type": "object"
+      },
+      "UploadRequestDto": {
+        "properties": {
+          "contentType": {
+            "maxLength": 100,
+            "minLength": 1,
+            "type": "string"
+          },
+          "name": {
+            "description": "The file's name on the admin's computer; must end in .pdf or .zip.",
+            "maxLength": 255,
+            "minLength": 1,
+            "type": "string"
+          },
+          "sizeBytes": {
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "name",
+          "sizeBytes"
+        ],
+        "type": "object"
+      },
+      "UploadTicket": {
+        "additionalProperties": false,
+        "properties": {
+          "expiresAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "$ref": "#/components/schemas/ImportUploadKind"
+          },
+          "originalName": {
+            "type": "string"
+          },
+          "partSizeBytes": {
+            "type": "number"
+          },
+          "parts": {
+            "description": "PUT each part to its URL; keep each response's ETag for `complete`.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "partNumber": {
+                  "type": "number"
+                },
+                "url": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "partNumber",
+                "url"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "sizeBytes": {
+            "type": "number"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "originalName",
+          "sizeBytes",
+          "partSizeBytes",
+          "parts",
+          "expiresAt"
+        ],
+        "type": "object"
+      },
+      "UploadTickets": {
+        "additionalProperties": false,
+        "properties": {
+          "uploads": {
+            "items": {
+              "$ref": "#/components/schemas/UploadTicket"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "uploads"
+        ],
+        "type": "object"
+      },
+      "UploadedPartDto": {
+        "properties": {
+          "etag": {
+            "description": "The ETag header S3 returned for the part.",
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "partNumber": {
+            "maximum": 10000,
+            "minimum": 1,
+            "type": "number"
+          }
+        },
+        "required": [
+          "partNumber",
+          "etag"
+        ],
+        "type": "object"
+      },
+      "ValueSource": {
+        "enum": [
+          "official_import",
+          "voter_self_submitted",
+          "volunteer_collected",
+          "admin_corrected",
+          "derived"
+        ],
+        "type": "string"
+      },
+      "VerifyOtpDto": {
+        "properties": {
+          "code": {
+            "pattern": "^\\d{6}$",
+            "type": "string"
+          },
+          "deviceId": {
+            "description": "A stable identifier of the app installation; one session per device.",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "phone",
+          "code",
+          "deviceId"
+        ],
+        "type": "object"
+      },
+      "VisitCreated": {
+        "additionalProperties": false,
+        "properties": {
+          "clientId": {
+            "type": "string"
+          },
+          "completedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "consents": {
+            "description": "The consent records created, by the client's `ref`.",
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "ref": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "ref",
+                "id"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          },
+          "correctsVisitId": {
+            "description": "The visit this one corrects; the corrected visit no longer counts.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "createdAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "duplicate": {
+            "description": "True when a visit with this clientId was already stored; nothing was applied again.",
+            "type": "boolean"
+          },
+          "fieldChanges": {
+            "description": "One result per field change, in request order.",
+            "items": {
+              "$ref": "#/components/schemas/FieldChangeResult"
+            },
+            "type": "array"
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/VisitOutcome"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "clientId",
+          "householdId",
+          "outcome",
+          "startedAt",
+          "completedAt",
+          "createdAt",
+          "correctsVisitId",
+          "duplicate",
+          "consents",
+          "fieldChanges"
+        ],
+        "type": "object"
+      },
+      "VisitOutcome": {
+        "enum": [
+          "completed",
+          "partially_completed",
+          "no_one_available",
+          "refused",
+          "address_not_found",
+          "household_moved",
+          "voter_deceased",
+          "duplicate_or_incorrect_listing",
+          "follow_up_requested",
+          "unsafe_or_inaccessible"
+        ],
+        "type": "string"
+      },
+      "VoterDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "epicNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fields": {
+            "description": "Every enabled field the caller may see, set or not.",
+            "items": {
+              "$ref": "#/components/schemas/VoterField"
+            },
+            "type": "array"
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "official": {
+            "description": "The roll's values as printed; never changed by edits. Null for added members."
+          },
+          "origin": {
+            "$ref": "#/components/schemas/RecordOrigin"
+          },
+          "partId": {
+            "type": "string"
+          },
+          "pollingStationId": {
+            "type": "string"
+          },
+          "recordStatus": {
+            "$ref": "#/components/schemas/VoterRecordStatus"
+          },
+          "sectionNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "serialNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "householdId",
+          "partId",
+          "pollingStationId",
+          "origin",
+          "recordStatus",
+          "sectionNo",
+          "serialNo",
+          "epicNumber",
+          "official",
+          "fields"
+        ],
+        "type": "object"
+      },
+      "VoterField": {
+        "additionalProperties": false,
+        "properties": {
+          "current": {
+            "description": "Usually one; two while an offline conflict waits for a choice. Empty: never set.",
+            "items": {
+              "$ref": "#/components/schemas/FieldValueView"
+            },
+            "type": "array"
+          },
+          "history": {
+            "description": "With `?history=true`: every earlier value, newest first.",
+            "items": {
+              "$ref": "#/components/schemas/FieldValueView"
+            },
+            "type": "array"
+          },
+          "isRestricted": {
+            "type": "boolean"
+          },
+          "key": {
+            "type": "string"
+          },
+          "labelKey": {
+            "type": "string"
+          },
+          "options": {},
+          "requiresConsent": {
+            "type": "boolean"
+          },
+          "type": {
+            "$ref": "#/components/schemas/FieldType"
+          }
+        },
+        "required": [
+          "key",
+          "labelKey",
+          "type",
+          "options",
+          "isRestricted",
+          "requiresConsent",
+          "current"
+        ],
+        "type": "object"
+      },
+      "VoterRecordStatus": {
+        "enum": [
+          "active",
+          "superseded",
+          "deleted"
+        ],
+        "type": "string"
+      }
+    },
+    "securitySchemes": {
+      "bearer": {
+        "bearerFormat": "JWT",
+        "scheme": "bearer",
+        "type": "http"
+      }
+    }
+  },
+  "info": {
+    "contact": {},
+    "description": "REST API for the BoothConnect apps. Sign in with a one-time code (`/auth/otp/*`) and send the access token as `Authorization: Bearer …`. Errors are `{ requestId, code, message, details? }`.",
+    "title": "BoothConnect API",
+    "version": "1"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+    "/v1/analytics/nodes/{id}/children": {
+      "get": {
+        "operationId": "Analytics_children",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Sort the children by this figure (e.g. `electors.total`); default: by code.",
+            "in": "query",
+            "name": "metric",
+            "required": false,
+            "schema": {
+              "enum": [
+                "electors.total",
+                "electors.male",
+                "electors.female",
+                "electors.thirdGender",
+                "electors.unknown",
+                "ages.18-19",
+                "ages.20-29",
+                "ages.30-39",
+                "ages.40-49",
+                "ages.50-59",
+                "ages.60-79",
+                "ages.80+",
+                "ages.unknown",
+                "households.total",
+                "households.large",
+                "revisions.additions",
+                "revisions.deletions",
+                "quality.rowsExtracted",
+                "quality.rowsCorrected",
+                "quality.rowsRejected",
+                "quality.duplicateEpics",
+                "quality.missingAge",
+                "quality.missingGender",
+                "fieldWork.householdsAssigned",
+                "fieldWork.householdsVisited",
+                "fieldWork.votersMet",
+                "fieldWork.outcomes.completed",
+                "fieldWork.outcomes.partially_completed",
+                "fieldWork.outcomes.no_one_available",
+                "fieldWork.outcomes.refused",
+                "fieldWork.outcomes.address_not_found",
+                "fieldWork.outcomes.household_moved",
+                "fieldWork.outcomes.voter_deceased",
+                "fieldWork.outcomes.duplicate_or_incorrect_listing",
+                "fieldWork.outcomes.follow_up_requested",
+                "fieldWork.outcomes.unsafe_or_inaccessible",
+                "genderRatio",
+                "medianAge",
+                "votersPerHousehold",
+                "extractionQuality",
+                "visitedShare",
+                "revisions.net"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "order",
+            "required": false,
+            "schema": {
+              "enum": [
+                "asc",
+                "desc"
+              ],
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ChildrenBreakdown"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/v1/analytics/nodes/{id}/revisions": {
+      "get": {
+        "operationId": "Analytics_revisions",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Revisions"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/v1/analytics/nodes/{id}/summary": {
+      "get": {
+        "operationId": "Analytics_summary",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnalyticsSummary"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Analytics"
+        ]
+      }
+    },
+    "/v1/audit-events": {
+      "get": {
+        "operationId": "AuditEvents_list",
+        "parameters": [
+          {
+            "description": "A booth, or any area above it: events about its households, members,\nvisits and imports, and events by volunteers assigned there at the time.",
+            "in": "query",
+            "name": "nodeId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Events by this user (e.g. one volunteer).",
+            "in": "query",
+            "name": "actorId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "An action (`import.file.confirm`), or a prefix ending in `*` (`import.*`).",
+            "in": "query",
+            "name": "action",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "pattern": "^[a-z0-9_.]+\\*?$",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceType",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "resourceId",
+            "required": false,
+            "schema": {
+              "maxLength": 200,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "result",
+            "required": false,
+            "schema": {
+              "enum": [
+                "success",
+                "failure",
+                "denied"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "From this time (inclusive), ISO 8601.",
+            "in": "query",
+            "name": "from",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Up to this time (exclusive), ISO 8601.",
+            "in": "query",
+            "name": "to",
+            "required": false,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Also check the hash chain of every event in the from/to range.",
+            "in": "query",
+            "name": "verify",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Opaque: the `nextCursor` of the previous page.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditEventsPage"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Audit"
+        ]
+      }
+    },
+    "/v1/auth/logout": {
+      "post": {
+        "operationId": "Auth_logout",
+        "parameters": [],
+        "responses": {
+          "204": {
+            "description": "No content"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/otp/request": {
+      "post": {
+        "operationId": "Auth_requestOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "No content"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/otp/verify": {
+      "post": {
+        "operationId": "Auth_verifyOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPair"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/auth/refresh": {
+      "post": {
+        "operationId": "Auth_refresh",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RefreshDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPair"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/conflicts/{id}/resolve": {
+      "post": {
+        "operationId": "Conflicts_resolve",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResolveConflictDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConflictResolved"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Conflicts"
+        ]
+      }
+    },
+    "/v1/geographies": {
+      "get": {
+        "operationId": "Geography_list",
+        "parameters": [
+          {
+            "description": "List this node's children; omit for the top level (states).",
+            "in": "query",
+            "name": "parentId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "type",
+            "required": false,
+            "schema": {
+              "enum": [
+                "state",
+                "pc",
+                "ac",
+                "part",
+                "polling_station"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "description": "Start of the code (e.g. \"408\") or part of the name.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Opaque: the `nextCursor` of the previous page.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeographyNodePage"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Geographies"
+        ]
+      }
+    },
+    "/v1/geographies/{id}": {
+      "get": {
+        "operationId": "Geography_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GeographyNodeDetail"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Geographies"
+        ]
+      }
+    },
+    "/v1/health": {
+      "get": {
+        "operationId": "Health_check",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HealthReport"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Health"
+        ]
+      }
+    },
+    "/v1/households": {
+      "get": {
+        "operationId": "Households_list",
+        "parameters": [
+          {
+            "description": "One booth (polling station); default: all of the caller's booths.",
+            "in": "query",
+            "name": "boothId",
+            "required": false,
+            "schema": {
+              "format": "uuid",
+              "type": "string"
+            }
+          },
+          {
+            "description": "Address, house number, member name or EPIC number.",
+            "in": "query",
+            "name": "q",
+            "required": false,
+            "schema": {
+              "maxLength": 100,
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "enum": [
+                "not_visited",
+                "visited",
+                "follow_up"
+              ],
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Opaque: the `nextCursor` of the previous page.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdPage"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Households"
+        ]
+      },
+      "post": {
+        "operationId": "Households_create",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateHouseholdDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdCreated"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Households"
+        ]
+      }
+    },
+    "/v1/households/{id}": {
+      "get": {
+        "operationId": "Households_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdDetail"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Households"
+        ]
+      },
+      "patch": {
+        "operationId": "Households_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateHouseholdDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HouseholdUpdated"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Households"
+        ]
+      }
+    },
+    "/v1/households/{id}/members": {
+      "post": {
+        "operationId": "Households_addMember",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddMemberDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberCreated"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Households"
+        ]
+      }
+    },
+    "/v1/imports/batches": {
+      "post": {
+        "operationId": "Imports_createBatch",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBatchDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchView"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/batches/{id}": {
+      "get": {
+        "operationId": "Imports_batch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchDetail"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/batches/{id}/confirm": {
+      "post": {
+        "operationId": "Imports_confirmBatch",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BatchConfirmResult"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/batches/{id}/files": {
+      "post": {
+        "operationId": "Imports_startUploads",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartUploadsDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadTickets"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/batches/{id}/files/{fileId}/complete": {
+      "post": {
+        "operationId": "Imports_complete",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "fileId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteUploadDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UploadCompleted"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/files/{id}/confirm": {
+      "post": {
+        "operationId": "Imports_confirmFile",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmFileDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConfirmQueued"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/files/{id}/pages/{page}": {
+      "get": {
+        "operationId": "Imports_pageImage",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "page",
+            "required": true,
+            "schema": {
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/files/{id}/preview": {
+      "get": {
+        "operationId": "Imports_preview",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Only rows with these statuses (comma-separated or repeated).",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "schema": {
+              "items": {
+                "enum": [
+                  "accepted",
+                  "warning",
+                  "rejected"
+                ],
+                "type": "string"
+              },
+              "type": "array"
+            }
+          },
+          {
+            "description": "Only rows with a field read with low confidence (and not corrected since).",
+            "in": "query",
+            "name": "lowConfidence",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          },
+          {
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 200,
+              "minimum": 1,
+              "type": "number"
+            }
+          },
+          {
+            "description": "Opaque: the `nextCursor` of the previous page.",
+            "in": "query",
+            "name": "cursor",
+            "required": false,
+            "schema": {
+              "maxLength": 512,
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/FilePreview"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/files/{id}/rejections.csv": {
+      "get": {
+        "operationId": "Imports_rejectionsCsv",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "text/csv": {
+                "schema": {
+                  "format": "binary",
+                  "type": "string"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/imports/files/{id}/rows/{rowId}": {
+      "patch": {
+        "operationId": "Imports_correctRow",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "rowId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CorrectRowDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewRow"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Imports"
+        ]
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "operationId": "Me_get",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Me"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Me"
+        ]
+      }
+    },
+    "/v1/sync/pull": {
+      "get": {
+        "operationId": "Sync_pull",
+        "parameters": [
+          {
+            "description": "The `cursor` of the previous response; omit for a full snapshot. It lists\nthe transactions running at pull time, so allow for a busy database.",
+            "in": "query",
+            "name": "since",
+            "required": false,
+            "schema": {
+              "maxLength": 12000,
+              "type": "string"
+            }
+          },
+          {
+            "description": "Rows per page, across all record types.",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "schema": {
+              "maximum": 2000,
+              "minimum": 1,
+              "type": "number"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncPage"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
+    "/v1/sync/push": {
+      "post": {
+        "operationId": "Sync_push",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SyncPushDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SyncPushResult"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Sync"
+        ]
+      }
+    },
+    "/v1/visits": {
+      "post": {
+        "operationId": "Visits_create",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVisitDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VisitCreated"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Visits"
+        ]
+      }
+    },
+    "/v1/voters/{id}": {
+      "get": {
+        "operationId": "Voters_get",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "Include every earlier value of each field.",
+            "in": "query",
+            "name": "history",
+            "required": false,
+            "schema": {
+              "type": "boolean"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoterDetail"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voters"
+        ]
+      },
+      "patch": {
+        "operationId": "Voters_edit",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditMemberDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MemberEdited"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voters"
+        ]
+      }
+    }
+  },
+  "servers": [],
+  "tags": []
+}

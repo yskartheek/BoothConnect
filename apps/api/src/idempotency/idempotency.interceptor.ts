@@ -1,6 +1,7 @@
 import { randomUUID } from 'node:crypto';
 
 import {
+  applyDecorators,
   type CallHandler,
   type ExecutionContext,
   HttpStatus,
@@ -9,6 +10,7 @@ import {
   type NestInterceptor,
   SetMetadata,
 } from '@nestjs/common';
+import { ApiHeader } from '@nestjs/swagger';
 import { HTTP_CODE_METADATA } from '@nestjs/common/constants';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
@@ -33,7 +35,16 @@ export const REPLAYED_HEADER = 'Idempotency-Replayed';
  * UUID per logical operation, reused for every retry of it). A retry gets the
  * first response back instead of the write being applied twice.
  */
-export const Idempotent = () => SetMetadata(IDEMPOTENT, true);
+export const Idempotent = () =>
+  applyDecorators(
+    SetMetadata(IDEMPOTENT, true),
+    ApiHeader({
+      name: 'Idempotency-Key',
+      required: true,
+      description:
+        'A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.',
+    }),
+  );
 
 const KEY_FORMAT = /^[A-Za-z0-9_-]{8,128}$/;
 const LOCK_TTL_MS = 30_000;

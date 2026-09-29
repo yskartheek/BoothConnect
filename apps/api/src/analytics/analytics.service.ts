@@ -33,7 +33,7 @@ interface Common {
   definitions: Record<string, string>;
 }
 
-export interface NodeSummary extends Common {
+export interface AnalyticsSummary extends Common {
   /** When the figures were last computed; null if they haven't been yet. */
   computedAt: Date | null;
   metrics: Figures;
@@ -87,7 +87,7 @@ export class AnalyticsService {
     return this.config.get('ANALYTICS_MIN_COHORT', { infer: true });
   }
 
-  async summary(scope: Scope, nodeId: string): Promise<NodeSummary> {
+  async summary(scope: Scope, nodeId: string): Promise<AnalyticsSummary> {
     const node = await this.nodeInScope(scope, nodeId);
     const stats = await this.stats([node.id]);
     const own = stats.get(node.id) ?? null;

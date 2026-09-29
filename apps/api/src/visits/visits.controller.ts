@@ -8,7 +8,10 @@ import { actorOf } from '../common/actor';
 import { Idempotent } from '../idempotency/idempotency.interceptor';
 import { CreateVisitDto } from './dto';
 import { type VisitCreated, VisitsService } from './visits.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiResult } from '../openapi/api-result';
 
+@ApiTags('Visits')
 @Controller('visits')
 export class VisitsController {
   constructor(private readonly visits: VisitsService) {}
@@ -17,6 +20,7 @@ export class VisitsController {
    * Records a visit (and any consents and field changes made during it).
    * 201 also for a visit already stored under this clientId (`duplicate: true`).
    */
+  @ApiResult('VisitCreated', 201)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Idempotent()

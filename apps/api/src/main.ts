@@ -8,13 +8,18 @@ import { Logger } from 'nestjs-pino';
 import { AppModule } from './app.module';
 import { API_PREFIX, configureApp } from './app.setup';
 import type { Env } from './config/env';
+import { setupApiDocs } from './openapi/ui';
 
 async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, { bufferLogs: true });
   app.useLogger(app.get(Logger));
   configureApp(app);
 
-  const port = app.get<ConfigService<Env, true>>(ConfigService).get('API_PORT', { infer: true });
+  const config = app.get<ConfigService<Env, true>>(ConfigService);
+  if (config.get('NODE_ENV', { infer: true }) !== 'production' && setupApiDocs(app, API_PREFIX)) {
+    app.get(Logger).log(`API docs at /${API_PREFIX}/docs`, 'Bootstrap');
+  }
+  const port = config.get('API_PORT', { infer: true });
   await app.listen(port);
   app.get(Logger).log(`API listening on http://localhost:${port}/${API_PREFIX}`, 'Bootstrap');
 }

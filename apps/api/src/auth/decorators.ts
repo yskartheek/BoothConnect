@@ -1,4 +1,10 @@
-import { createParamDecorator, type ExecutionContext, SetMetadata } from '@nestjs/common';
+import {
+  applyDecorators,
+  createParamDecorator,
+  type ExecutionContext,
+  SetMetadata,
+} from '@nestjs/common';
+import { ApiExtension } from '@nestjs/swagger';
 
 export const IS_PUBLIC = 'auth:isPublic';
 
@@ -6,7 +12,9 @@ export const IS_PUBLIC = 'auth:isPublic';
  * Marks a route (or a whole controller) as reachable without an access token.
  * Every other route requires one (JwtAuthGuard is global).
  */
-export const Public = () => SetMetadata(IS_PUBLIC, true);
+/** No sign-in needed (also marks the route as public in the OpenAPI spec). */
+export const Public = () =>
+  applyDecorators(SetMetadata(IS_PUBLIC, true), ApiExtension('x-public', true));
 
 /** Who is calling: set on the request by JwtAuthGuard. */
 export interface AuthUser {

@@ -34,6 +34,8 @@ import {
   VISIT_STATUSES,
   type VisitStatus,
 } from './households.service';
+import { ApiTags } from '@nestjs/swagger';
+import { ApiResult } from '../openapi/api-result';
 
 export class ListHouseholdsQuery extends PageQuery {
   /** One booth (polling station); default: all of the caller's booths. */
@@ -52,6 +54,7 @@ export class ListHouseholdsQuery extends PageQuery {
   status?: VisitStatus;
 }
 
+@ApiTags('Households')
 @Controller('households')
 export class HouseholdsController {
   constructor(
@@ -59,6 +62,7 @@ export class HouseholdsController {
     private readonly writes: HouseholdWritesService,
   ) {}
 
+  @ApiResult('HouseholdPage')
   @Get()
   list(
     @CurrentScope() scope: Scope,
@@ -67,6 +71,7 @@ export class HouseholdsController {
     return this.households.list(scope, query);
   }
 
+  @ApiResult('HouseholdDetail')
   @Get(':id')
   get(
     @CurrentScope() scope: Scope,
@@ -76,6 +81,7 @@ export class HouseholdsController {
   }
 
   /** A household not on the roll, in one of the caller's booths. */
+  @ApiResult('HouseholdCreated', 201)
   @Post()
   @HttpCode(HttpStatus.CREATED)
   @Idempotent()
@@ -90,6 +96,7 @@ export class HouseholdsController {
   }
 
   /** Edit the address and/or capture a location. */
+  @ApiResult('HouseholdUpdated')
   @Patch(':id')
   @Idempotent()
   @Roles('volunteer', 'admin')
@@ -104,6 +111,7 @@ export class HouseholdsController {
   }
 
   /** A member not on the official list. */
+  @ApiResult('MemberCreated', 201)
   @Post(':id/members')
   @HttpCode(HttpStatus.CREATED)
   @Idempotent()
