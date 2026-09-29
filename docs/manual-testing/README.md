@@ -87,3 +87,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #150  | [Glass follows phone settings (transparency, battery saver)](150-glass-platform-settings.md)    | Ready to test   |
 | #43   | [Offline sync, uploading the phone's queue](43-sync-push.md)                                    | Ready to test   |
 | #44   | [Roll imports: opening a batch and uploading PDFs or ZIPs](44-import-uploads.md)                | Ready to test   |
+| #45   | [Roll imports: reading uploaded PDFs (extraction) and checking them](45-import-extraction.md)   | Ready to test   |

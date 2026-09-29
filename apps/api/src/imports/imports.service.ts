@@ -19,6 +19,7 @@ import {
   type ImportUploadKind,
   Prisma,
 } from '../generated/prisma/client';
+import { refreshBatchStatus } from './batch-status';
 import type { CompleteUploadDto, StartUploadsDto } from './dto';
 import { ExtractionQueue } from './extraction-queue';
 import { StorageService } from './storage.service';
@@ -128,7 +129,7 @@ export class ImportsService {
     dto: StartUploadsDto,
   ): Promise<{ uploads: UploadTicket[] }> {
     const batch = await this.batchInScope(scope, batchId);
-    if (batch.status !== 'uploading') {
+    if (batch.status === 'completed' || batch.status === 'cancelled') {
       throw new AppException(
         HttpStatus.CONFLICT,
         ErrorCode.CONFLICT,
@@ -209,8 +210,9 @@ export class ImportsService {
 
   /**
    * Checks the uploaded object (size, PDF signature), hashes it, and turns
-   * it into import files: the PDF itself, or each PDF inside the ZIP.
-   * Completing again returns the same files.
+   * it into import files: the PDF itself, or each PDF inside the ZIP. New
+   * files are queued for extraction (status `extracting`). Completing again
+   * returns the same files.
    */
   async completeUpload(
     scope: Scope,
@@ -326,16 +328,29 @@ export class ImportsService {
     });
     if (!created) return this.completed(upload.id, outcome.skipped);
 
+    // Hand the new files to the roll-parser. If the queue is unreachable they
+    // stay `uploaded`, and the results sweep sends them later.
     for (const file of created) {
       if (file.status !== 'uploaded') continue;
       const stored = await this.prisma.importFile.findUniqueOrThrow({ where: { id: file.id } });
-      await this.queue.enqueue({
-        importFileId: file.id,
-        bucket: this.storage.bucket,
-        key: stored.fileRef,
-        sha256: stored.checksum,
+      try {
+        await this.queue.enqueue({
+          importFileId: file.id,
+          bucket: this.storage.bucket,
+          key: stored.fileRef,
+          sha256: stored.checksum,
+        });
+      } catch (error) {
+        this.logger.warn(`import file ${file.id}: not queued yet (${(error as Error).message})`);
+        continue;
+      }
+      await this.prisma.importFile.updateMany({
+        where: { id: file.id, status: 'uploaded' },
+        data: { status: 'extracting' },
       });
+      file.status = 'extracting';
     }
+    await this.prisma.$transaction((tx) => refreshBatchStatus(tx, batchId));
     return { uploadId: upload.id, files: created, skipped: outcome.skipped };
   }
 

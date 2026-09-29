@@ -132,7 +132,7 @@ describe('import batches and uploads (real Postgres + MinIO)', () => {
         expect.objectContaining({
           originalName: 'part-12.pdf',
           sizeBytes: pdf.length,
-          status: 'uploaded',
+          status: 'extracting',
         }),
       ]);
       const file = await t.prisma.importFile.findUniqueOrThrow({
@@ -192,9 +192,9 @@ describe('import batches and uploads (real Postgres + MinIO)', () => {
       ]);
       const done = await uploaded(batchId, 'ac-101.zip', zip);
       expect(done.files.map((f) => [f.originalName, f.status])).toEqual([
-        ['part-1.pdf', 'uploaded'],
-        ['part-2.pdf', 'uploaded'],
-        ['part-3.PDF', 'uploaded'],
+        ['part-1.pdf', 'extracting'],
+        ['part-2.pdf', 'extracting'],
+        ['part-3.PDF', 'extracting'],
       ]);
       expect(done.skipped).toEqual([
         { name: 'rolls/readme.txt', reason: 'not a PDF' },

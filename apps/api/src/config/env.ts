@@ -62,6 +62,11 @@ const envSchema = z
       .min(1)
       .default(2 * 1024 * 1024 * 1024),
     IMPORT_UPLOAD_URL_TTL_SECONDS: seconds(60 * 60),
+    // The roll-parser worker's BullMQ queue (#45; docs/design/roll-parser-contract.md).
+    ROLL_PARSER_QUEUE: z.string().min(1).default('roll-extraction'),
+    ROLL_PARSER_QUEUE_PREFIX: z.string().min(1).default('bull'),
+    // How often the API looks for finished extractions it missed (e.g. while down).
+    IMPORT_RESULTS_SWEEP_SECONDS: seconds(30),
   })
   .superRefine((env, ctx) => {
     if (env.NODE_ENV !== 'production') return;
