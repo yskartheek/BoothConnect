@@ -722,6 +722,11 @@ ending in `*`, e.g. `import.*`), `resourceType`, `resourceId`, `result`, and
 `at`, the action, resource and result, `actor { id, name }`, the ids, the
 redacted `metadata`, `prevHash` and `hash`.
 
+- `nodeId` (#164) narrows to a booth or any area above it. It matches
+  events about its households, members, visits, import files (by part) and
+  import batches (by target), and events by volunteers who were assigned
+  there when they happened (e.g. their sign-ins). Combine it with
+  `actorId` for one volunteer in one booth.
 - `verify=true` adds `verification: { checked, intact, firstBrokenSeq }`.
   It checks every event in the `from` / `to` range, whatever the other
   filters. Each event's hash is recomputed, and its `prev_hash` must equal
