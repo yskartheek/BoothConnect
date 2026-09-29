@@ -93,3 +93,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #48   | [Roll imports: downloading the rows to fix as a CSV](48-rejections-csv.md)                      | Ready to test   |
 | #102  | [Analytics numbers for every area (node_stats)](102-node-stats.md)                              | Ready to test   |
 | #49   | [Analytics API: area summary, children table and revisions](49-analytics-api.md)                | Ready to test   |
+| #50   | [Reading the audit log (admins)](50-audit-events.md)                                            | Ready to test   |

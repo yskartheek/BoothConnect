@@ -713,6 +713,23 @@ sessionId, requestId, metadata })`. `metadata` is **redacted** first
   the sequence). That's expected: integrity comes from the hash chain, which
   `verifyChain()` checks, not from consecutive numbers.
 
+### Reading the log (#50)
+
+`GET /v1/audit-events` (admins only) lists events newest first:
+`?limit=&cursor=`, with the filters `actorId`, `action` (exact, or a prefix
+ending in `*`, e.g. `import.*`), `resourceType`, `resourceId`, `result`, and
+`from` / `to` (ISO 8601; `to` is exclusive). Each item has `seq` (a string),
+`at`, the action, resource and result, `actor { id, name }`, the ids, the
+redacted `metadata`, `prevHash` and `hash`.
+
+- `verify=true` adds `verification: { checked, intact, firstBrokenSeq }`.
+  It checks every event in the `from` / `to` range, whatever the other
+  filters. Each event's hash is recomputed, and its `prev_hash` must equal
+  the hash of the event just before it in the chain, so an edited, inserted
+  or deleted event is found.
+- Every read is recorded as `audit.view`, with the filters used, the number
+  returned and the verification result.
+
 ## Idempotent writes
 
 Writes that a phone may retry (sync, visits, uploads) are marked
