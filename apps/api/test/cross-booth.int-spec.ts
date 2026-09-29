@@ -35,6 +35,8 @@ const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'public'
   'POST /geographies/imports': 'admin',
   'POST /geographies': 'admin',
   'PATCH /geographies/:id': 'admin',
+  'GET /geographies/:id/stations': 'admin',
+  'PUT /geographies/:id/coverage': 'admin',
   'GET /households': 'booth',
   'GET /households/:id': 'booth',
   'POST /households': 'booth',

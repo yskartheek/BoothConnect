@@ -7,6 +7,7 @@ import {
   Param,
   ParseUUIDPipe,
   Patch,
+  Put,
   Post,
   Query,
   Req,
@@ -26,7 +27,8 @@ import {
   type GeographyNodeView,
   GeographyService,
 } from './geography.service';
-import { CreateGeographyDto, MasterImportDto, UpdateGeographyDto } from './dto';
+import { CoverageService, type CoverageChange, type StationLayout } from './coverage.service';
+import { CreateGeographyDto, MasterImportDto, SetCoverageDto, UpdateGeographyDto } from './dto';
 import {
   type MasterImportReport,
   MasterDataService,
@@ -59,6 +61,7 @@ export class GeographyController {
   constructor(
     private readonly geography: GeographyService,
     private readonly masterData: MasterDataService,
+    private readonly coverage: CoverageService,
   ) {}
 
   @ApiResult('GeographyNodePage')
@@ -131,5 +134,34 @@ export class GeographyController {
     @Body() dto: UpdateGeographyDto,
   ): Promise<MasterNodeView> {
     return this.masterData.update(scope, actorOf(user, req), id, dto);
+  }
+
+  /** A part's polling stations with their coverage and voter counts; `id` is the part or one of its stations. */
+  @ApiResult('StationLayout')
+  @Get(':id/stations')
+  @Roles('admin')
+  stations(
+    @CurrentScope() scope: Scope,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StationLayout> {
+    return this.coverage.layout(scope, id);
+  }
+
+  /**
+   * Sets which sections or serial numbers an auxiliary station takes (#101);
+   * null clears it. The part's voters and households move at once.
+   */
+  @ApiResult('CoverageChange')
+  @Put(':id/coverage')
+  @Roles('admin')
+  @Idempotent()
+  setCoverage(
+    @CurrentScope() scope: Scope,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request & { id?: unknown },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Body() dto: SetCoverageDto,
+  ): Promise<CoverageChange> {
+    return this.coverage.setCoverage(scope, actorOf(user, req), id, dto.coverage);
   }
 }

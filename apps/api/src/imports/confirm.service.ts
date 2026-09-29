@@ -19,6 +19,7 @@ import type { ImportFileStatus, Prisma } from '../generated/prisma/client';
 import { refreshBatchStatus } from './batch-status';
 import {
   coverageOf,
+  mostCommon,
   houseKeyOf,
   type Preparation,
   prepareVoters,
@@ -664,12 +665,6 @@ export class ImportConfirmService implements OnModuleInit, OnModuleDestroy {
 /** The household a voter goes to: by house number, or one of their own. */
 function keyOf(voter: VoterRow): string {
   return houseKeyOf(voter.houseNumber) ?? `~${voter.sectionNo}-${voter.serialNo}`;
-}
-
-function mostCommon(values: string[]): string {
-  const counts = new Map<string, number>();
-  for (const value of values) counts.set(value, (counts.get(value) ?? 0) + 1);
-  return [...counts].sort((a, b) => b[1] - a[1])[0]![0];
 }
 
 function text(value: unknown): string | null {

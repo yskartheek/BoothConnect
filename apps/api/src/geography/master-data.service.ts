@@ -267,10 +267,8 @@ export class MasterDataService {
     return { programId: chosen, within: new Set(within.map((n) => n.id)), canAddState };
   }
 
-  private async adminWithin(
-    scope: Scope,
-    node: { id: string; programId: string },
-  ): Promise<boolean> {
+  /** Whether the caller is an admin of this node (at or above it, or of a State in its program). */
+  async adminWithin(scope: Scope, node: { id: string; programId: string }): Promise<boolean> {
     const assignments = await this.adminAssignments(scope.userId);
     if (
       assignments.some(

@@ -196,6 +196,38 @@ export interface paths {
         patch: operations["Geography_update"];
         trace?: never;
     };
+    "/v1/geographies/{id}/coverage": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put: operations["Geography_setCoverage"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/geographies/{id}/stations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Geography_stations"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/health": {
         parameters: {
             query?: never;
@@ -711,6 +743,38 @@ export interface components {
             /** @description true rejects the row (it won't be imported); false takes the rejection back. */
             rejected?: boolean;
             values?: components["schemas"]["RowCorrectionValuesDto"];
+        };
+        /** @description Which sections or serial numbers an auxiliary station covers (station metadata). */
+        Coverage: {
+            sections?: number[];
+            serials?: {
+                from: number;
+                to: number;
+            };
+        };
+        CoverageChange: {
+            /** @description Voters and households that changed station. */
+            moved: {
+                households: number;
+                voters: number;
+            };
+            partId: string;
+            stations: {
+                code: string;
+                /** @description Auxiliary stations only; null until set (then it takes no one). */
+                coverage: components["schemas"]["Coverage"] | null;
+                id: string;
+                isAuxiliary: boolean;
+                name: string;
+                /** @description Active voters at the station now. */
+                voters: number;
+            }[];
+        };
+        CoverageDto: {
+            /** @description Section numbers the station takes, e.g. [2]. */
+            sections?: number[];
+            /** @description A serial number range the station takes, both ends included. */
+            serials?: components["schemas"]["SerialRangeDto"];
         };
         CreateBatchDto: {
             /**
@@ -1382,8 +1446,29 @@ export interface components {
         RowValues: {
             [key: string]: unknown;
         };
+        SerialRangeDto: {
+            from: number;
+            to: number;
+        };
+        SetCoverageDto: {
+            /** @description null clears it: the station then takes no one, and its voters go back to the main station. */
+            coverage: components["schemas"]["CoverageDto"] | null;
+        };
         StartUploadsDto: {
             files: components["schemas"]["UploadRequestDto"][];
+        };
+        StationLayout: {
+            partId: string;
+            stations: {
+                code: string;
+                /** @description Auxiliary stations only; null until set (then it takes no one). */
+                coverage: components["schemas"]["Coverage"] | null;
+                id: string;
+                isAuxiliary: boolean;
+                name: string;
+                /** @description Active voters at the station now. */
+                voters: number;
+            }[];
         };
         /** @description Two current values of one field, waiting for the volunteer to choose one. */
         SyncConflict: {
@@ -2097,6 +2182,73 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MasterNodeView"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Geography_setCoverage: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetCoverageDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CoverageChange"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Geography_stations: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StationLayout"];
                 };
             };
             /** @description Error */

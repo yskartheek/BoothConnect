@@ -1,6 +1,12 @@
-import { Transform } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
+  ArrayMaxSize,
+  IsArray,
   IsBoolean,
+  IsInt,
+  IsObject,
+  Min,
+  ValidateNested,
   IsIn,
   IsOptional,
   IsString,
@@ -77,4 +83,39 @@ export class UpdateGeographyDto {
   @IsString()
   @Length(1, 50)
   reservation?: string | null;
+}
+
+export class SerialRangeDto {
+  @IsInt()
+  @Min(1)
+  from!: number;
+
+  @IsInt()
+  @Min(1)
+  to!: number;
+}
+
+export class CoverageDto {
+  /** Section numbers the station takes, e.g. [2]. */
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(500)
+  @IsInt({ each: true })
+  @Min(1, { each: true })
+  sections?: number[];
+
+  /** A serial number range the station takes, both ends included. */
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => SerialRangeDto)
+  serials?: SerialRangeDto;
+}
+
+export class SetCoverageDto {
+  /** null clears it: the station then takes no one, and its voters go back to the main station. */
+  @ValidateIf((o: SetCoverageDto) => o.coverage !== null)
+  @IsObject()
+  @ValidateNested()
+  @Type(() => CoverageDto)
+  coverage!: CoverageDto | null;
 }

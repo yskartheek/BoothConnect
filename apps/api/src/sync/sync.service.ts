@@ -200,13 +200,29 @@ export class SyncService {
 
   async pull(scope: Scope, since: string | undefined, limit: number): Promise<SyncPage> {
     const seesRestricted = canSeeRestricted(scope);
+    // When a part's voters were moved between its stations (auxiliary
+    // coverage, #101), its stations carry the time; phones on them start over.
+    const layouts = (
+      await this.prisma.geographyNode.findMany({
+        where: { id: { in: scope.boothIds } },
+        select: { id: true, metadata: true },
+      })
+    )
+      .map((n) => [n.id, (n.metadata as { layoutChangedAt?: unknown }).layoutChangedAt] as const)
+      .filter(([, at]) => typeof at === 'string')
+      .map(([id, at]) => `${id}@${at as string}`)
+      .sort();
     const fingerprint = createHash('sha256')
-      .update(`${[...scope.boothIds].sort().join(',')}|${seesRestricted}`)
+      .update(
+        `${[...scope.boothIds].sort().join(',')}|${seesRestricted}` +
+          (layouts.length > 0 ? `|${layouts.join(',')}` : ''),
+      )
       .digest('base64url')
       .slice(0, 16);
 
     let cursor = since ? decodeCursor(since, isSyncCursor) : null;
-    // New booths or roles: the phone's copy may hold data it may no longer see.
+    // New booths or roles, or voters moved between stations: the phone's
+    // copy may hold data it may no longer see.
     if (cursor && cursor.h !== fingerprint) cursor = null;
     const reset = !cursor || cursor.s === null;
     // Taken before reading anything: whatever this pull might miss, the
