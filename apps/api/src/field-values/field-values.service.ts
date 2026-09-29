@@ -38,10 +38,14 @@ export type RejectionCode =
   | typeof ErrorCode.BASE_VERSION_INVALID;
 
 export type FieldChangeResult =
-  /** Stored as the current value, superseding `supersedesId` (if any). */
-  | { status: 'applied'; fieldValueId: string; supersedesId: string | null }
+  /**
+   * Stored as the current value, superseding `supersedesId` (if any).
+   * `entityId` is where it was stored: a change for a voter record that a
+   * newer roll replaced goes to the current record (#161).
+   */
+  | { status: 'applied'; entityId: string; fieldValueId: string; supersedesId: string | null }
   /** Stored, but the field had moved on: both values are current until the volunteer chooses. */
-  | { status: 'conflict'; fieldValueId: string; conflictWithId: string }
+  | { status: 'conflict'; entityId: string; fieldValueId: string; conflictWithId: string }
   /** Nothing stored. */
   | { status: 'rejected'; code: RejectionCode; message: string };
 
@@ -108,8 +112,12 @@ export class FieldValuesService {
     tx: Tx,
     scope: Scope,
     collectedById: string,
-    change: FieldChange,
+    requested: FieldChange,
   ): Promise<FieldChangeResult> {
+    // A phone that was offline when a newer roll replaced the voter's record
+    // still sends the old IDs: write to the current record, and read the
+    // base version through the values carried over to it (#161).
+    const change = await this.onCurrentRecord(tx, requested);
     const entity = await this.findInScope(tx, scope, change.entityType, change.entityId);
     if (!entity) return rejected(ErrorCode.NOT_FOUND, `${change.entityType} not found`);
 
@@ -141,13 +149,17 @@ export class FieldValuesService {
       const consent = change.consentId
         ? await tx.consent.findUnique({ where: { id: change.consentId } })
         : null;
+      // A voter's consent may have been given on one of their earlier records.
+      const subjects =
+        change.entityType === 'voter' ? await voterLineage(tx, change.entityId) : [change.entityId];
       const subject =
         change.entityType === 'voter' ? consent?.subjectVoterId : consent?.subjectHouseholdId;
       if (
         !consent ||
         consent.status !== 'granted' ||
         consent.purpose !== definition.key ||
-        subject !== change.entityId
+        !subject ||
+        !subjects.includes(subject)
       ) {
         return rejected(
           ErrorCode.CONSENT_REQUIRED,
@@ -185,8 +197,8 @@ export class FieldValuesService {
     });
     const clean =
       current.length === 0
-        ? change.baseVersion === null
-        : current.length === 1 && current[0]?.id === change.baseVersion;
+        ? change.baseVersion === null || change.staleBase
+        : !change.staleBase && current.length === 1 && current[0]?.id === change.baseVersion;
 
     const data = {
       entityType: change.entityType,
@@ -207,13 +219,36 @@ export class FieldValuesService {
         value: change.value,
         consentId: data.consentId,
       });
-      return { status: 'applied', fieldValueId: row.id, supersedesId };
+      return { status: 'applied', entityId: change.entityId, fieldValueId: row.id, supersedesId };
     }
     // Stale base (or an unresolved conflict): keep both; the newest current
     // value is the one it conflicts with.
     const conflictWithId = current[0]!.id;
     const row = await tx.fieldValue.create({ data: { ...data, conflictWithId } });
-    return { status: 'conflict', fieldValueId: row.id, conflictWithId };
+    return { status: 'conflict', entityId: change.entityId, fieldValueId: row.id, conflictWithId };
+  }
+
+  /**
+   * The change, aimed at the voter's current record when a newer roll
+   * replaced the one it names. Its base version becomes the copy carried over
+   * from it; a base that wasn't carried (it was no longer current) is stale.
+   */
+  private async onCurrentRecord(
+    tx: Tx,
+    change: FieldChange,
+  ): Promise<FieldChange & { staleBase: boolean }> {
+    if (change.entityType !== 'voter') return { ...change, staleBase: false };
+    const entityId = await currentRecord(tx, change.entityId);
+    if (entityId === change.entityId) return { ...change, staleBase: false };
+    if (!change.baseVersion) return { ...change, entityId, staleBase: false };
+    const copy = await carriedCopy(tx, change.baseVersion, entityId);
+    if (copy) return { ...change, entityId, baseVersion: copy, staleBase: false };
+    // A value of the old record that wasn't current any more: stale, so a
+    // conflict. Anything else is not a value of this field: rejected below.
+    const base = await tx.fieldValue.findUnique({ where: { id: change.baseVersion } });
+    return base?.entityType === 'voter' && base.entityId === change.entityId
+      ? { ...change, entityId, baseVersion: null, staleBase: true }
+      : { ...change, entityId, staleBase: false };
   }
 
   /**
@@ -228,6 +263,27 @@ export class FieldValuesService {
     keepId: string,
     tx: Tx,
   ): Promise<ConflictResolution> {
+    // Values of a voter record that a newer roll replaced: their copies on
+    // the current record, where the conflict was carried over (#161).
+    const original = await tx.fieldValue.findUnique({ where: { id: conflictId } });
+    if (original?.entityType === 'voter') {
+      const current = await currentRecord(tx, original.entityId);
+      if (current !== original.entityId) {
+        const [conflictCopy, keepCopy] = await Promise.all([
+          carriedCopy(tx, conflictId, current),
+          carriedCopy(tx, keepId, current),
+        ]);
+        if (!conflictCopy || !keepCopy) {
+          return {
+            status: 'rejected',
+            code: ErrorCode.CONFLICT,
+            message: 'There is no open conflict on this field to keep that value for',
+          };
+        }
+        conflictId = conflictCopy;
+        keepId = keepCopy;
+      }
+    }
     const value = await tx.fieldValue.findUnique({
       where: { id: conflictId },
       include: { fieldDefinition: true },
@@ -306,6 +362,40 @@ export class FieldValuesService {
     });
     return household && { programId: household.part.programId };
   }
+}
+
+/** A voter's records, newest first: the record itself, then each one it replaced (#161). */
+export async function voterLineage(tx: Tx | PrismaService, voterId: string): Promise<string[]> {
+  const rows = await tx.$queryRaw<
+    { id: string }[]
+  >`SELECT id FROM voter_lineage(${voterId}::uuid) ORDER BY depth`;
+  return rows.map((r) => r.id);
+}
+
+/** The voter's current record: this one, or the newest record that replaced it. */
+async function currentRecord(tx: Tx, voterId: string): Promise<string> {
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    WITH RECURSIVE chain(id, depth) AS (
+      SELECT ${voterId}::uuid, 0
+      UNION ALL
+      SELECT v.id, c.depth + 1 FROM chain c JOIN voter v ON v.previous_voter_id = c.id
+       WHERE c.depth < 100
+    )
+    SELECT id FROM chain ORDER BY depth DESC LIMIT 1`;
+  return rows[0]?.id ?? voterId;
+}
+
+/** The copy of a value carried over (possibly several times) to `entityId`, if any. */
+async function carriedCopy(tx: Tx, valueId: string, entityId: string): Promise<string | null> {
+  const rows = await tx.$queryRaw<{ id: string }[]>`
+    WITH RECURSIVE chain(id, entity_id, depth) AS (
+      SELECT id, entity_id, 0 FROM field_value WHERE id = ${valueId}::uuid
+      UNION ALL
+      SELECT f.id, f.entity_id, c.depth + 1 FROM chain c JOIN field_value f ON f.carried_from_id = c.id
+       WHERE c.depth < 100
+    )
+    SELECT id FROM chain WHERE entity_id = ${entityId}::uuid LIMIT 1`;
+  return rows[0]?.id ?? null;
 }
 
 /**

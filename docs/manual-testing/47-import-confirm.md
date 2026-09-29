@@ -83,9 +83,9 @@
   the development seed (S99 / AC 101), so confirming real rows by hand has
   to wait for the master-data upload (#100) or the admin web.
 - **Volunteer data after a new revision:**
-  - Details, visits and consents recorded for a voter stay with that voter
-    when a new revision supersedes them. They aren't yet copied to the new
-    revision's entry with the same EPIC number.
+  - Details, visits and consents recorded for a voter are carried over to
+    the new revision's entry with the same EPIC number since #161 (see
+    `161-carry-over.md`).
   - Members added by volunteers stay active, even when their house is
     marked removed.
 - Auxiliary-station coverage is set on the station. Editing it (and moving

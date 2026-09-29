@@ -643,11 +643,40 @@ commits it in **one transaction per file**:
 
 **Audit.** `import.file.confirm` records the admin; `import.file.committed`
 is a system event with counts only (voters, households created, linked and
-removed, voters superseded, rows skipped).
+removed, voters superseded, rows skipped, and `carriedOver`).
 
-**Known limitation.** Field values, visits and consents recorded for a
-superseded voter stay with that voter. They aren't carried over to the new
-revision's voter with the same EPIC yet.
+### Carrying volunteer data over to the new record (#161)
+
+When a new revision lists a voter with the same EPIC as an active voter of
+the part's previous revision, the new record links to the old one
+(`voter.previous_voter_id`). In the commit's transaction, so a failed commit
+carries nothing:
+
+- **Field values:** each current value is copied to the new record: same
+  value, source, collector, collection time and consent, with
+  `carried_from_id` pointing at the original. A consent-gated value is copied
+  only while its consent is granted; a withdrawn consent is never revived.
+  An open conflict is copied as a conflict, never resolved.
+- **Consents:** consent rows are never rewritten. A consent given on an
+  earlier record covers the voter's newer records (the API and the database
+  check follow the link), and withdrawing it hides the values on every
+  record.
+- **Visits:** `visit_member` rows keep the record that was met.
+  `GET /v1/voters/:id` returns `previousVoterIds` and `visitsMet` (visits
+  that met the voter on any of their records), and sync pull sends
+  `previousVoterIds` on each voter so the phone can do the same.
+- **Superseded records don't change.** Their conflicts are no longer listed
+  in sync, and a full sync snapshot leaves out their values. An offline edit
+  or conflict resolution that still names the old record or its values is
+  applied to the current record, through the carried copies. A base version
+  that wasn't carried over (it was no longer current) makes the edit a
+  conflict.
+- An EPIC printed twice in either revision isn't linked. A voter with no
+  EPIC match starts empty.
+- **Not covered yet:** a voter whose EPIC moves to another part. That needs
+  both parts' revisions and a later decision.
+- Audited in `import.file.committed` as `carriedOver`: `votersLinked`,
+  `valuesCarried`, `conflictsCarried` and `consentsCarried`. Counts only.
 
 ## Analytics: node_stats (#102)
 

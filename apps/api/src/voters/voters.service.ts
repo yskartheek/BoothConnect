@@ -4,11 +4,13 @@ import type { Scope } from '../authz/scope.service';
 import { seesRestricted } from '../authz/restricted-fields';
 import { foundInScope, inScope } from '../authz/scoped-query';
 import { PrismaService } from '../database/prisma.service';
+import { voterLineage } from '../field-values/field-values.service';
 import type {
   FieldType,
   Prisma,
   RecordOrigin,
   ValueSource,
+  VisitOutcome,
   VoterRecordStatus,
 } from '../generated/prisma/client';
 
@@ -21,6 +23,8 @@ export interface FieldValueView {
   collectedAt: Date;
   /** The value this one replaced. */
   supersedesId: string | null;
+  /** Copied from this value on the voter's previous record, when a newer roll replaced it (#161). */
+  carriedFromId: string | null;
   /** Set while this value conflicts with another current value. */
   conflictWithId: string | null;
 }
@@ -50,8 +54,22 @@ export interface VoterDetail {
   epicNumber: string | null;
   /** The roll's values as printed; never changed by edits. Null for added members. */
   official: Prisma.JsonValue;
+  /** The voter's earlier records, newest first, that newer rolls replaced (#161). */
+  previousVoterIds: string[];
   /** Every enabled field the caller may see, set or not. */
   fields: VoterField[];
+  /** Visits that met this voter, on this record or an earlier one; newest first. */
+  visitsMet: VoterVisit[];
+}
+
+export interface VoterVisit {
+  id: string;
+  householdId: string;
+  volunteer: { id: string; name: string };
+  startedAt: Date;
+  outcome: VisitOutcome;
+  /** The later visit that corrects this one, if any. */
+  correctedById: string | null;
 }
 
 @Injectable()
@@ -89,6 +107,17 @@ export class VotersService {
       orderBy: [{ collectedAt: 'desc' }, { id: 'desc' }],
     });
 
+    const lineage = await voterLineage(this.prisma, voter.id);
+    const visits = await this.prisma.visit.findMany({
+      // Only visits to households the caller can see (a voter may have moved house).
+      where: { membersMet: { some: { voterId: { in: lineage } } }, household: inScope(scope) },
+      include: {
+        volunteer: { select: { id: true, name: true } },
+        correctedBy: { select: { id: true } },
+      },
+      orderBy: [{ startedAt: 'desc' }, { id: 'desc' }],
+    });
+
     return {
       id: voter.id,
       householdId: voter.householdId,
@@ -100,6 +129,15 @@ export class VotersService {
       serialNo: voter.serialNo,
       epicNumber: voter.sourceVoterId,
       official: voter.sourceData,
+      previousVoterIds: lineage.slice(1),
+      visitsMet: visits.map((visit) => ({
+        id: visit.id,
+        householdId: visit.householdId,
+        volunteer: visit.volunteer,
+        startedAt: visit.startedAt,
+        outcome: visit.outcome,
+        correctedById: visit.correctedBy?.id ?? null,
+      })),
       fields: definitions.map((definition) => {
         const own = values.filter(
           (row) =>
@@ -114,6 +152,7 @@ export class VotersService {
           collectedBy: row.collectedBy,
           collectedAt: row.collectedAt,
           supersedesId: row.supersedesId,
+          carriedFromId: row.carriedFromId,
           conflictWithId: row.conflictWithId,
         });
         return {

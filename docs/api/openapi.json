@@ -1235,6 +1235,9 @@
           {
             "additionalProperties": false,
             "properties": {
+              "entityId": {
+                "type": "string"
+              },
               "fieldValueId": {
                 "type": "string"
               },
@@ -1251,6 +1254,7 @@
             },
             "required": [
               "status",
+              "entityId",
               "fieldValueId",
               "supersedesId"
             ],
@@ -1260,6 +1264,9 @@
             "additionalProperties": false,
             "properties": {
               "conflictWithId": {
+                "type": "string"
+              },
+              "entityId": {
                 "type": "string"
               },
               "fieldValueId": {
@@ -1272,6 +1279,7 @@
             },
             "required": [
               "status",
+              "entityId",
               "fieldValueId",
               "conflictWithId"
             ],
@@ -1324,6 +1332,13 @@
       "FieldValueView": {
         "additionalProperties": false,
         "properties": {
+          "carriedFromId": {
+            "description": "Copied from this value on the voter's previous record, when a newer roll replaced it (#161).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "collectedAt": {
             "format": "date-time",
             "type": "string"
@@ -1381,6 +1396,7 @@
           "collectedBy",
           "collectedAt",
           "supersedesId",
+          "carriedFromId",
           "conflictWithId"
         ],
         "type": "object"
@@ -2658,6 +2674,9 @@
                 {
                   "additionalProperties": false,
                   "properties": {
+                    "entityId": {
+                      "type": "string"
+                    },
                     "fieldKey": {
                       "type": "string"
                     },
@@ -2676,6 +2695,7 @@
                     }
                   },
                   "required": [
+                    "entityId",
                     "fieldKey",
                     "fieldValueId",
                     "status",
@@ -2687,6 +2707,9 @@
                   "additionalProperties": false,
                   "properties": {
                     "conflictWithId": {
+                      "type": "string"
+                    },
+                    "entityId": {
                       "type": "string"
                     },
                     "fieldKey": {
@@ -2702,6 +2725,7 @@
                   },
                   "required": [
                     "conflictWithId",
+                    "entityId",
                     "fieldKey",
                     "fieldValueId",
                     "status"
@@ -2794,6 +2818,9 @@
                 {
                   "additionalProperties": false,
                   "properties": {
+                    "entityId": {
+                      "type": "string"
+                    },
                     "fieldKey": {
                       "type": "string"
                     },
@@ -2812,6 +2839,7 @@
                     }
                   },
                   "required": [
+                    "entityId",
                     "fieldKey",
                     "fieldValueId",
                     "status",
@@ -2823,6 +2851,9 @@
                   "additionalProperties": false,
                   "properties": {
                     "conflictWithId": {
+                      "type": "string"
+                    },
+                    "entityId": {
                       "type": "string"
                     },
                     "fieldKey": {
@@ -2838,6 +2869,7 @@
                   },
                   "required": [
                     "conflictWithId",
+                    "entityId",
                     "fieldKey",
                     "fieldValueId",
                     "status"
@@ -3708,6 +3740,13 @@
       "SyncFieldValue": {
         "additionalProperties": false,
         "properties": {
+          "carriedFromId": {
+            "description": "The value on the voter's previous record this one was copied from (#161).",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
           "collectedAt": {
             "format": "date-time",
             "type": "string"
@@ -3779,6 +3818,7 @@
           "collectedBy",
           "collectedAt",
           "supersedesId",
+          "carriedFromId",
           "isCurrent",
           "conflictWithId"
         ],
@@ -4065,6 +4105,13 @@
           "pollingStationId": {
             "type": "string"
           },
+          "previousVoterIds": {
+            "description": "The voter's earlier records, newest first, that newer rolls replaced (#161). Visits list the members met by the record current at the time, so a visit met this voter if it lists this ID or one of these.",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "recordStatus": {
             "$ref": "#/components/schemas/VoterRecordStatus",
             "description": "Anything but `active`: drop it from the household."
@@ -4092,7 +4139,8 @@
           "sectionNo",
           "serialNo",
           "epicNumber",
-          "official"
+          "official",
+          "previousVoterIds"
         ],
         "type": "object"
       },
@@ -4543,6 +4591,13 @@
           "pollingStationId": {
             "type": "string"
           },
+          "previousVoterIds": {
+            "description": "The voter's earlier records, newest first, that newer rolls replaced (#161).",
+            "items": {
+              "type": "string"
+            },
+            "type": "array"
+          },
           "recordStatus": {
             "$ref": "#/components/schemas/VoterRecordStatus"
           },
@@ -4557,6 +4612,13 @@
               "number",
               "null"
             ]
+          },
+          "visitsMet": {
+            "description": "Visits that met this voter, on this record or an earlier one; newest first.",
+            "items": {
+              "$ref": "#/components/schemas/VoterVisit"
+            },
+            "type": "array"
           }
         },
         "required": [
@@ -4570,7 +4632,9 @@
           "serialNo",
           "epicNumber",
           "official",
-          "fields"
+          "previousVoterIds",
+          "fields",
+          "visitsMet"
         ],
         "type": "object"
       },
@@ -4626,6 +4690,56 @@
           "deleted"
         ],
         "type": "string"
+      },
+      "VoterVisit": {
+        "additionalProperties": false,
+        "properties": {
+          "correctedById": {
+            "description": "The later visit that corrects this one, if any.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "householdId": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "outcome": {
+            "$ref": "#/components/schemas/VisitOutcome"
+          },
+          "startedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "volunteer": {
+            "additionalProperties": false,
+            "properties": {
+              "id": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "id",
+              "name"
+            ],
+            "type": "object"
+          }
+        },
+        "required": [
+          "id",
+          "householdId",
+          "volunteer",
+          "startedAt",
+          "outcome",
+          "correctedById"
+        ],
+        "type": "object"
       }
     },
     "securitySchemes": {

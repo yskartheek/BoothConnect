@@ -281,7 +281,8 @@ export class SyncPushService {
       {
         action: 'field.change',
         resourceType: change.entityType,
-        resourceId: change.entityId,
+        // The current record, when a newer roll replaced the one sent (#161).
+        resourceId: result.entityId,
         result: 'success',
         actorId: actor.userId,
         sessionId: actor.sessionId ?? null,
@@ -294,7 +295,7 @@ export class SyncPushService {
     return {
       status: 'conflict',
       result,
-      current: await currentValues(tx, change.entityType, change.entityId, change.fieldKey),
+      current: await currentValues(tx, change.entityType, result.entityId, change.fieldKey),
     };
   }
 

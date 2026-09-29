@@ -17,6 +17,7 @@ import type { Env } from '../config/env';
 import { PrismaService } from '../database/prisma.service';
 import type { ImportFileStatus, Prisma } from '../generated/prisma/client';
 import { refreshBatchStatus } from './batch-status';
+import { type CarryOverCounts, carryOver, previousRecords } from './carry-over';
 import {
   coverageOf,
   mostCommon,
@@ -73,6 +74,8 @@ export interface CommitSummary {
   votersSuperseded: number;
   rowsRejected: number;
   rowsDeleted: number;
+  /** Volunteer data carried over to the same voters' new records (#161). */
+  carriedOver: CarryOverCounts;
 }
 
 class ConfirmRefused extends Error {
@@ -375,6 +378,16 @@ export class ImportConfirmService implements OnModuleInit, OnModuleDestroy {
       },
     });
 
+    // The same voter (same EPIC) in the previous revision: the new record
+    // links to it, and volunteer data is carried over below (#161).
+    const previousRecord = previousRecords(
+      await tx.voter.findMany({
+        where: { partId: part.id, origin: 'official_import', recordStatus: 'active' },
+        select: { id: true, sourceVoterId: true },
+      }),
+      prepared.voters.map((v) => v.epic),
+    );
+
     // The previous revision stays for audit and comparison; its voters leave the active set.
     const superseded = await tx.voter.updateMany({
       where: { partId: part.id, origin: 'official_import', recordStatus: 'active' },
@@ -398,12 +411,15 @@ export class ImportConfirmService implements OnModuleInit, OnModuleDestroy {
           sectionNo: voter.sectionNo,
           serialNo: voter.serialNo,
           sourceVoterId: voter.epic,
+          previousVoterId: (voter.epic && previousRecord.get(voter.epic)) ?? null,
           sourceData: voter.sourceData as Prisma.InputJsonValue,
           sourceVersionId: version.id,
           importFileId: file.id,
         })),
       });
     }
+
+    const carriedOver = await carryOver(tx, version.id);
 
     await tx.importFile.update({
       where: { id: file.id },
@@ -422,6 +438,7 @@ export class ImportConfirmService implements OnModuleInit, OnModuleDestroy {
       votersSuperseded: superseded.count,
       rowsRejected: prepared.skipped.rejected,
       rowsDeleted: prepared.skipped.deleted,
+      carriedOver,
     };
     await this.audit.record(
       {
