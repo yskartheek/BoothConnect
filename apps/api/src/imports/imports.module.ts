@@ -9,12 +9,14 @@ import { ExtractionResultsService } from './extraction/results.service';
 import { ExtractionQueue } from './extraction-queue';
 import { ImportsController } from './imports.controller';
 import { ImportsService } from './imports.service';
+import { ImportReviewService } from './review.service';
 import { StorageService } from './storage.service';
 
 @Module({
   controllers: [ImportsController],
   providers: [
     ImportsService,
+    ImportReviewService,
     StorageService,
     ExtractionResultsService,
     { provide: EXTRACTION_JOB_OPTIONS, useValue: DEFAULT_JOB_OPTIONS },
