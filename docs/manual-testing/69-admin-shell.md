@@ -23,7 +23,9 @@
    pnpm install
    pnpm --filter admin-web dev
    ```
-   Open http://localhost:3000.
+   Open http://localhost:3000. Since #70 the portal needs sign-in: start
+   the API too and sign in as the seed admin, as in the
+   [#70 guide](70-admin-sign-in.md).
 2. **Expect:** the page title is "Overview · BoothConnect Admin". The side
    navigation shows:
    - Overview, Geography, Voters and households, Field operations (Later);
@@ -59,6 +61,5 @@
 
 ## Known issues and notes
 
-- There is no sign-in yet (#70), so every page is open. The pages
-  themselves come with #71–#76, #103 and #176.
+- The pages themselves come with #71–#76, #103 and #176.
 - The language is English only; a switch comes with admin settings.

@@ -108,6 +108,46 @@
   "@web.state.notReadyMessage": {
     "description": "Body text on pages that are planned but not built yet."
   },
+  "web.signIn.title": "Sign in",
+  "@web.signIn.title": { "description": "Heading of the admin sign-in page." },
+  "web.signIn.intro": "Use the phone number your organization registered for you.",
+  "@web.signIn.intro": { "description": "Text under the sign-in heading." },
+  "web.signIn.phone": "Phone number",
+  "@web.signIn.phone": { "description": "Label of the phone number field." },
+  "web.signIn.phoneHint": "International format, e.g. +919876543210",
+  "@web.signIn.phoneHint": { "description": "Hint under the phone number field." },
+  "web.signIn.sendCode": "Send code",
+  "@web.signIn.sendCode": { "description": "Button that sends a sign-in code to the phone." },
+  "web.signIn.codeSent": "If {phone} is registered, a 6-digit code is on its way.",
+  "@web.signIn.codeSent": {
+    "description": "Shown after asking for a code. {phone} is the number entered."
+  },
+  "web.signIn.code": "Code",
+  "@web.signIn.code": { "description": "Label of the 6-digit code field." },
+  "web.signIn.submit": "Sign in",
+  "@web.signIn.submit": { "description": "Button that checks the code and signs in." },
+  "web.signIn.otherNumber": "Use another number",
+  "@web.signIn.otherNumber": { "description": "Button that goes back to the phone number step." },
+  "web.signIn.devHint": "Development: the code is printed in the API's log.",
+  "@web.signIn.devHint": { "description": "Shown on the sign-in page in development only." },
+  "web.mfa.title": "Two-step verification",
+  "@web.mfa.title": { "description": "Heading of the second sign-in step for admins." },
+  "web.mfa.message": "Admins will confirm each sign-in with a second step, such as an authenticator app. This isn't set up yet.",
+  "@web.mfa.message": { "description": "Explains the MFA placeholder page." },
+  "web.mfa.continue": "Continue",
+  "@web.mfa.continue": {
+    "description": "Button that passes the MFA placeholder step where it is allowed."
+  },
+  "web.mfa.unavailable": "Two-step verification isn't available yet, so admin sign-in is closed on this server.",
+  "@web.mfa.unavailable": {
+    "description": "Shown on the MFA page when the placeholder is switched off."
+  },
+  "web.denied.message": "This portal is for admins, and your account doesn't have an admin role. Ask an admin of your area if you need one.",
+  "@web.denied.message": { "description": "Shown when someone without an admin role signs in." },
+  "web.denied.back": "Back to sign-in",
+  "@web.denied.back": { "description": "Link from the denied page to the sign-in page." },
+  "web.signOut": "Sign out",
+  "@web.signOut": { "description": "Button in the top bar that ends the session." },
 
   "visitOutcome.completed": "Met the family",
   "@visitOutcome.completed": { "description": "Visit outcome (API: completed)." },

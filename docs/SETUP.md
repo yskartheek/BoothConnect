@@ -148,7 +148,8 @@ All of these come from `.env`; every variable is explained in
 - **`port is already allocated` / `address already in use`:** another program
   uses the port, often a local PostgreSQL on 5432. Change `POSTGRES_PORT` in
   `.env` (and the port in `DATABASE_URL`), then `pnpm infra:up` again. For the
-  API, change `API_PORT` and `NEXT_PUBLIC_API_BASE_URL`.
+  API, change `API_PORT`, and set `API_URL` for the admin web (e.g. in
+  `apps/admin-web/.env.local`).
 - **`Invalid environment configuration` when starting the API:** `.env` is
   missing or a value is wrong. The message lists each problem. Copy
   `infra/env/.env.example` to `.env` again.

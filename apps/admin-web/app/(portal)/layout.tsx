@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 
 import { AppearanceMenu } from '@/components/appearance-menu';
+import { SessionControls } from '@/components/session-controls';
 import { SideNav } from '@/components/side-nav';
 import { t } from '@/lib/i18n';
 
@@ -19,6 +20,7 @@ export default function PortalLayout({ children }: { children: ReactNode }) {
         <div className="shell-body">
           <header className="shell-top">
             <AppearanceMenu />
+            <SessionControls />
           </header>
           <main id="main" tabIndex={-1}>
             {children}

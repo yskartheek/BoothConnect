@@ -103,3 +103,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #173  | [Users and role assignments](173-users-roles.md)                                                | Ready to test   |
 | #172  | [Adding an auxiliary polling station by hand](172-add-auxiliary-station.md)                     | Ready to test   |
 | #69   | [Admin web shell: layout, navigation, theme, shared states](69-admin-shell.md)                  | Ready to test   |
+| #70   | [Admin sign-in: code, MFA placeholder, admins only](70-admin-sign-in.md)                        | Ready to test   |

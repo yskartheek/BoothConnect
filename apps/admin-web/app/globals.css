@@ -269,3 +269,72 @@ a.side-nav-item[aria-current='page'] {
     max-height: none;
   }
 }
+
+/* ---- Sign-in (#70) ---- */
+.auth {
+  display: grid;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+  padding: var(--bc-space-md);
+  box-sizing: border-box;
+}
+
+.auth-main {
+  width: 100%;
+  max-width: 28rem;
+  margin: var(--bc-space-xl) auto 0;
+  outline: none;
+}
+
+.auth-main h1 {
+  margin-bottom: var(--bc-space-sm);
+}
+
+.form {
+  display: grid;
+  gap: var(--bc-space-sm);
+  margin-top: var(--bc-space-md);
+}
+
+.form label {
+  font: var(--bc-text-label);
+}
+
+.form input {
+  min-height: var(--bc-touch-target-ios);
+  padding: 0 var(--bc-space-sm);
+  border: 1px solid var(--bc-color-border);
+  border-radius: var(--bc-radius-small);
+  background: var(--bc-color-surface);
+  color: var(--bc-color-text);
+  font: var(--bc-text-body);
+}
+
+.form-hint {
+  font: var(--bc-text-caption);
+}
+
+.form-error {
+  color: var(--bc-color-danger);
+}
+
+.button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+a.button {
+  display: inline-flex;
+  align-items: center;
+  text-decoration: none;
+}
+
+.session {
+  display: flex;
+  align-items: center;
+  gap: var(--bc-space-sm);
+}
+
+.session-name {
+  font: var(--bc-text-label);
+}
