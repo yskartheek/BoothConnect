@@ -37,7 +37,7 @@ describe('analytics metrics', () => {
       x.quality.qualitySum = 1.7;
       x.fieldWork.householdsAssigned = 4;
       x.fieldWork.householdsVisited = 1;
-      x.revisions = { additions: 5, deletions: 7 };
+      x.revisions = { additions: 5, deletions: 7, stationsCompared: 1 };
     });
     expect(derive(m)).toEqual({
       genderRatio: 1500,

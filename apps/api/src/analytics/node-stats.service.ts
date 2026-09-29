@@ -297,6 +297,11 @@ export class NodeStatsService
                         AND c.source_voter_id = p.source_voter_id)
       GROUP BY 1`;
     for (const d of deletions) at(d.id).revisions.deletions = d.n;
+    const compared = await tx.$queryRaw<{ id: string }[]>`
+      SELECT st.id FROM geography_node st JOIN source_version sv ON sv.part_node_id = st.parent_id
+      WHERE st.id = ANY(${list}) AND sv.previous_version_id IS NOT NULL
+        AND NOT EXISTS (SELECT 1 FROM source_version nx WHERE nx.previous_version_id = sv.id)`;
+    for (const c of compared) at(c.id).revisions.stationsCompared = 1;
 
     // Field work. A visit that another visit corrects doesn't count; the
     // correction does.

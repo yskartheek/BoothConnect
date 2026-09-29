@@ -67,6 +67,8 @@ const envSchema = z
     ROLL_PARSER_QUEUE_PREFIX: z.string().min(1).default('bull'),
     // How often the API looks for finished extractions it missed (e.g. while down).
     IMPORT_RESULTS_SWEEP_SECONDS: seconds(30),
+    // Smallest group analytics may report; smaller ones are suppressed (design §7).
+    ANALYTICS_MIN_COHORT: z.coerce.number().int().min(2).default(10),
     // How often queued analytics refreshes (node_stats) are picked up, at the latest.
     ANALYTICS_REFRESH_SECONDS: seconds(30),
   })

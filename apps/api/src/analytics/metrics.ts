@@ -46,8 +46,12 @@ export interface RawMetrics {
   ages: { byAge: Record<string, number>; unknown: number };
   /** Active households; `large` = more than LARGE_HOUSEHOLD active voters. */
   households: { total: number; large: number };
-  /** Against the part's previous revision (zero for a part's first one). */
-  revisions: { additions: number; deletions: number };
+  /**
+   * Against the part's previous revision. `stationsCompared` counts the
+   * stations whose part has one, so "no earlier revision" isn't mistaken
+   * for "no change".
+   */
+  revisions: { additions: number; deletions: number; stationsCompared: number };
   quality: {
     /** Confirmed import files of the current revisions, and their quality scores summed. */
     files: number;
@@ -78,7 +82,7 @@ export function emptyMetrics(): RawMetrics {
     electors: { total: 0, male: 0, female: 0, thirdGender: 0, unknown: 0 },
     ages: { byAge: {}, unknown: 0 },
     households: { total: 0, large: 0 },
-    revisions: { additions: 0, deletions: 0 },
+    revisions: { additions: 0, deletions: 0, stationsCompared: 0 },
     quality: {
       files: 0,
       qualitySum: 0,
