@@ -29,6 +29,7 @@ import { refreshBatchStatus } from './batch-status';
 import type { CorrectRowDto, PreviewQuery } from './dto';
 import type { ElectorCounts, Issue, PageImage } from './extraction/contract';
 import type { HeaderMatch } from './extraction/results.service';
+import { householdCount, prepareVoters } from './confirm-rules';
 import { auditBase } from './imports.service';
 import {
   countVoters,
@@ -130,6 +131,12 @@ export interface FilePreview {
   /** Voter pages with an image for side-by-side correction. */
   pages: { page: number; width: number; height: number }[];
   totals: TotalsCheck;
+  /**
+   * What confirming now would commit: voters, and households (one per house
+   * number, or one per voter without one). Null while rows still have errors
+   * or miss the EPIC, section or serial (confirm would refuse).
+   */
+  willCommit: { voters: number; households: number } | null;
   rows: Page<ReviewRow> & { total: number };
 }
 
@@ -194,8 +201,10 @@ export class ImportReviewService {
     const detected = (file.detectedHeader ?? {}) as DetectedHeader;
     const all = await this.prisma.importRowResult.findMany({
       where: { importFileId: fileId },
-      select: ROW_SELECT,
+      select: { ...ROW_SELECT, id: true, serialNo: true, rawText: true },
     });
+    // What confirm would commit now, as confirm prepares it.
+    const prepared = prepareVoters(all);
     return {
       file: fileView(file, counts.get(file.id)),
       header: detected.header ?? null,
@@ -204,6 +213,9 @@ export class ImportReviewService {
       issues: detected.issues ?? [],
       pages: voterPages(detected).map(({ page, width, height }) => ({ page, width, height })),
       totals: totals(file, all),
+      willCommit: prepared.ok
+        ? { voters: prepared.voters.length, households: householdCount(prepared.voters) }
+        : null,
       rows: await this.rows(fileId, query),
     };
   }

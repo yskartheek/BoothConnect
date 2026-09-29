@@ -5,6 +5,7 @@ import type { Prisma } from '../src/generated/prisma/client';
 import type { BatchConfirmResult, ConfirmQueued } from '../src/imports/confirm.service';
 import { ImportConfirmService } from '../src/imports/confirm.service';
 import type { BatchView } from '../src/imports/imports.service';
+import type { FilePreview } from '../src/imports/review.service';
 import { NodeStatsRefresh } from '../src/analytics/stats-refresh';
 import { createTestApp, type TestApp } from './support/app';
 import { loginAs, type SignedIn } from './support/auth';
@@ -199,6 +200,11 @@ describe('import confirm: committing reviewed files to the active dataset', () =
     // Extraction and review leave nothing in the active set.
     expect(await t.prisma.geographyNode.count({ where: { type: 'part', code: '7' } })).toBe(0);
     expect(await t.prisma.voter.count({ where: { importFileId: fileId } })).toBe(0);
+
+    // The preview says what confirm will commit: 5 voters in 3 households.
+    const preview = (await admin.http.get(`/v1/imports/files/${fileId}/preview`).expect(200))
+      .body as FilePreview;
+    expect(preview.willCommit).toEqual({ voters: 5, households: 3 });
 
     const queued = (await confirmFile(fileId).expect(202)).body as ConfirmQueued;
     expect(queued).toEqual({ id: fileId, status: 'confirming', voters: 5 });
@@ -454,6 +460,10 @@ describe('import confirm: committing reviewed files to the active dataset', () =
       { serial: 2, house: 'H NO 1-3', gender: 'female' },
       { serial: 3, house: 'H NO 1-99', section: 2 },
     ]);
+    // Two households: one linked (1-3), one created (1-99).
+    const preview = (await admin.http.get(`/v1/imports/files/${fileId}/preview`).expect(200))
+      .body as FilePreview;
+    expect(preview.willCommit).toEqual({ voters: 3, households: 2 });
     await confirmFile(fileId).expect(202);
     await confirm.drain();
 

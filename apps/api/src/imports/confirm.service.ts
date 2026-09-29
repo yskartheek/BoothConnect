@@ -21,7 +21,7 @@ import { type CarryOverCounts, carryOver, previousRecords } from './carry-over';
 import {
   coverageOf,
   mostCommon,
-  houseKeyOf,
+  householdKeyOf,
   type Preparation,
   prepareVoters,
   type StationChoice,
@@ -404,7 +404,7 @@ export class ImportConfirmService implements OnModuleInit, OnModuleDestroy {
       await tx.voter.createMany({
         data: voters.slice(i, i + VOTER_CHUNK).map((voter) => ({
           programId: file.programId,
-          householdId: households.idByKey.get(keyOf(voter))!,
+          householdId: households.idByKey.get(householdKeyOf(voter))!,
           partId: part.id,
           pollingStationId: voter.stationId,
           origin: 'official_import' as const,
@@ -584,7 +584,7 @@ export class ImportConfirmService implements OnModuleInit, OnModuleDestroy {
   ) {
     const groups = new Map<string, (VoterRow & { stationId: string })[]>();
     for (const voter of voters) {
-      const key = keyOf(voter);
+      const key = householdKeyOf(voter);
       groups.set(key, [...(groups.get(key) ?? []), voter]);
     }
     const existing = new Map(
@@ -677,11 +677,6 @@ export class ImportConfirmService implements OnModuleInit, OnModuleDestroy {
       select: { id: true },
     });
   }
-}
-
-/** The household a voter goes to: by house number, or one of their own. */
-function keyOf(voter: VoterRow): string {
-  return houseKeyOf(voter.houseNumber) ?? `~${voter.sectionNo}-${voter.serialNo}`;
 }
 
 function text(value: unknown): string | null {

@@ -179,6 +179,54 @@ file of the batch from `GET /v1/imports/batches/:id`:
   calls `POST /v1/imports/batches/:id/confirm` and lists any file the API
   skipped, with the reason.
 
+### Review, correct and confirm (#73)
+
+`?step=review&file=<id>` (`components/imports/file-review.tsx`) shows one
+file from `GET /v1/imports/files/:id/preview`:
+
+- **What confirming does:** the part and stations to be created or kept, and
+  a new revision if there is one. Also the cover page as read, and the totals
+  check (printed, as read, now and the difference, by gender).
+- **Rows:** filtered by status or low confidence (below 0.6, not corrected),
+  50 at a time. Low-confidence cells are highlighted, corrected ones are
+  italic, and each row shows its open messages.
+- **Correction** (`review-rows.tsx`):
+  - The voter page image (`/api/v1/imports/files/:id/pages/:n`, passed on
+    `private, no-store`) sits next to the fields, each showing its value as
+    read.
+  - `PATCH …/rows/:rowId` sends only the changed fields. Rows can be rejected
+    with a reason, or restored.
+- **Download rejections CSV** links to `…/rejections.csv`.
+- **Confirm this file:**
+  - The dialog states `willCommit` (voters and households) and the part. A
+    totals mismatch must be acknowledged (`acceptTotalsMismatch`).
+  - The page then moves to `step=confirm` and follows the commit.
+  - When done, it links to `/analytics?node=<part>` (#74).
+
+## Analytics explorer (#74)
+
+`/analytics?node=<id>` (`components/analytics/`) shows any node of the
+admin's area, from the API's `/v1/analytics/nodes/:id/summary` and
+`/children`. Without `node`, the admin's own area opens.
+
+- `figures.ts` formats every figure:
+  - a suppressed count is `<minCohort`, and a suppressed ratio or share is
+    "Suppressed";
+  - `null` is "Not collected";
+  - zero is a real zero.
+
+  It also sorts children (numbers either way, suppressed and then missing
+  always last) and flags figures more than 25% from the average.
+
+- **Breadcrumbs** come from `GET /v1/geographies/:id` (`path`). Nodes from
+  the admin's own node down are links.
+- **Cards** show every figure with the API's definition. The gender and
+  age-band bars are single-series (one colour, value labels in text colour),
+  with no bar for a suppressed or missing figure.
+- **Comparison** with the parent's summary, when it is in the area.
+- **Children table:** sortable headers (`aria-sort`), a total and average in
+  the footer, highlighted outliers, and drill-down links.
+
 ## Voter record (#75)
 
 `/voters` (`components/voters/`):
