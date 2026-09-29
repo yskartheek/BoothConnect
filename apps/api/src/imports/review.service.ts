@@ -1,4 +1,4 @@
-import type { Readable } from 'node:stream';
+import { Readable } from 'node:stream';
 
 import { HttpStatus, Injectable } from '@nestjs/common';
 
@@ -8,6 +8,7 @@ import { notFound } from '../authz/scoped-query';
 import type { Actor } from '../common/actor';
 import { AppException } from '../common/errors/app.exception';
 import { ErrorCode } from '../common/errors/error-codes';
+import { CSV_BOM, csvLine } from '../common/csv';
 import {
   decodeCursor,
   DEFAULT_PAGE_SIZE,
@@ -20,6 +21,7 @@ import {
   type GeographyNodeType,
   type ImportBatchStatus,
   type ImportFileStatus,
+  type ImportRowResult,
   type ImportRowStatus,
   Prisma,
 } from '../generated/prisma/client';
@@ -199,6 +201,58 @@ export class ImportReviewService {
       totals: totals(file, all),
       rows: await this.rows(fileId, query),
     };
+  }
+
+  /**
+   * The rejected and warning rows of a file as CSV, for working through
+   * offline: position, the values as extracted, the corrections and the
+   * messages. Every cell is formula-injection safe. The export is audited.
+   */
+  async rejectionsCsv(
+    scope: Scope,
+    actor: Actor,
+    fileId: string,
+  ): Promise<{ filename: string; csv: Readable }> {
+    const file = await this.fileInScope(scope, fileId);
+    const where: Prisma.ImportRowResultWhereInput = {
+      importFileId: fileId,
+      status: { in: ['rejected', 'warning'] },
+    };
+    const rows = await this.prisma.importRowResult.count({ where });
+    await this.audit.record({
+      ...auditBase(actor),
+      action: 'import.file.rejections_export',
+      resourceType: 'import_file',
+      resourceId: fileId,
+      metadata: { rows },
+    });
+    const prisma = this.prisma;
+    async function* lines(): AsyncGenerator<string> {
+      yield CSV_BOM + csvLine(CSV_COLUMNS);
+      let after: { page: number; boxIndex: number } | null = null;
+      for (;;) {
+        const cursor: { page: number; boxIndex: number } | null = after;
+        const batch: ImportRowResult[] = await prisma.importRowResult.findMany({
+          where: {
+            ...where,
+            ...(cursor && {
+              OR: [
+                { page: { gt: cursor.page } },
+                { page: cursor.page, boxIndex: { gt: cursor.boxIndex } },
+              ],
+            }),
+          },
+          orderBy: [{ page: 'asc' }, { boxIndex: 'asc' }],
+          take: CSV_BATCH,
+        });
+        for (const row of batch) yield csvLine(csvRow(row));
+        if (batch.length < CSV_BATCH) return;
+        const last = batch.at(-1)!;
+        after = { page: last.page, boxIndex: last.boxIndex };
+      }
+    }
+    const base = file.originalName.replace(/\.pdf$/i, '').replace(/[^A-Za-z0-9._-]+/g, '_');
+    return { filename: `rejections-${base || file.id}.csv`, csv: Readable.from(lines()) };
   }
 
   /** The JPEG of one voter page. Cover, maps and summary pages are never served. */
@@ -542,4 +596,57 @@ function fileView(
     extractedAt: file.extractedAt,
     confirmedAt: file.confirmedAt,
   };
+}
+
+const CSV_BATCH = 500;
+const CSV_FIELDS = [
+  'epic',
+  'name',
+  'relationType',
+  'relativeName',
+  'houseNumber',
+  'age',
+  'gender',
+  'marker',
+] as const;
+const CSV_COLUMNS = [
+  'page',
+  'box',
+  'section',
+  'serial',
+  'status',
+  ...CSV_FIELDS,
+  'corrections',
+  'messages',
+];
+
+/** One exported row: values as extracted, corrections as `field=value`, messages as `code: text`. */
+function csvRow(row: {
+  page: number;
+  boxIndex: number;
+  sectionNo: number | null;
+  serialNo: number | null;
+  status: ImportRowStatus;
+  extractedValues: Prisma.JsonValue;
+  correctedValues: Prisma.JsonValue;
+  messages: Prisma.JsonValue;
+}): unknown[] {
+  const extracted = (row.extractedValues ?? {}) as RowValues;
+  const corrected = (row.correctedValues ?? {}) as RowValues;
+  const corrections = Object.entries(corrected)
+    .map(([field, value]) => `${field}=${value === null ? '' : String(value as string | number)}`)
+    .join('; ');
+  const messages = normaliseMessages(row.messages)
+    .map((m) => `${m.code}: ${m.message}${m.resolved ? ' (resolved)' : ''}`)
+    .join(' | ');
+  return [
+    row.page,
+    row.boxIndex,
+    row.sectionNo,
+    row.serialNo,
+    row.status,
+    ...CSV_FIELDS.map((f) => extracted[f]),
+    corrections,
+    messages,
+  ];
 }

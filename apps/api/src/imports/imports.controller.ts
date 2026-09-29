@@ -128,6 +128,22 @@ export class ImportsController {
     return new StreamableFile(image, { type: 'image/jpeg' });
   }
 
+  /** The rejected and warning rows as CSV (formula-injection safe); audited. */
+  @Get('files/:id/rejections.csv')
+  @Header('Cache-Control', 'private, no-store')
+  async rejectionsCsv(
+    @CurrentScope() scope: Scope,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request & { id?: unknown },
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StreamableFile> {
+    const { filename, csv } = await this.review.rejectionsCsv(scope, actorOf(user, req), id);
+    return new StreamableFile(csv, {
+      type: 'text/csv; charset=utf-8',
+      disposition: `attachment; filename="${filename}"`,
+    });
+  }
+
   /** Correct fields of a row, or reject it; the extracted values are kept. */
   @Patch('files/:id/rows/:rowId')
   correctRow(
