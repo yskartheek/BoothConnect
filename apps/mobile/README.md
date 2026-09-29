@@ -37,6 +37,27 @@ Uploads screen). Build paths with `Routes`, e.g. `Routes.household(id)`.
 - An unknown path shows `NotFoundScreen`. Screens not yet built use
   `PlaceholderScreen` (`lib/widgets/`).
 
+## Screen states (#58)
+
+Every screen shows one of these while it has nothing else to show
+(`lib/widgets/states.dart`):
+
+- `LoadingState`, `EmptyState` (with an optional action), `ErrorState`
+  (the reason, and **Try again** when `onRetry` is given) and `DeniedState`.
+  Loading, error and denied are live regions, so screen readers announce
+  them. The headings are marked as headings.
+- `OfflineBanner`: the app keeps working offline, so this is a banner, not a
+  whole-screen state. Put it first in the screen's scrolling content: at
+  large text sizes on a small phone it can be taller than the screen.
+- `SyncStatusChip` (`lib/widgets/sync_status_chip.dart`) for `pending`,
+  `syncing`, `synced`, `conflict` and `failed` (`SyncStatus.fromCode`). It
+  always shows an icon and a word, never colour alone, and reads "Upload
+  status: …". With `onTap` it's a button at least 48dp tall.
+
+The tests check each one in the light and dark themes against Flutter's
+contrast, tap-target and label guidelines. They also check that nothing
+overflows a 320×480 screen at 2× text.
+
 All user-visible text lives in `packages/i18n/locales/` (English and Telugu),
 never directly in widgets. Add a key there under `mobile.` (or a shared group),
 then run `pnpm --filter @boothconnect/i18n build:mobile` to regenerate
