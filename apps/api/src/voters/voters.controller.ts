@@ -76,10 +76,12 @@ export class VotersController {
   @Get(':id')
   get(
     @CurrentScope() scope: Scope,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request & { id?: unknown },
     @Param('id', ParseUUIDPipe) id: string,
     @Query() query: VoterQuery,
   ): Promise<VoterDetail> {
-    return this.voters.get(scope, id, query.history ?? false);
+    return this.voters.get(scope, actorOf(user, req), id, query.history ?? false);
   }
 
   /** Edit member details; each field is `applied`, `conflict` or `rejected`. */

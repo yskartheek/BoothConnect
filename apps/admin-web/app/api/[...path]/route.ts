@@ -54,7 +54,7 @@ async function forward(request: NextRequest, ctx: RouteContext<'/api/[...path]'>
   }
 
   const headers = new Headers();
-  for (const name of ['content-type', 'content-disposition', 'x-request-id']) {
+  for (const name of ['content-type', 'content-disposition', 'cache-control', 'x-request-id']) {
     const value = upstream.headers.get(name);
     if (value) headers.set(name, value);
   }
