@@ -1,4 +1,4 @@
-import { csvLine, safeCsvCell } from './csv';
+import { CSV_BOM, csvLine, parseCsv, safeCsvCell } from './csv';
 
 describe('CSV safety', () => {
   it('neutralises values that a spreadsheet would run as a formula', () => {
@@ -23,5 +23,20 @@ describe('CSV safety', () => {
     // Neutralised first, then quoted.
     expect(csvLine(['=cmd|" /C calc"!A0'])).toBe(`"'=cmd|"" /C calc""!A0"\r\n`);
     expect(csvLine([])).toBe('\r\n');
+  });
+
+  it('parses CSV: quotes, escapes, line ends, BOM and blank lines', () => {
+    expect(parseCsv(`${CSV_BOM}a,b\r\n"x, y","say ""hi"""\n\nlast,\n`)).toEqual([
+      ['a', 'b'],
+      ['x, y', 'say "hi"'],
+      ['last', ''],
+    ]);
+    expect(parseCsv('one')).toEqual([['one']]);
+    expect(parseCsv('"multi\nline",2')).toEqual([['multi\nline', '2']]);
+    expect(parseCsv('')).toEqual([]);
+    expect(() => parseCsv('"open')).toThrow(/never closed/);
+    // What csvLine writes, parseCsv reads back.
+    const values = ['=cmd', 'a,b', 'q"uote', 'plain'];
+    expect(parseCsv(csvLine(values))).toEqual([["'=cmd", 'a,b', 'q"uote', 'plain']]);
   });
 });

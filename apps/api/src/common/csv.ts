@@ -33,3 +33,46 @@ export function csvLine(values: unknown[]): string {
 
 /** Byte-order mark, so spreadsheet apps read the file as UTF-8 (Telugu names). */
 export const CSV_BOM = '﻿';
+
+/**
+ * Parses CSV text (RFC 4180: quoted cells, `""` escapes, CRLF or LF line
+ * ends, a leading byte-order mark). Returns the rows as arrays of cells;
+ * blank lines are skipped. Throws on an unclosed quote.
+ */
+export function parseCsv(text: string): string[][] {
+  const rows: string[][] = [];
+  let row: string[] = [];
+  let cell = '';
+  let quoted = false;
+  let sawQuote = false;
+  const source = text.startsWith(CSV_BOM) ? text.slice(1) : text;
+  const endRow = () => {
+    row.push(cell);
+    if (row.length > 1 || row[0] !== '' || sawQuote) rows.push(row);
+    row = [];
+    cell = '';
+    sawQuote = false;
+  };
+  for (let i = 0; i < source.length; i += 1) {
+    const c = source[i]!;
+    if (quoted) {
+      if (c === '"' && source[i + 1] === '"') {
+        cell += '"';
+        i += 1;
+      } else if (c === '"') quoted = false;
+      else cell += c;
+    } else if (c === '"') {
+      quoted = true;
+      sawQuote = true;
+    } else if (c === ',') {
+      row.push(cell);
+      cell = '';
+    } else if (c === '\n' || c === '\r') {
+      if (c === '\r' && source[i + 1] === '\n') i += 1;
+      endRow();
+    } else cell += c;
+  }
+  if (quoted) throw new Error('The CSV has a quote that is never closed');
+  if (cell !== '' || row.length > 0 || sawQuote) endRow();
+  return rows;
+}

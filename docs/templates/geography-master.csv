@@ -1,0 +1,7 @@
+level,code,name,reservation,parent_code,state_code
+state,S98,Sample State,,,
+pc,1,Sample Parliamentary Constituency,GEN,S98,
+pc,2,Second Sample Parliamentary Constituency,SC,S98,
+ac,11,Sample Assembly Constituency,GEN,1,S98
+ac,12,Riverside Sample Assembly Constituency,SC,1,S98
+ac,21,Hillside Sample Assembly Constituency,ST,2,S98

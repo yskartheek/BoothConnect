@@ -790,6 +790,47 @@
         ],
         "type": "object"
       },
+      "CreateGeographyDto": {
+        "properties": {
+          "code": {
+            "description": "Official number: S29, 6, 40…",
+            "maxLength": 50,
+            "minLength": 1,
+            "pattern": "^[^/]+$",
+            "type": "string"
+          },
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "parentId": {
+            "description": "The State of a PC, the PC of an AC; none for a State.",
+            "format": "uuid",
+            "type": "string"
+          },
+          "reservation": {
+            "description": "e.g. GEN, SC, ST.",
+            "maxLength": 50,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "state",
+              "pc",
+              "ac"
+            ],
+            "type": "string"
+          }
+        },
+        "required": [
+          "type",
+          "code",
+          "name"
+        ],
+        "type": "object"
+      },
       "CreateHouseholdDto": {
         "properties": {
           "address": {
@@ -2267,6 +2308,175 @@
         ],
         "type": "object"
       },
+      "MasterImportDto": {
+        "properties": {
+          "confirm": {
+            "description": "false (default): only report what would change. true: save it (only when no row has an error).",
+            "type": "boolean"
+          },
+          "csv": {
+            "description": "The CSV: columns `level` (state, pc, ac), `code`, `name`,\n`reservation` (optional), `parent_code` (a PC's State code, an AC's PC\ncode) and `state_code` (optional, to tell apart PCs with the same code).",
+            "maxLength": 1000000,
+            "minLength": 1,
+            "type": "string"
+          },
+          "programId": {
+            "description": "Needed only by admins of more than one program.",
+            "format": "uuid",
+            "type": "string"
+          }
+        },
+        "required": [
+          "csv"
+        ],
+        "type": "object"
+      },
+      "MasterImportReport": {
+        "additionalProperties": false,
+        "properties": {
+          "applied": {
+            "description": "False for a preview; true once the rows have been saved.",
+            "type": "boolean"
+          },
+          "counts": {
+            "additionalProperties": false,
+            "properties": {
+              "create": {
+                "type": "number"
+              },
+              "error": {
+                "type": "number"
+              },
+              "unchanged": {
+                "type": "number"
+              },
+              "update": {
+                "type": "number"
+              }
+            },
+            "required": [
+              "create",
+              "update",
+              "unchanged",
+              "error"
+            ],
+            "type": "object"
+          },
+          "programId": {
+            "type": "string"
+          },
+          "rows": {
+            "items": {
+              "additionalProperties": false,
+              "properties": {
+                "action": {
+                  "$ref": "#/components/schemas/RowAction"
+                },
+                "code": {
+                  "type": "string"
+                },
+                "errors": {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                "level": {
+                  "type": "string"
+                },
+                "line": {
+                  "type": "number"
+                },
+                "name": {
+                  "type": "string"
+                },
+                "parentCode": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "line",
+                "level",
+                "code",
+                "name",
+                "parentCode",
+                "action",
+                "errors"
+              ],
+              "type": "object"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "programId",
+          "applied",
+          "counts",
+          "rows"
+        ],
+        "type": "object"
+      },
+      "MasterLevel": {
+        "enum": [
+          "state",
+          "pc",
+          "ac"
+        ],
+        "type": "string"
+      },
+      "MasterNodeView": {
+        "additionalProperties": false,
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "parentId": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reservation": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "type": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/MasterLevel"
+              },
+              {
+                "const": "part",
+                "type": "string"
+              },
+              {
+                "const": "polling_station",
+                "type": "string"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "parentId",
+          "type",
+          "code",
+          "name",
+          "reservation"
+        ],
+        "type": "object"
+      },
       "Me": {
         "additionalProperties": false,
         "properties": {
@@ -3062,6 +3272,15 @@
         ],
         "type": "string"
       },
+      "RowAction": {
+        "enum": [
+          "create",
+          "update",
+          "unchanged",
+          "error"
+        ],
+        "type": "string"
+      },
       "RowCorrectionValuesDto": {
         "properties": {
           "age": {
@@ -3734,6 +3953,25 @@
           "difference",
           "matches"
         ],
+        "type": "object"
+      },
+      "UpdateGeographyDto": {
+        "properties": {
+          "name": {
+            "maxLength": 200,
+            "minLength": 1,
+            "type": "string"
+          },
+          "reservation": {
+            "description": "null removes it.",
+            "maxLength": 50,
+            "minLength": 1,
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
         "type": "object"
       },
       "UpdateHouseholdDto": {
@@ -4826,6 +5064,116 @@
         "tags": [
           "Geographies"
         ]
+      },
+      "post": {
+        "operationId": "Geography_create",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGeographyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "201": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MasterNodeView"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Geographies"
+        ]
+      }
+    },
+    "/v1/geographies/imports": {
+      "post": {
+        "operationId": "Geography_importMasterData",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MasterImportDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MasterImportReport"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Geographies"
+        ]
       }
     },
     "/v1/geographies/{id}": {
@@ -4847,6 +5195,68 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/GeographyNodeDetail"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Geographies"
+        ]
+      },
+      "patch": {
+        "operationId": "Geography_update",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGeographyDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MasterNodeView"
                 }
               }
             },
