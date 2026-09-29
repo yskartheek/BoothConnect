@@ -44,6 +44,11 @@ void main() {
     await tester.pumpWidget(const ProviderScope(child: BoothConnectApp()));
     await tester.pumpAndSettle();
 
-    expect(find.text('BoothConnect కు స్వాగతం'), findsOneWidget);
+    // Signed out, the app opens on sign-in.
+    expect(find.text('సైన్ ఇన్'), findsOneWidget);
+    expect(
+      find.text('మీ ఫోన్‌కు పంపిన కోడ్‌తో సైన్-ఇన్ తయారవుతోంది.'),
+      findsOneWidget,
+    );
   });
 }
