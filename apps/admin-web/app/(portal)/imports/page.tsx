@@ -20,7 +20,12 @@ export default async function ImportsPage({
   return (
     <>
       <PageHeader title={t('nav.imports')} />
-      <ImportWizard key={batch ?? 'new'} batchId={batch} step={one(params.step)} />
+      <ImportWizard
+        key={batch ?? 'new'}
+        batchId={batch}
+        step={one(params.step)}
+        fileId={one(params.file)}
+      />
     </>
   );
 }

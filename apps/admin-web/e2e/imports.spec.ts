@@ -155,7 +155,7 @@ test('extraction progress: statuses, a rejection reason, a filter, and confirmin
   await expect(page.getByText('Every file has finished.')).toBeVisible({ timeout: 15_000 });
   await expect(page.getByLabel('Files extracted: 3 of 3')).toBeVisible();
   await expect(table.getByRole('row', { name: /^part-1\.pdf/ })).toContainText(
-    /1 Demo Nagar.*Ready.*30.*810.*93%.*Totals match/,
+    /1 Demo Nagar.*Ready.*3.*3.*93%.*Totals match/,
   );
   await expect(table.getByRole('row', { name: /part-1-review\.pdf/ })).toContainText(
     /Needs review.*Totals don't match/,
@@ -175,7 +175,7 @@ test('extraction progress: statuses, a rejection reason, a filter, and confirmin
 
   await page.getByRole('button', { name: 'Confirm all ready files (1)' }).click();
   const dialog = page.getByRole('alertdialog', { name: 'Confirm the ready files?' });
-  await expect(dialog).toContainText('Ready files: 1, with 810 voters.');
+  await expect(dialog).toContainText('Ready files: 1, with 3 voters.');
   await expectAccessible(page);
   await dialog.getByRole('button', { name: 'Confirm all ready files (1)' }).click();
   await expect(page.getByText('Files being confirmed: 1.')).toBeVisible();
@@ -186,4 +186,83 @@ test('extraction progress: statuses, a rejection reason, a filter, and confirmin
     'Needs review',
   );
   await expect(page.getByRole('button', { name: 'Confirm all ready files (0)' })).toBeDisabled();
+});
+
+test('review a file: counts, correct a row beside its page, confirm, and see it committed', async ({
+  page,
+}) => {
+  await startAt(page);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/step=upload$/);
+  // The stand-in "extracts" three voters; this file needs review.
+  await page
+    .getByLabel('Choose PDF or ZIP files')
+    .setInputFiles([roll('part-1-review.pdf', 'review')]);
+  await page.getByRole('button', { name: 'Upload files (1)' }).click();
+  await expect(
+    page.getByRole('list', { name: 'Files to upload' }).getByText('Uploaded', { exact: true }),
+  ).toBeVisible();
+  await page.getByRole('link', { name: 'Next: extraction' }).click();
+  await expect(page.getByText('Every file has finished.')).toBeVisible({ timeout: 15_000 });
+  await page.getByRole('link', { name: 'Review part-1-review.pdf' }).click();
+  await expect(page).toHaveURL(/step=review&file=/);
+  await expect(
+    page.getByRole('list', { name: 'Import steps' }).locator('[aria-current="step"]'),
+  ).toHaveText('4Review');
+
+  // What confirming does, and the counts: printed 2 men, 1 woman; read 1 and 1.
+  await expect(page.getByText('Part 1 Demo Nagar will be updated.')).toBeVisible();
+  const totals = page.getByRole('table', { name: /Totals check/ });
+  await expect(totals).toContainText("Totals don't match");
+  await expect(totals.getByRole('row', { name: /Men/ })).toHaveText(/Men\s*2\s*2\s*1\s*-1/);
+  await expect(page.getByRole('heading', { name: 'Rows (3)' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Confirm this file' })).toBeDisabled();
+  await expect(page.getByRole('link', { name: 'Download rejections CSV' })).toHaveAttribute(
+    'href',
+    /\/api\/v1\/imports\/files\/.+\/rejections\.csv$/,
+  );
+  await expectAccessible(page);
+
+  // Only the low-confidence row.
+  await page.getByLabel('Only rows with low-confidence fields').check();
+  await expect(page.getByRole('heading', { name: 'Rows (1)' })).toBeVisible();
+  await page.getByLabel('Only rows with low-confidence fields').uncheck();
+
+  // Correct row 3's missing gender, beside its page image.
+  await page.getByRole('button', { name: 'Correct row 1/3' }).click();
+  const panel = page.getByRole('region', { name: 'Row 1/3, page 3' });
+  const image = panel.getByRole('img', { name: 'Page 3 of the roll' });
+  await expect(image).toBeVisible();
+  expect(await image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  await panel.getByLabel('Gender').selectOption({ label: 'Male' });
+  await expectAccessible(page);
+  await panel.getByRole('button', { name: 'Save correction' }).click();
+  await expect(panel.getByRole('status')).toContainText('Correction saved.');
+  await expect(panel.getByText(/Corrected by Test Admin/)).toBeVisible();
+  await expect(totals).toContainText('Totals match');
+  await expect(page.getByRole('heading', { name: /Review part-1-review\.pdf/ })).toContainText(
+    'Ready',
+  );
+
+  // Confirm: the voters and households are stated.
+  await page.getByRole('button', { name: 'Confirm this file' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'Confirm this file?' });
+  await expect(dialog).toContainText('Voters to commit: 3, in 2 households, to Part 1 Demo Nagar.');
+  await expectAccessible(page);
+  await dialog.getByRole('button', { name: 'Confirm this file' }).click();
+  await expect(page).toHaveURL(/step=confirm&file=/);
+  await expect(
+    page.getByRole('list', { name: 'Import steps' }).locator('[aria-current="step"]'),
+  ).toHaveText('5Confirm');
+  await expect(page.getByText('Committed: 3 voters are live.')).toBeVisible({ timeout: 15_000 });
+  await expect(
+    page.getByRole('link', { name: 'See the analytics of Part 1 Demo Nagar' }),
+  ).toHaveAttribute('href', /\/analytics\?node=/);
+  // A confirmed file can't be corrected any more.
+  await page.getByRole('button', { name: 'Correct row 1/1' }).click();
+  await expect(
+    page
+      .getByRole('region', { name: 'Row 1/1, page 3' })
+      .getByRole('button', { name: 'Save correction' }),
+  ).toHaveCount(0);
 });
