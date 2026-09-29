@@ -1849,6 +1849,13 @@
           "status": {
             "$ref": "#/components/schemas/ImportFileStatus"
           },
+          "totalsMatch": {
+            "description": "Active voters (after corrections and rejected rows) match the totals printed in the roll; null when the printed totals couldn't be read.",
+            "type": [
+              "boolean",
+              "null"
+            ]
+          },
           "voterCount": {
             "description": "Rows that would become active voters (not rejected, not marked deleted).",
             "type": "number"
@@ -1868,6 +1875,7 @@
           "rows",
           "voterCount",
           "qualityScore",
+          "totalsMatch",
           "extractedAt",
           "confirmedAt"
         ],

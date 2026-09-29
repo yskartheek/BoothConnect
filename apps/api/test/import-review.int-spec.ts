@@ -4,7 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
 import type { ApiErrorBody } from '../src/common/errors/app.exception';
-import type { Prisma } from '../src/generated/prisma/client';
+import { Prisma } from '../src/generated/prisma/client';
 import type { BatchView } from '../src/imports/imports.service';
 import type { BatchDetail, FilePreview, ReviewRow } from '../src/imports/review.service';
 import { StorageService } from '../src/imports/storage.service';
@@ -246,6 +246,49 @@ describe('import review: batch status, preview, page images, row corrections', (
         part: null,
         error: { code: 'extraction_failed' },
       });
+    });
+
+    it('says whether each file’s voters match the printed totals, as the rows are corrected', async () => {
+      const batchId = await batchAt((await node('ac', '101')).id);
+      const file = await seedFile(batchId);
+      const unread = await seedFile(batchId);
+      await t.prisma.importFile.update({
+        where: { id: unread.id },
+        data: { printedTotals: Prisma.DbNull },
+      });
+      const batch = async () =>
+        (await admin.http.get(`/v1/imports/batches/${batchId}`).expect(200)).body as BatchDetail;
+      const totalsOf = async (id: string) => (await batch()).files.find((f) => f.id === id)!;
+
+      // Printed: 2 men, 1 woman. Read: 1 man, 1 woman, one gender missing.
+      expect(await totalsOf(file.id)).toMatchObject({ totalsMatch: false, voterCount: 3 });
+      // Printed totals unreadable: no check.
+      expect((await totalsOf(unread.id)).totalsMatch).toBeNull();
+
+      // Correct the missing gender: the totals match, as in the preview.
+      await correct(file.id, file.rows[2]!, { values: { gender: 'male' } }).expect(200);
+      expect(await totalsOf(file.id)).toMatchObject({ totalsMatch: true, voterCount: 3 });
+      expect(((await preview(file.id)).body as FilePreview).totals.matches).toBe(true);
+
+      // A rejected row, and an entry un-deleted by a correction, count as the preview does.
+      await correct(file.id, file.rows[0]!, { rejected: true, reason: 'Unreadable' }).expect(200);
+      await correct(file.id, file.rows[3]!, { values: { marker: null } }).expect(200);
+      const after = await totalsOf(file.id);
+      const totals = ((await preview(file.id)).body as FilePreview).totals;
+      expect(after.totalsMatch).toBe(totals.matches);
+      expect(after.voterCount).toBe(totals.current.total);
+      expect(totals.current).toEqual({ male: 1, female: 2, thirdGender: 0, total: 3 });
+      expect(after.totalsMatch).toBe(false);
+
+      // Printed totals equal to those counts: a match, which a rejected man
+      // or a deleted entry counted by mistake would break.
+      await t.prisma.importFile.update({
+        where: { id: file.id },
+        data: {
+          printedTotals: { counts: { male: 1, female: 2, thirdGender: 0, total: 3 } },
+        },
+      });
+      expect((await totalsOf(file.id)).totalsMatch).toBe(true);
     });
 
     it('404 for an unknown batch, 403 for a volunteer', async () => {

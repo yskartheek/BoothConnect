@@ -129,3 +129,61 @@ test('an unknown batch in the link says so', async ({ page }) => {
   await expect(page).toHaveURL(/\/imports$/);
   await expect(page.getByLabel('Your area')).toBeVisible();
 });
+
+test('extraction progress: statuses, a rejection reason, a filter, and confirming the ready files', async ({
+  page,
+}) => {
+  await startAt(page);
+  await page.getByRole('button', { name: 'Continue' }).click();
+  await expect(page).toHaveURL(/step=upload$/);
+  // The stand-in extracts by name: "other-ac" is rejected, "review" needs review.
+  await page
+    .getByLabel('Choose PDF or ZIP files')
+    .setInputFiles([
+      roll('part-1.pdf', 'ready'),
+      roll('part-1-review.pdf', 'needs review'),
+      roll('other-ac.pdf', 'outside'),
+    ]);
+  await page.getByRole('button', { name: 'Upload files (3)' }).click();
+  await expect(
+    page.getByRole('list', { name: 'Files to upload' }).getByText('Uploaded', { exact: true }),
+  ).toHaveCount(3);
+  await page.getByRole('link', { name: 'Next: extraction' }).click();
+
+  const table = page.getByRole('table', { name: 'Every file of this import' });
+  // The page asks again by itself until every file has finished.
+  await expect(page.getByText('Every file has finished.')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByLabel('Files extracted: 3 of 3')).toBeVisible();
+  await expect(table.getByRole('row', { name: /^part-1\.pdf/ })).toContainText(
+    /1 Demo Nagar.*Ready.*30.*810.*93%.*Totals match/,
+  );
+  await expect(table.getByRole('row', { name: /part-1-review\.pdf/ })).toContainText(
+    /Needs review.*Totals don't match/,
+  );
+  await expect(table.getByRole('row', { name: /other-ac\.pdf/ })).toContainText(
+    /Rejected\s*Part belongs to AC 41, not AC 101/,
+  );
+  await expect(table.getByRole('link', { name: 'Review part-1-review.pdf' })).toHaveAttribute(
+    'href',
+    /step=review&file=/,
+  );
+  await expectAccessible(page);
+
+  await page.getByLabel('Show').selectOption({ label: 'Ready (1)' });
+  await expect(table.getByRole('row')).toHaveCount(2);
+  await page.getByLabel('Show').selectOption({ label: 'All files (3)' });
+
+  await page.getByRole('button', { name: 'Confirm all ready files (1)' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'Confirm the ready files?' });
+  await expect(dialog).toContainText('Ready files: 1, with 810 voters.');
+  await expectAccessible(page);
+  await dialog.getByRole('button', { name: 'Confirm all ready files (1)' }).click();
+  await expect(page.getByText('Files being confirmed: 1.')).toBeVisible();
+  await expect(table.getByRole('row', { name: /^part-1\.pdf/ })).toContainText('Confirmed', {
+    timeout: 15_000,
+  });
+  await expect(table.getByRole('row', { name: /part-1-review\.pdf/ })).toContainText(
+    'Needs review',
+  );
+  await expect(page.getByRole('button', { name: 'Confirm all ready files (0)' })).toBeDisabled();
+});

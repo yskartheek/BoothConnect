@@ -236,7 +236,63 @@ function resetImports() {
   checksums = new Map();
 }
 const nodeView = (n) => ({ id: n.id, type: n.type, code: n.code, name: n.name });
+/** How long the stand-in takes to extract or commit a file. */
+const WORK_MS = 1500;
+/**
+ * Extraction, simulated from the file name (synthetic files only): "other-ac"
+ * is rejected, "review" needs review (totals off), anything else is ready.
+ * Confirming takes a moment too.
+ */
+function advance(file) {
+  const now = Date.now();
+  if (file.status === 'extracting' && now - file.since >= WORK_MS) {
+    const partCode = /part-(\d+)/.exec(file.originalName)?.[1] ?? '1';
+    const part = nodes.find((n) => n.type === 'part' && n.code === partCode);
+    Object.assign(file, { since: now, extractedAt: new Date().toISOString() });
+    if (file.originalName.includes('other-ac')) {
+      Object.assign(file, {
+        status: 'rejected',
+        error: { code: 'header.outside_target', message: 'Part belongs to AC 41, not AC 101' },
+        pageCount: 30,
+      });
+    } else {
+      Object.assign(file, {
+        status: file.originalName.includes('review') ? 'needs_review' : 'ready',
+        part: part ? { id: part.id, code: part.code, name: part.name } : null,
+        proposedPart: part ? null : { code: partCode, name: `Synthetic Part ${partCode}` },
+        pageCount: 30,
+        rowCount: 812,
+        rows: { accepted: 800, warning: 12, rejected: 0 },
+        voterCount: 810,
+        qualityScore: 0.93,
+        totalsMatch: !file.originalName.includes('review'),
+      });
+    }
+  }
+  if (file.status === 'confirming' && now - file.since >= WORK_MS) {
+    Object.assign(file, { status: 'confirmed', confirmedAt: new Date().toISOString() });
+  }
+}
+const fileDetail = (f) => ({
+  id: f.id,
+  originalName: f.originalName,
+  sizeBytes: f.sizeBytes,
+  status: f.status,
+  duplicateOfId: f.duplicateOfId,
+  error: f.error ?? null,
+  part: f.part ?? null,
+  proposedPart: f.proposedPart ?? null,
+  pageCount: f.pageCount ?? null,
+  rowCount: f.rowCount ?? 0,
+  rows: f.rows ?? { accepted: 0, warning: 0, rejected: 0 },
+  voterCount: f.voterCount ?? 0,
+  qualityScore: f.qualityScore ?? null,
+  totalsMatch: f.totalsMatch ?? null,
+  extractedAt: f.extractedAt ?? null,
+  confirmedAt: f.confirmedAt ?? null,
+});
 const batchDetail = (batch) => {
+  batch.files.forEach(advance);
   const statusCounts = {};
   for (const f of batch.files) statusCounts[f.status] = (statusCounts[f.status] ?? 0) + 1;
   return {
@@ -245,23 +301,7 @@ const batchDetail = (batch) => {
     status: 'uploading',
     fileCount: batch.files.length,
     statusCounts,
-    files: batch.files.map((f) => ({
-      id: f.id,
-      originalName: f.originalName,
-      sizeBytes: f.sizeBytes,
-      status: f.status,
-      duplicateOfId: f.duplicateOfId,
-      error: null,
-      part: null,
-      proposedPart: null,
-      pageCount: null,
-      rowCount: 0,
-      rows: { accepted: 0, warning: 0, rejected: 0 },
-      voterCount: 0,
-      qualityScore: null,
-      extractedAt: null,
-      confirmedAt: null,
-    })),
+    files: batch.files.map(fileDetail),
     createdAt: batch.createdAt,
   };
 };
@@ -343,11 +383,27 @@ function importRoute(req, res, url, body) {
       sizeBytes: upload.size,
       status: checksums.has(sha) ? 'duplicate' : 'extracting',
       duplicateOfId: checksums.get(sha) ?? null,
+      since: Date.now(),
     };
     if (!checksums.has(sha)) checksums.set(sha, id);
     upload.batch.files.push(file);
-    upload.result = { uploadId: upload.id, files: [file], skipped: [] };
+    upload.result = { uploadId: upload.id, files: [fileDetail(file)], skipped: [] };
     return send(res, 200, upload.result);
+  }
+  const confirmAll = /^\/v1\/imports\/batches\/([^/]+)\/confirm$/.exec(url.pathname);
+  if (req.method === 'POST' && confirmAll) {
+    const batch = batches.get(confirmAll[1]);
+    if (!batch) return error(res, 404, 'NOT_FOUND');
+    batch.files.forEach(advance);
+    const ready = batch.files.filter((f) => f.status === 'ready');
+    if (ready.length === 0) {
+      return error(res, 422, 'UNPROCESSABLE', 'No file in this batch is ready to confirm');
+    }
+    for (const f of ready) Object.assign(f, { status: 'confirming', since: Date.now() });
+    return send(res, 202, {
+      queued: ready.map((f) => ({ id: f.id, status: 'confirming', voters: f.voterCount })),
+      skipped: [],
+    });
   }
   return false;
 }

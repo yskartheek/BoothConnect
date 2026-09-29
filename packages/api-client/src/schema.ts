@@ -1130,6 +1130,8 @@ export interface components {
             };
             sizeBytes: number;
             status: components["schemas"]["ImportFileStatus"];
+            /** @description Active voters (after corrections and rejected rows) match the totals printed in the roll; null when the printed totals couldn't be read. */
+            totalsMatch: boolean | null;
             /** @description Rows that would become active voters (not rejected, not marked deleted). */
             voterCount: number;
         };

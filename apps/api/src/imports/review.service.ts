@@ -76,6 +76,11 @@ export interface FileStatusView {
   /** Rows that would become active voters (not rejected, not marked deleted). */
   voterCount: number;
   qualityScore: number | null;
+  /**
+   * Active voters (after corrections and rejected rows) match the totals
+   * printed in the roll; null when the printed totals couldn't be read.
+   */
+  totalsMatch: boolean | null;
   extractedAt: Date | null;
   confirmedAt: Date | null;
 }
@@ -472,22 +477,44 @@ export class ImportReviewService {
 
   /** Rows per file and status, and the voters they would become. */
   private async rowCounts(where: Prisma.Sql) {
+    // Active voters: not rejected, not marked deleted; gender as corrected.
     const counted = await this.prisma.$queryRaw<
-      { fileId: string; status: ImportRowStatus; rows: number; voters: number }[]
+      {
+        fileId: string;
+        status: ImportRowStatus;
+        rows: number;
+        voters: number;
+        male: number;
+        female: number;
+        thirdGender: number;
+      }[]
     >`
-      SELECT r.import_file_id AS "fileId", r.status::text AS status, count(*)::int AS rows,
-        (count(*) FILTER (WHERE r.status <> 'rejected' AND COALESCE(
-          CASE WHEN r.corrected_values ? 'marker' THEN r.corrected_values->>'marker'
-               ELSE r.extracted_values->>'marker' END, '') <> 'deleted'))::int AS voters
-      FROM import_row_result r JOIN import_file f ON f.id = r.import_file_id
-      WHERE ${where}
+      SELECT "fileId", status, count(*)::int AS rows,
+        (count(*) FILTER (WHERE active))::int AS voters,
+        (count(*) FILTER (WHERE active AND gender = 'male'))::int AS male,
+        (count(*) FILTER (WHERE active AND gender = 'female'))::int AS female,
+        (count(*) FILTER (WHERE active AND gender = 'third_gender'))::int AS "thirdGender"
+      FROM (
+        SELECT r.import_file_id AS "fileId", r.status::text AS status,
+          r.status <> 'rejected' AND COALESCE(
+            CASE WHEN r.corrected_values ? 'marker' THEN r.corrected_values->>'marker'
+                 ELSE r.extracted_values->>'marker' END, '') <> 'deleted' AS active,
+          CASE WHEN r.corrected_values ? 'gender' THEN r.corrected_values->>'gender'
+               ELSE r.extracted_values->>'gender' END AS gender
+        FROM import_row_result r JOIN import_file f ON f.id = r.import_file_id
+        WHERE ${where}
+      ) rows
       GROUP BY 1, 2`;
-    const byFile = new Map<string, RowCounts>();
+    const byFile = new Map<string, CountedRows>();
     for (const c of counted) {
       const entry = byFile.get(c.fileId) ?? emptyCounts();
       entry.rows[c.status] = c.rows;
       entry.rowCount += c.rows;
       entry.voterCount += c.voters;
+      entry.current.male += c.male;
+      entry.current.female += c.female;
+      entry.current.thirdGender += c.thirdGender;
+      entry.current.total += c.voters;
       byFile.set(c.fileId, entry);
     }
     return byFile;
@@ -518,10 +545,16 @@ interface RowCounts {
   voterCount: number;
 }
 
-const emptyCounts = (): RowCounts => ({
+/** The row counts, and the active voters by gender (for the totals check). */
+interface CountedRows extends RowCounts {
+  current: ElectorCounts;
+}
+
+const emptyCounts = (): CountedRows => ({
   rowCount: 0,
   rows: { accepted: 0, warning: 0, rejected: 0 },
   voterCount: 0,
+  current: { male: 0, female: 0, thirdGender: 0, total: 0 },
 });
 
 interface TotalsSource {
@@ -572,11 +605,13 @@ function fileView(
     partNode: { id: string; code: string; name: string } | null;
     pageCount: number | null;
     qualityScore: number | null;
+    printedTotals: Prisma.JsonValue;
     extractedAt: Date | null;
     confirmedAt: Date | null;
   },
-  counts: RowCounts = emptyCounts(),
+  { current, ...counts }: CountedRows = emptyCounts(),
 ): FileStatusView {
+  const printed = printedCounts(file.printedTotals);
   const detected = (file.detectedHeader ?? {}) as DetectedHeader;
   const error = file.error as { code?: string; message?: string } | null;
   return {
@@ -593,6 +628,7 @@ function fileView(
     pageCount: file.pageCount,
     ...counts,
     qualityScore: file.qualityScore,
+    totalsMatch: printed ? totalsCheck(printed, null, current).matches : null,
     extractedAt: file.extractedAt,
     confirmedAt: file.confirmedAt,
   };
