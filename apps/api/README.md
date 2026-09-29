@@ -334,6 +334,8 @@ members) and `fields`, every **enabled** field the caller may see, set or not.
   field at all. A consent-gated value is shown only while its consent is
   granted; once withdrawn it disappears, history included.
 - A voter outside the caller's scope gets the same 404 as a missing ID.
+- Every opening is audited as `voter.view` (the voter's id and whether
+  history was asked for; no values). A 404 isn't.
 
 ### Editing members and choosing between conflicting values
 
@@ -341,7 +343,9 @@ members) and `fields`, every **enabled** field the caller may see, set or not.
   audited as `voter.update` with field keys and outcomes, never values)
   `{ fields: [{ fieldKey, value, baseVersion, consentId? }] }`: each field
   goes through the field-value service and comes back `applied`, `conflict`
-  or `rejected`. A voter outside the scope gets 404.
+  or `rejected`. A voter outside the scope gets 404. An edit by a caller with
+  the `admin` role is stored as `admin_corrected`; anyone else's as
+  `volunteer_collected`.
 - `POST /v1/conflicts/:id/resolve { keepFieldValueId }` (volunteers and
   admins, audited as `conflict.resolve`): `:id` is either value of a
   conflict (sync pull lists both). The kept value stays current, the other

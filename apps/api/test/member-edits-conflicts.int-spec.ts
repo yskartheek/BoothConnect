@@ -128,6 +128,36 @@ describe('member edits and conflict resolution (real Postgres)', () => {
       expect(JSON.stringify(event?.metadata)).not.toContain('Weaver');
     });
 
+    it('records a volunteer’s edit as collected, and an admin’s as a correction', async () => {
+      const voter = await freshVoter();
+      const byVolunteer = await edited(voter.id, [
+        { fieldKey: 'occupation', value: 'Weaver', baseVersion: null },
+      ]);
+      const admin = await loginAs(t, ADMIN);
+      const byAdmin = (
+        await edit(
+          voter.id,
+          [{ fieldKey: 'occupation', value: 'Tailor', baseVersion: idOf(byVolunteer.fields[0]) }],
+          admin,
+        ).expect(200)
+      ).body as MemberEdited;
+      expect(byAdmin.fields[0]?.status).toBe('applied');
+
+      const detail = (await admin.http.get(`/v1/voters/${voter.id}?history=true`).expect(200))
+        .body as VoterDetail;
+      const occupation = detail.fields.find((f) => f.key === 'occupation')!;
+      expect(occupation.current[0]).toMatchObject({
+        value: 'Tailor',
+        sourceType: 'admin_corrected',
+        collectedBy: { id: admin.userId },
+      });
+      expect(occupation.history?.[0]).toMatchObject({
+        value: 'Weaver',
+        sourceType: 'volunteer_collected',
+        collectedBy: { id: volunteerA },
+      });
+    });
+
     it('caste without consent is rejected with CONSENT_REQUIRED; with consent it applies', async () => {
       const voter = await freshVoter();
       const without = await edited(voter.id, [

@@ -960,3 +960,40 @@ a.button {
 .children-table tfoot td {
   font: var(--bc-text-label);
 }
+
+/* ---- Voter record (#75) ---- */
+.household-results,
+.member-list {
+  display: grid;
+  gap: var(--bc-space-xs);
+}
+
+.member-list {
+  margin: var(--bc-space-xs) 0 0 var(--bc-space-md);
+}
+
+.voter-fields th[scope='row'] {
+  font: var(--bc-text-label);
+  white-space: nowrap;
+}
+
+.voter-fields tr.field-conflict {
+  background: var(--bc-color-danger-container);
+}
+
+.voter-fields tr.field-history td {
+  background: var(--bc-color-surface-muted);
+}
+
+.provenance {
+  color: var(--bc-color-text-muted);
+  font: var(--bc-text-caption);
+}
+
+.field-actions {
+  white-space: nowrap;
+}
+
+.correct-field {
+  margin-top: var(--bc-space-xs);
+}

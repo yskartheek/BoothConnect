@@ -1,6 +1,9 @@
 import { Injectable } from '@nestjs/common';
 
+import { AuditService } from '../audit/audit.service';
+
 import type { Scope } from '../authz/scope.service';
+import type { Actor } from '../common/actor';
 import { seesRestricted } from '../authz/restricted-fields';
 import { foundInScope, inScope } from '../authz/scoped-query';
 import { PrismaService } from '../database/prisma.service';
@@ -74,13 +77,30 @@ export interface VoterVisit {
 
 @Injectable()
 export class VotersService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly audit: AuditService,
+  ) {}
 
-  async get(scope: Scope, id: string, withHistory = false): Promise<VoterDetail> {
+  /**
+   * One voter's record. Opening it is audited (`voter.view`, ids only), as
+   * is every change to it.
+   */
+  async get(scope: Scope, actor: Actor, id: string, withHistory = false): Promise<VoterDetail> {
     const voter = foundInScope(
       await this.prisma.voter.findFirst({ where: { id, ...inScope(scope) } }),
       'Voter',
     );
+    await this.audit.record({
+      action: 'voter.view',
+      resourceType: 'voter',
+      resourceId: voter.id,
+      result: 'success',
+      actorId: actor.userId,
+      sessionId: actor.sessionId ?? null,
+      requestId: actor.requestId ?? null,
+      metadata: { history: withHistory },
+    });
     const restricted = seesRestricted(scope);
 
     const definitions = await this.prisma.fieldDefinition.findMany({

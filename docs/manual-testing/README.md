@@ -110,3 +110,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #73   | [Roll import steps 3–4: review, correct and confirm](73-import-review.md)                       | Ready to test   |
 | #72   | [Roll import step 2: batch extraction progress](72-import-progress.md)                          | Ready to test   |
 | #74   | [Admin web: analytics explorer](74-analytics-explorer.md)                                       | Ready to test   |
+| #75   | [Admin web: voter record view](75-voter-record.md)                                              | Ready to test   |
