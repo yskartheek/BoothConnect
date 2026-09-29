@@ -15,6 +15,11 @@ describe('t', () => {
     expect(t('appearance.reduceTransparency')).toBe('Reduce transparency');
   });
 
+  it('fills {placeholders}', () => {
+    expect(t('state.reference', { requestId: 'r-9' })).toBe('Reference: r-9');
+    expect(t('state.reference')).toBe('Reference: {requestId}');
+  });
+
   it('gets the same keys in Telugu, and no mobile-only keys', () => {
     expect(Object.keys(te).sort()).toEqual(Object.keys(en).sort());
     expect(Object.keys(en).some((key) => key.startsWith('mobile.'))).toBe(false);

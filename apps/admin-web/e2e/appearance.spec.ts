@@ -2,6 +2,11 @@ import { expect, test, type Page } from '@playwright/test';
 
 // The glass panel's computed styles show which design tokens are in effect.
 // toHaveCSS retries, so the background transition can finish first.
+// The theme and transparency controls are in the top bar's Appearance popover.
+async function openAppearance(page: Page) {
+  await page.getByRole('button', { name: 'Appearance' }).click();
+}
+
 async function expectGlass(page: Page, background: string, blur?: string) {
   const panel = page.getByTestId('glass-panel');
   await expect(panel).toHaveCSS('background-color', background);
@@ -25,6 +30,7 @@ test('light glass by default, dark glass when the system is dark', async ({ page
 test('the theme control overrides the system theme', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/');
+  await openAppearance(page);
   const theme = page.getByLabel('Theme');
 
   await theme.selectOption('dark');
@@ -39,6 +45,7 @@ test('the theme control overrides the system theme', async ({ page }) => {
 test('"Reduce transparency" swaps glass for an opaque surface without blur', async ({ page }) => {
   await page.emulateMedia({ colorScheme: 'light' });
   await page.goto('/');
+  await openAppearance(page);
   await page.getByLabel('Reduce transparency').check();
   await expectGlass(page, LIGHT_OPAQUE, 'blur(0px)');
 
@@ -76,4 +83,18 @@ test('reduced motion sets the motion durations to 0', async ({ page }) => {
   expect(await durationMs()).toBe(220);
   await page.emulateMedia({ reducedMotion: 'reduce' });
   expect(await durationMs()).toBe(0);
+});
+
+test('the choice is remembered after a reload, without a light flash', async ({ page }) => {
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.goto('/');
+  await openAppearance(page);
+  await page.getByLabel('Theme').selectOption('dark');
+  await page.getByLabel('Reduce transparency').check();
+
+  await page.reload();
+  // Set by the inline script before the page is painted.
+  await expect(page.locator('html')).toHaveAttribute('data-theme', 'dark');
+  await expect(page.locator('html')).toHaveAttribute('data-transparency', 'reduced');
+  await expectGlass(page, DARK_OPAQUE);
 });

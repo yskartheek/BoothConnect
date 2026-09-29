@@ -14,6 +14,8 @@ import type { components, operations, paths } from './schema';
  * ```
  */
 export type { components, operations, paths };
+/** A request/response hook, for `client.use(…)`. */
+export type { Middleware };
 
 /** Every schema in the spec, by name: `Schemas['HouseholdDetail']`. */
 export type Schemas = components['schemas'];
