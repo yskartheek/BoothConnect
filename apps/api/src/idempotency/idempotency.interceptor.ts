@@ -155,7 +155,13 @@ export class IdempotencyInterceptor implements NestInterceptor {
       await sleep(POLL_MS);
       const stored = await this.stored(userId, key, hash, res);
       if (stored.found) return stored.body;
-      if ((await this.redis.exists(idempotencyLockKey(userId, key))) === 0) break;
+      if ((await this.redis.exists(idempotencyLockKey(userId, key))) === 0) {
+        // The first request may have stored its response and released the
+        // lock between the two checks above: look once more before giving up.
+        const last = await this.stored(userId, key, hash, res);
+        if (last.found) return last.body;
+        break;
+      }
     }
     // The first request failed (nothing stored) or is still running.
     throw new AppException(
