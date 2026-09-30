@@ -238,6 +238,48 @@ as strings.
 `localWatchFamily` also takes records, e.g. `visitChangesProvider((id,
 startedAt))`.
 
+## Sync push (#66)
+
+`PushRepository` (`lib/data/sync/push_repository.dart`) uploads
+`pending_mutation` to `POST /v1/sync/push`:
+
+- **Due** changes (`pending`, `next_attempt_at` empty or past) go oldest
+  first, up to 50 per batch, marked `syncing` on the way. Keys starting with
+  `_` in a payload (e.g. `_fieldValueId`) stay on the phone.
+- **Results:**
+  - `applied` / `duplicate` → removed from the queue, and the phone's copies
+    take the server's ids: `visits.server_id`, and the field value's id
+    (plus any `supersedes_id` and queued `baseVersion` that pointed at the
+    phone's id);
+  - `conflict` → `conflict`, with the server's ids and `conflict_with_id`
+    (the volunteer chooses in #67);
+  - `rejected` → `failed`, with the error `code` in `last_error`; retried
+    only by `retryNow` ("Upload now").
+- **Offline or a server error** (or an item missing from the answer):
+  back to `pending`, `attempts + 1`, `next_attempt_at` after
+  `backoff(attempts)`. That's 2 s doubling, capped at 5 minutes, and a random
+  50–100% of it.
+- **Idempotency:** the key never changes, so a batch resent after a lost
+  answer is stored once. Rows left `syncing` by an app that closed mid-upload
+  go back to `pending` at the next push.
+- **Chains:** a change based on another change in the same batch waits for
+  the next batch. By then its `baseVersion` is the server's id.
+
+`SyncController` holds the lock:
+
+- `pushNow()` runs one push at a time; a second call joins the first.
+- `syncNow()` pushes, then pulls.
+- `retryUploads()` retries everything waiting, including refused changes.
+- `whenIdle()` waits for both a push and a pull. Sign-out uses it.
+- After a push, a timer retries at the next `next_attempt_at`.
+
+`SyncTriggers` syncs on sign-in, resume and back online, and a saved visit
+pushes at once when online.
+
+**Connectivity:** the phone's connection stream allows one listener, so
+everything reads it through `onlineProvider`: the offline banner, the sync
+triggers and the visit form.
+
 ## Screen states (#58)
 
 Every screen shows one of these while it has nothing else to show

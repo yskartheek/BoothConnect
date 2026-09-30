@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -236,6 +237,8 @@ void main() {
         'value': 'Teacher',
         'baseVersion': 'fv-server',
         'collectedAt': '2026-09-30T10:00:00.000Z',
+        // The phone's copy; not sent.
+        '_fieldValueId': now.id,
       });
       // The member card shows the new value.
       final card = (await db.watchMemberCards('h-1').first).first;
@@ -568,12 +571,15 @@ void main() {
     Future<(ProviderContainer, AppDatabase)> openVisit(
       WidgetTester tester, {
       Future<void> Function(AppDatabase db)? before,
+      FakeSyncApi? syncApi,
+      Stream<List<ConnectivityResult>>? connectivity,
     }) async {
       final container = await startApp(
         tester,
         api: FakeAuthApi(session: true),
-        syncApi: FakeSyncApi(List.filled(20, offline, growable: true)),
-        connectivity: Stream.value([ConnectivityResult.none]),
+        syncApi:
+            syncApi ?? FakeSyncApi(List.filled(20, offline, growable: true)),
+        connectivity: connectivity ?? Stream.value([ConnectivityResult.none]),
       );
       final db = await settle(
         tester,
@@ -720,6 +726,59 @@ void main() {
       await waitFor(tester, () => find.byType(VisitScreen).evaluate().isEmpty);
       expect(find.byType(HouseholdScreen), findsOneWidget);
       expect(await settle(tester, db.select(db.visits).get()), isEmpty);
+      expect(await settle(tester, queued(db)), isEmpty);
+    });
+
+    Future<void> deltaPulls(AppDatabase db) => db
+        .into(db.syncMeta)
+        .insertOnConflictUpdate(
+          SyncMetaCompanion.insert(key: 'cursor', value: 'c-1'),
+        );
+
+    testWidgets('a visit saved offline uploads when back online', (
+      tester,
+    ) async {
+      final network = StreamController<List<ConnectivityResult>>.broadcast();
+      addTearDown(network.close);
+      final api = FakeSyncApi(List.filled(20, offline, growable: true));
+      final (_, db) = await openVisit(
+        tester,
+        before: deltaPulls,
+        syncApi: api,
+        connectivity: network.stream,
+      );
+      network.add([ConnectivityResult.none]);
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('No one home'));
+      await waitFor(tester, () => find.byType(VisitScreen).evaluate().isEmpty);
+      expect(api.pushed, isEmpty);
+      final key = (await settle(tester, queued(db))).single.key;
+
+      // Back online: uploaded, and the household shows Uploaded.
+      network.add([ConnectivityResult.wifi]);
+      await waitFor(tester, () => api.pushed.isNotEmpty);
+      await waitFor(tester, () => find.text('Uploaded').evaluate().isNotEmpty);
+      expect(api.pushed.single.single['key'], key);
+      expect(api.pushed.single.single['type'], 'visit.create');
+      expect(await settle(tester, queued(db)), isEmpty);
+      final visit = await settle(tester, db.select(db.visits).getSingle());
+      expect(visit.serverId, 'server-$key');
+    });
+
+    testWidgets('online, a saved visit uploads at once', (tester) async {
+      // Downloads fail (the booth data stays as seeded); uploads work.
+      final api = FakeSyncApi(List.filled(20, offline, growable: true));
+      final (_, db) = await openVisit(
+        tester,
+        before: deltaPulls,
+        syncApi: api,
+        connectivity: Stream.value([ConnectivityResult.mobile]),
+      );
+      await tester.tap(find.text('Refused'));
+      await waitFor(tester, () => api.pushed.isNotEmpty);
+      await waitFor(tester, () => find.text('Uploaded').evaluate().isNotEmpty);
+      expect(api.pushed.single.single['type'], 'visit.create');
       expect(await settle(tester, queued(db)), isEmpty);
     });
   });
