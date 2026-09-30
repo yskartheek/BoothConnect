@@ -23,19 +23,45 @@ pnpm --filter mobile format         # apply dart format
 
 ## Navigation and sign-in (#57)
 
-`lib/app/router.dart` holds the routes: `/sign-in`, `/` (home),
-`/households`, `/household/:id`, `/visit/:householdId` and `/sync` (the
-Uploads screen). Build paths with `Routes`, e.g. `Routes.household(id)`.
+`lib/app/router.dart` holds the routes: `/starting`, `/sign-in`, `/`
+(home), `/households`, `/household/:id`, `/visit/:householdId` and `/sync`
+(the Uploads screen). Build paths with `Routes`, e.g. `Routes.household(id)`.
 
-- `authProvider` (`features/auth/auth_controller.dart`) says whether the
-  volunteer is signed in. OTP sign-in and the stored tokens (#60) set it.
-- `authRedirect` sends a signed-out user to `/sign-in?from=<page>` and, once
-  signed in, back to that page (only a path in this app) or home. The router
-  re-checks it whenever `authProvider` changes.
-- Until #60, the sign-in screen is a placeholder. Development builds show
-  **Continue (development build)**; release builds don't.
+- `authProvider` (`features/auth/auth_controller.dart`) is `starting` while
+  it looks for stored tokens at launch, then `signedIn` or `signedOut`.
+- `authRedirect` holds every page on `/starting` until then, sends a
+  signed-out user to `/sign-in?from=<page>` and, once signed in, back to that
+  page (only a path in this app) or home. The router re-checks it whenever
+  `authProvider` changes.
 - An unknown path shows `NotFoundScreen`. Screens not yet built use
   `PlaceholderScreen` (`lib/widgets/`).
+
+## API client and sign-in (#60)
+
+- **Base URL:** `--dart-define=API_BASE_URL=https://…` (`ApiConfig`). The
+  default, `http://10.0.2.2:4000`, is the development API on the computer
+  running the Android emulator. Plain http is allowed in Android debug builds
+  and for local networking on iOS only.
+- **Client** (`lib/data/api/api_client.dart`): Dio with an `x-request-id` on
+  every call, so a failure can be found in the API's log, and the access
+  token (except on calls marked `noAuth`).
+  - On a 401 it refreshes once and retries. The API rotates refresh tokens
+    and revokes the session when a used one comes back, so concurrent 401s
+    share one refresh.
+  - A refused refresh ends the session (`sessionEnded`): the volunteer signs
+    in again, and the local data stays, because it may hold changes not yet
+    uploaded. Offline, the session is kept.
+- **Tokens** and a per-install device id are in secure storage
+  (`TokenStore`). Failures are `ApiError`s with the API's `code`, or
+  `NETWORK` when offline.
+- **Sign-in** (`features/auth/sign_in_screen.dart`): phone number (a 10-digit
+  Indian mobile, or `+` and a country code; see `normalizePhone`), then the
+  6-digit code, then `GET /v1/me`.
+  - Someone with no volunteer assignment sees the denied state, and the
+    session is ended again.
+  - Development builds say the code is in the API's log (`OTP_DEV_MODE`).
+- **Sign-out** ends the session on the server when reachable, forgets the
+  tokens, and wipes the database and its key (#59).
 
 ## Local database (#59)
 

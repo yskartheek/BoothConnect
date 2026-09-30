@@ -9,14 +9,6 @@
   },
   "mobile.signInTitle": "Sign in",
   "@mobile.signInTitle": { "description": "Heading and app bar title of the sign-in screen." },
-  "mobile.signInComingSoon": "Sign-in with a code sent to your phone is being built.",
-  "@mobile.signInComingSoon": {
-    "description": "Placeholder text on the sign-in screen until OTP sign-in exists."
-  },
-  "mobile.signInDevContinue": "Continue (development build)",
-  "@mobile.signInDevContinue": {
-    "description": "Button on the placeholder sign-in screen, shown only in development builds."
-  },
   "mobile.signOut": "Sign out",
   "@mobile.signOut": { "description": "Button that signs the volunteer out." },
   "mobile.householdsTitle": "Households",
@@ -60,6 +52,36 @@
   "mobile.syncStatusLabel": "Upload status: {state}",
   "@mobile.syncStatusLabel": {
     "description": "Screen-reader label of the sync status chip; {state} is e.g. \"Uploaded\"."
+  },
+  "mobile.signInPhoneLabel": "Mobile number",
+  "@mobile.signInPhoneLabel": { "description": "Label of the phone field on sign-in." },
+  "mobile.signInPhoneHelp": "Your 10-digit number, or one starting with + and the country code.",
+  "@mobile.signInPhoneHelp": { "description": "Help under the phone field." },
+  "mobile.signInPhoneInvalid": "Enter a 10-digit mobile number, or one starting with +.",
+  "@mobile.signInPhoneInvalid": { "description": "Error for a phone number that can't be used." },
+  "mobile.signInSendCode": "Send code",
+  "@mobile.signInSendCode": { "description": "Button that asks for a sign-in code by SMS." },
+  "mobile.signInCodeSent": "We sent a 6-digit code to {phone}.",
+  "@mobile.signInCodeSent": { "description": "Shown on the code step; {phone} is the number." },
+  "mobile.signInCodeLabel": "Code",
+  "@mobile.signInCodeLabel": { "description": "Label of the code field." },
+  "mobile.signInCodeInvalid": "Enter the 6-digit code.",
+  "@mobile.signInCodeInvalid": { "description": "Error for a code that isn't 6 digits." },
+  "mobile.signInSubmit": "Sign in",
+  "@mobile.signInSubmit": { "description": "Button that signs in with the code." },
+  "mobile.signInChangeNumber": "Change number",
+  "@mobile.signInChangeNumber": { "description": "Button back to the phone step." },
+  "mobile.signInDevHint": "Development build: the code is written to the API's log.",
+  "@mobile.signInDevHint": { "description": "Hint shown only in development builds." },
+  "mobile.signInNetworkError": "Can't reach the server. Check your connection and try again.",
+  "@mobile.signInNetworkError": { "description": "Error when the API can't be reached." },
+  "mobile.signInDeniedMessage": "This app is for volunteers assigned to a booth. Ask your coordinator to assign you, then sign in again.",
+  "@mobile.signInDeniedMessage": {
+    "description": "Shown when the user has no volunteer assignment."
+  },
+  "mobile.signInUseAnotherNumber": "Use another number",
+  "@mobile.signInUseAnotherNumber": {
+    "description": "Button on the denied state, back to the phone step."
   },
 
   "web.appTitle": "BoothConnect Admin",

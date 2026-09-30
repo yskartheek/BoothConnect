@@ -1,9 +1,9 @@
-import 'package:boothconnect_mobile/app/app.dart';
 import 'package:boothconnect_mobile/l10n/generated/app_localizations.dart';
 import 'package:boothconnect_mobile/l10n/shared_labels.g.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/app_harness.dart';
 
 void main() {
   final en = lookupAppLocalizations(const Locale('en'));
@@ -41,14 +41,10 @@ void main() {
     tester.platformDispatcher.localesTestValue = const [Locale('te')];
     addTearDown(tester.platformDispatcher.clearLocalesTestValue);
 
-    await tester.pumpWidget(const ProviderScope(child: BoothConnectApp()));
-    await tester.pumpAndSettle();
+    await startApp(tester);
 
     // Signed out, the app opens on sign-in.
     expect(find.text('సైన్ ఇన్'), findsOneWidget);
-    expect(
-      find.text('మీ ఫోన్‌కు పంపిన కోడ్‌తో సైన్-ఇన్ తయారవుతోంది.'),
-      findsOneWidget,
-    );
+    expect(find.text('కోడ్ పంపండి'), findsOneWidget);
   });
 }

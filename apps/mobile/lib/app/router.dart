@@ -1,4 +1,4 @@
-import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
@@ -9,10 +9,12 @@ import '../features/households/household_screen.dart';
 import '../features/households/households_screen.dart';
 import '../features/sync/sync_screen.dart';
 import '../features/visit/visit_screen.dart';
+import '../widgets/states.dart';
 import 'not_found_screen.dart';
 
 /// The app's paths.
 abstract final class Routes {
+  static const starting = '/starting';
   static const signIn = '/sign-in';
   static const home = '/';
   static const households = '/households';
@@ -24,24 +26,35 @@ abstract final class Routes {
 
 /// Where the router sends [uri] for someone who is [status], or null to stay.
 ///
-/// Signed out: everything but sign-in goes to sign-in, remembering the page
-/// in `from`. Signed in: sign-in goes on to `from` (a path in this app
-/// only), or home.
+/// Starting: wait on `/starting`. Signed out: sign-in. Both remember the page
+/// that was asked for in `from`. Signed in: from starting or sign-in, on to
+/// `from` (a path in this app only), or home.
 String? authRedirect(AuthStatus status, Uri uri) {
-  final atSignIn = uri.path == Routes.signIn;
-  if (status == AuthStatus.signedOut) {
-    if (atSignIn) return null;
-    final from = uri.toString();
-    if (from == Routes.home) return Routes.signIn;
-    return Uri(path: Routes.signIn, queryParameters: {'from': from}).toString();
-  }
-  if (!atSignIn) return null;
-  final from = uri.queryParameters['from'];
+  final waiting = uri.path == Routes.starting || uri.path == Routes.signIn;
+  final target = waiting
+      ? _safeFrom(uri.queryParameters['from'])
+      : uri.toString();
+  String withFrom(String path) => target == Routes.home
+      ? path
+      : Uri(path: path, queryParameters: {'from': target}).toString();
+
+  return switch (status) {
+    AuthStatus.starting =>
+      uri.path == Routes.starting ? null : withFrom(Routes.starting),
+    AuthStatus.signedOut =>
+      uri.path == Routes.signIn ? null : withFrom(Routes.signIn),
+    AuthStatus.signedIn => waiting ? target : null,
+  };
+}
+
+/// [from] when it is a page of this app, otherwise home.
+String _safeFrom(String? from) {
   final inApp =
       from != null &&
       from.startsWith('/') &&
       !from.startsWith('//') &&
-      Uri.parse(from).path != Routes.signIn;
+      Uri.parse(from).path != Routes.signIn &&
+      Uri.parse(from).path != Routes.starting;
   return inApp ? from : Routes.home;
 }
 
@@ -55,6 +68,10 @@ final routerProvider = Provider<GoRouter>((ref) {
     redirect: (context, state) => authRedirect(auth.value, state.uri),
     errorBuilder: (context, state) => const NotFoundScreen(),
     routes: [
+      GoRoute(
+        path: Routes.starting,
+        builder: (context, state) => const Scaffold(body: LoadingState()),
+      ),
       GoRoute(
         path: Routes.signIn,
         builder: (context, state) => const SignInScreen(),
