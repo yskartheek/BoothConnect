@@ -29,6 +29,10 @@
 - The theme follows the phone's light or dark setting, and all text is in
   English and Telugu.
 
+> **Since #60** the sign-in screen is real (a code sent by SMS), and the
+> **Continue (development build)** button below is gone. To test these steps
+> on a later branch, sign in as in the [#60 guide](60-mobile-sign-in.md).
+
 ## Steps
 
 Set up Flutter and the Android emulator once, as in the

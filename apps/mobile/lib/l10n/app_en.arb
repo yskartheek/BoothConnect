@@ -16,14 +16,6 @@
   "@signInTitle": {
     "description": "Heading and app bar title of the sign-in screen."
   },
-  "signInComingSoon": "Sign-in with a code sent to your phone is being built.",
-  "@signInComingSoon": {
-    "description": "Placeholder text on the sign-in screen until OTP sign-in exists."
-  },
-  "signInDevContinue": "Continue (development build)",
-  "@signInDevContinue": {
-    "description": "Button on the placeholder sign-in screen, shown only in development builds."
-  },
   "signOut": "Sign out",
   "@signOut": {
     "description": "Button that signs the volunteer out."
@@ -94,6 +86,61 @@
     "placeholders": {
       "state": {}
     }
+  },
+  "signInPhoneLabel": "Mobile number",
+  "@signInPhoneLabel": {
+    "description": "Label of the phone field on sign-in."
+  },
+  "signInPhoneHelp": "Your 10-digit number, or one starting with + and the country code.",
+  "@signInPhoneHelp": {
+    "description": "Help under the phone field."
+  },
+  "signInPhoneInvalid": "Enter a 10-digit mobile number, or one starting with +.",
+  "@signInPhoneInvalid": {
+    "description": "Error for a phone number that can't be used."
+  },
+  "signInSendCode": "Send code",
+  "@signInSendCode": {
+    "description": "Button that asks for a sign-in code by SMS."
+  },
+  "signInCodeSent": "We sent a 6-digit code to {phone}.",
+  "@signInCodeSent": {
+    "description": "Shown on the code step; {phone} is the number.",
+    "placeholders": {
+      "phone": {}
+    }
+  },
+  "signInCodeLabel": "Code",
+  "@signInCodeLabel": {
+    "description": "Label of the code field."
+  },
+  "signInCodeInvalid": "Enter the 6-digit code.",
+  "@signInCodeInvalid": {
+    "description": "Error for a code that isn't 6 digits."
+  },
+  "signInSubmit": "Sign in",
+  "@signInSubmit": {
+    "description": "Button that signs in with the code."
+  },
+  "signInChangeNumber": "Change number",
+  "@signInChangeNumber": {
+    "description": "Button back to the phone step."
+  },
+  "signInDevHint": "Development build: the code is written to the API's log.",
+  "@signInDevHint": {
+    "description": "Hint shown only in development builds."
+  },
+  "signInNetworkError": "Can't reach the server. Check your connection and try again.",
+  "@signInNetworkError": {
+    "description": "Error when the API can't be reached."
+  },
+  "signInDeniedMessage": "This app is for volunteers assigned to a booth. Ask your coordinator to assign you, then sign in again.",
+  "@signInDeniedMessage": {
+    "description": "Shown when the user has no volunteer assignment."
+  },
+  "signInUseAnotherNumber": "Use another number",
+  "@signInUseAnotherNumber": {
+    "description": "Button on the denied state, back to the phone step."
   },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {

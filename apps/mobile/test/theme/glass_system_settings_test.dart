@@ -1,10 +1,10 @@
-import 'package:boothconnect_mobile/app/app.dart';
 import 'package:boothconnect_mobile/theme/glass_surface.dart';
 import 'package:boothconnect_mobile/theme/glass_system_settings.dart';
 import 'package:boothconnect_mobile/theme/tokens.g.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import '../support/app_harness.dart';
 
 /// Stands in for the native side of [glassSettingsChannel]. `send` pushes a
 /// value as if the phone setting changed.
@@ -77,8 +77,7 @@ void main() {
     tester,
   ) async {
     final platform = FakeGlassPlatform(tester);
-    await tester.pumpWidget(const ProviderScope(child: BoothConnectApp()));
-    await tester.pumpAndSettle();
+    await startApp(tester, glassPlatform: false);
 
     expect(blur, findsOneWidget);
     expect(glassFill(tester), BcThemeTokens.light.glassFill);
@@ -97,8 +96,7 @@ void main() {
     tester,
   ) async {
     FakeGlassPlatform(tester, initial: {'lowEndDevice': true});
-    await tester.pumpWidget(const ProviderScope(child: BoothConnectApp()));
-    await tester.pumpAndSettle();
+    await startApp(tester, glassPlatform: false);
 
     expect(blur, findsNothing);
     expect(glassFill(tester).a, 1);

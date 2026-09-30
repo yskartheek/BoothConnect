@@ -99,10 +99,13 @@ class ErrorState extends StatelessWidget {
 /// The volunteer isn't allowed to see this (the API said 403, or the record
 /// is outside their booth).
 class DeniedState extends StatelessWidget {
-  const DeniedState({super.key, this.message});
+  const DeniedState({super.key, this.message, this.action});
 
   /// Replaces the default explanation.
   final String? message;
+
+  /// For example, a button back to a place the volunteer can use.
+  final Widget? action;
 
   @override
   Widget build(BuildContext context) {
@@ -113,6 +116,7 @@ class DeniedState extends StatelessWidget {
         _StateIcon(Icons.lock_outline, color: AppTokens.of(context).textMuted),
         _Title(l10n.stateDeniedTitle),
         _Message(message ?? l10n.stateDeniedMessage),
+        if (action != null) ...[const SizedBox(height: BcSpacing.lg), action!],
       ],
     );
   }

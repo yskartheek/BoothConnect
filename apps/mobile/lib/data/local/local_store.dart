@@ -73,7 +73,7 @@ class LocalStore {
 final localStoreProvider = Provider<LocalStore>(
   (ref) => LocalStore(
     directory: getApplicationSupportDirectory,
-    keys: DatabaseKeyStore(const SecureStorageSecrets()),
+    keys: DatabaseKeyStore(ref.watch(secretStoreProvider)),
   ),
 );
 

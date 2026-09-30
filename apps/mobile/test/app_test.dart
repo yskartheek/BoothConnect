@@ -1,82 +1,15 @@
-import 'dart:io';
-
-import 'package:boothconnect_mobile/app/app.dart';
 import 'package:boothconnect_mobile/app/router.dart';
 import 'package:boothconnect_mobile/data/local/app_database.dart';
-import 'package:boothconnect_mobile/data/local/database_key.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
 import 'package:boothconnect_mobile/features/households/household_screen.dart';
 import 'package:boothconnect_mobile/features/visit/visit_screen.dart';
-import 'package:boothconnect_mobile/l10n/generated/app_localizations.dart';
-import 'package:boothconnect_mobile/theme/glass_system_settings.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'support/memory_secrets.dart';
-
-class _SignedIn extends AuthController {
-  @override
-  AuthStatus build() => AuthStatus.signedIn;
-}
-
-/// Starts the app, signed in or not, and returns its provider container.
-Future<ProviderContainer> startApp(
-  WidgetTester tester, {
-  bool signedIn = false,
-}) async {
-  // The phone's glass settings channel answers with nothing in tests.
-  final messenger = tester.binding.defaultBinaryMessenger;
-  messenger.setMockStreamHandler(
-    glassSettingsChannel,
-    MockStreamHandler.inline(onListen: (arguments, events) {}),
-  );
-  addTearDown(() => messenger.setMockStreamHandler(glassSettingsChannel, null));
-  final dir = Directory.systemTemp.createTempSync('bc_app_test');
-  final container = ProviderContainer(
-    overrides: [
-      if (signedIn) authProvider.overrideWith(_SignedIn.new),
-      localStoreProvider.overrideWithValue(
-        LocalStore(
-          directory: () async => dir,
-          keys: DatabaseKeyStore(MemorySecrets()),
-          inBackground: false,
-        ),
-      ),
-    ],
-  );
-  addTearDown(() async {
-    await container.read(localStoreProvider).wipe();
-    container.dispose();
-    dir.deleteSync(recursive: true);
-  });
-  await tester.pumpWidget(
-    UncontrolledProviderScope(
-      container: container,
-      child: const BoothConnectApp(),
-    ),
-  );
-  await tester.pumpAndSettle();
-  return container;
-}
-
-String location(ProviderContainer container) => container
-    .read(routerProvider)
-    .routerDelegate
-    .currentConfiguration
-    .uri
-    .toString();
-
-Future<void> go(
-  WidgetTester tester,
-  ProviderContainer container,
-  String path,
-) async {
-  container.read(routerProvider).go(path);
-  await tester.pumpAndSettle();
-}
+import 'support/app_harness.dart';
+import 'support/fake_auth_api.dart';
 
 void main() {
   testWidgets('a signed-out user is redirected to sign-in', (tester) async {
@@ -106,15 +39,14 @@ void main() {
     await go(tester, container, '/household/h-1');
     expect(location(container), '/sign-in?from=%2Fhousehold%2Fh-1');
 
-    await tester.tap(find.text('Continue (development build)'));
-    await tester.pumpAndSettle();
+    await signInThroughScreen(tester);
     expect(location(container), '/household/h-1');
     final screen = tester.widget<HouseholdScreen>(find.byType(HouseholdScreen));
     expect(screen.householdId, 'h-1');
   });
 
   testWidgets('signed in, sign-in goes on to home', (tester) async {
-    final container = await startApp(tester, signedIn: true);
+    final container = await startApp(tester, api: FakeAuthApi(session: true));
     expect(location(container), '/');
     expect(find.text('Welcome to BoothConnect'), findsOneWidget);
 
@@ -123,7 +55,7 @@ void main() {
   });
 
   testWidgets('every route opens its placeholder screen', (tester) async {
-    final container = await startApp(tester, signedIn: true);
+    final container = await startApp(tester, api: FakeAuthApi(session: true));
     for (final (path, title) in [
       ('/households', 'Households'),
       ('/household/h-1', 'Household'),
@@ -143,7 +75,7 @@ void main() {
   testWidgets('home opens households and uploads, and back returns', (
     tester,
   ) async {
-    final container = await startApp(tester, signedIn: true);
+    final container = await startApp(tester, api: FakeAuthApi(session: true));
 
     await tester.tap(find.text('Households'));
     await tester.pumpAndSettle();
@@ -163,7 +95,8 @@ void main() {
   testWidgets('signing out wipes the phone and goes back to sign-in', (
     tester,
   ) async {
-    final container = await startApp(tester, signedIn: true);
+    final api = FakeAuthApi(session: true);
+    final container = await startApp(tester, api: api);
     final store = container.read(localStoreProvider);
     final file = await tester.runAsync(() async {
       final db = await store.open();
@@ -175,23 +108,18 @@ void main() {
     expect(file!.existsSync(), isTrue);
 
     await tester.tap(find.byTooltip('Sign out'));
-    // The wipe is real file I/O. Each step's result comes back on the real
-    // clock and runs on the next pump: alternate until it is done.
-    for (var i = 0; i < 500; i++) {
-      if (container.read(authProvider) == AuthStatus.signedOut) break;
-      await tester.runAsync(
-        () => Future<void>.delayed(const Duration(milliseconds: 10)),
-      );
-      await tester.pump();
-    }
-    await tester.pumpAndSettle();
+    await waitFor(
+      tester,
+      () => container.read(authProvider) == AuthStatus.signedOut,
+    );
     expect(location(container), '/sign-in');
     expect(container.read(authProvider), AuthStatus.signedOut);
     expect(file.existsSync(), isFalse);
+    expect(api.logouts, 1);
   });
 
   testWidgets('an unknown link says so and leads home', (tester) async {
-    final container = await startApp(tester, signedIn: true);
+    final container = await startApp(tester, api: FakeAuthApi(session: true));
     await go(tester, container, '/no-such-page');
     expect(find.text('Page not found'), findsOneWidget);
     await tester.tap(find.text('Go to home'));
@@ -199,18 +127,30 @@ void main() {
     expect(location(container), '/');
   });
 
-  testWidgets('a release build has no way past sign-in yet', (tester) async {
-    await tester.pumpWidget(
-      const ProviderScope(
-        child: MaterialApp(
-          localizationsDelegates: AppLocalizations.localizationsDelegates,
-          home: SignInScreen(allowDevContinue: false),
-        ),
-      ),
-    );
+  testWidgets('a stored session opens the app signed in', (tester) async {
+    final container = await startApp(tester, api: FakeAuthApi(session: true));
+    expect(location(container), '/');
+    expect(container.read(authProvider), AuthStatus.signedIn);
+  });
+
+  testWidgets('an ended session goes to sign-in and keeps the data', (
+    tester,
+  ) async {
+    final container = await startApp(tester, api: FakeAuthApi(session: true));
+    final store = container.read(localStoreProvider);
+    final file = await tester.runAsync(() async {
+      final db = await store.open();
+      await db
+          .into(db.syncMeta)
+          .insert(SyncMetaCompanion.insert(key: 'cursor', value: 'c-1'));
+      return store.file();
+    });
+    expect(file!.existsSync(), isTrue);
+    container.read(authProvider.notifier).sessionEnded();
     await tester.pumpAndSettle();
-    expect(find.text('Sign in'), findsOneWidget);
-    expect(find.byType(FilledButton), findsNothing);
+    expect(location(container), '/sign-in');
+    // Changes not yet uploaded may be in there.
+    expect(file.existsSync(), isTrue);
   });
 
   for (final brightness in Brightness.values) {
@@ -227,6 +167,24 @@ void main() {
 
   group('authRedirect', () {
     Uri u(String s) => Uri.parse(s);
+
+    test('starting: wait, remembering the page', () {
+      expect(authRedirect(AuthStatus.starting, u('/')), '/starting');
+      expect(
+        authRedirect(AuthStatus.starting, u('/sync')),
+        '/starting?from=%2Fsync',
+      );
+      expect(authRedirect(AuthStatus.starting, u('/starting')), isNull);
+      // Then on to sign-in or the page, keeping `from`.
+      expect(
+        authRedirect(AuthStatus.signedOut, u('/starting?from=%2Fsync')),
+        '/sign-in?from=%2Fsync',
+      );
+      expect(
+        authRedirect(AuthStatus.signedIn, u('/starting?from=%2Fsync')),
+        '/sync',
+      );
+    });
 
     test('signed out: to sign-in, remembering the page', () {
       expect(authRedirect(AuthStatus.signedOut, u('/')), '/sign-in');
@@ -249,6 +207,7 @@ void main() {
         '//example.com',
         'sync',
         '/sign-in',
+        '/starting',
       ]) {
         final uri = Uri(path: '/sign-in', queryParameters: {'from': from});
         expect(authRedirect(AuthStatus.signedIn, uri), '/', reason: from);

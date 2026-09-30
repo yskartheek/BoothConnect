@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 /// Where secrets are kept: the Android Keystore or iOS Keychain in the app.
@@ -8,6 +9,11 @@ abstract interface class SecretStore {
   Future<void> write(String name, String value);
   Future<void> delete(String name);
 }
+
+/// Secure storage (Android Keystore / iOS Keychain); tests use memory.
+final secretStoreProvider = Provider<SecretStore>(
+  (ref) => const SecureStorageSecrets(),
+);
 
 /// [SecretStore] on `flutter_secure_storage`.
 class SecureStorageSecrets implements SecretStore {
