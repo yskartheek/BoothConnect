@@ -84,7 +84,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(location(container), '/');
 
-    await tester.tap(find.text('Uploads'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Uploads'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Uploads'), findsOneWidget);
     await tester.tap(find.byType(BackButton));

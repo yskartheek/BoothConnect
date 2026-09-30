@@ -20,9 +20,10 @@ import '../sync/sync_controller.dart';
 /// Watches over the phone's database, which the home screen reads (never
 /// the API).
 StreamProvider<T> _local<T>(Stream<T> Function(AppDatabase db) watch) =>
-    StreamProvider<T>((ref) async* {
-      final db = await ref.watch(appDatabaseProvider.future);
-      yield* watch(db);
+    StreamProvider<T>((ref) {
+      // Loading until the database is open; then the watch itself.
+      final db = ref.watch(appDatabaseProvider).value;
+      return db == null ? const Stream.empty() : watch(db);
     });
 
 final boothsProvider = _local<List<BoothAssignment>>((db) => db.watchBooths());
@@ -121,7 +122,8 @@ class _BoothCard extends ConsumerWidget {
         else
           for (final booth in booths)
             Text(
-              l10n.homeBoothLine(booth.name, booth.code),
+              // Generated arguments are in alphabetical order: code, name.
+              l10n.homeBoothLine(booth.code, booth.name),
               style: Theme.of(context).textTheme.titleLarge,
             ),
       ],
@@ -137,10 +139,9 @@ class _ProgressCard extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final total = ref.watch(householdCountProvider).value ?? 0;
     final visited = ref.watch(visitedCountProvider).value ?? 0;
-    final text = l10n.homeVisited(
-      NumberFormat.decimalPattern(_locale(context)).format(visited),
-      NumberFormat.decimalPattern(_locale(context)).format(total),
-    );
+    final number = NumberFormat.decimalPattern(_locale(context));
+    // Generated arguments are in alphabetical order: total, visited.
+    final text = l10n.homeVisited(number.format(total), number.format(visited));
     return _Card(
       title: l10n.homeProgressTitle,
       children: [

@@ -1,6 +1,8 @@
 import 'dart:async';
 
+import 'package:boothconnect_mobile/data/api/auth_api.dart';
 import 'package:boothconnect_mobile/data/local/app_database.dart';
+import 'package:boothconnect_mobile/data/local/local_reads.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/data/sync/sync_repository.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
@@ -78,7 +80,21 @@ void main() {
 
   testWidgets('signing in pulls, and a signed-out app doesn’t', (tester) async {
     final sync = FakeSyncApi([snapshot('c-1', 'h-1')]);
-    final c = await startApp(tester, syncApi: sync);
+    final c = await startApp(
+      tester,
+      syncApi: sync,
+      api: FakeAuthApi(
+        assignments: const [
+          volunteerAssignment,
+          Assignment(
+            role: 'admin',
+            nodeType: 'ac',
+            nodeName: 'Demo Assembly Constituency',
+            nodeCode: '101',
+          ),
+        ],
+      ),
+    );
     // Signed out: resuming the app pulls nothing.
     backgroundAndResume(tester);
     await tester.pump();
@@ -89,6 +105,9 @@ void main() {
     expect(await householdIds(tester, c), ['h-1']);
     final db = await database(tester, c);
     expect(await settle(tester, SyncRepository(db, sync).owner()), 'u-1');
+    // Only the volunteer assignment is a booth for the home screen.
+    final booths = await settle(tester, db.watchBooths().first);
+    expect(booths.map((b) => '${b.name} ${b.code}'), ['Demo Primary School 1']);
   });
 
   testWidgets('another volunteer’s data is wiped when someone else signs in', (
