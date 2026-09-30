@@ -12,6 +12,7 @@ import 'package:boothconnect_mobile/theme/glass_system_settings.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter_riverpod/misc.dart' show Override;
 import 'package:flutter_test/flutter_test.dart';
 
 import 'fake_auth_api.dart';
@@ -29,6 +30,7 @@ Future<ProviderContainer> startApp(
   FakeSyncApi? syncApi,
   Stream<List<ConnectivityResult>>? connectivity,
   bool glassPlatform = true,
+  List<Override> overrides = const [],
 }) async {
   if (glassPlatform) {
     final messenger = tester.binding.defaultBinaryMessenger;
@@ -58,6 +60,7 @@ Future<ProviderContainer> startApp(
           closeStreamsSynchronously: true,
         ),
       ),
+      ...overrides,
     ],
   );
   addTearDown(() async {

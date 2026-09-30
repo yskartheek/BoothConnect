@@ -30,10 +30,17 @@ class AppDatabase extends _$AppDatabase {
   AppDatabase(super.e);
 
   @override
-  int get schemaVersion => 1;
+  int get schemaVersion => 2;
 
   /// Steps by the version they lead to. Version 1 is created, not migrated.
-  static final Map<int, MigrationStep> migrationSteps = {};
+  static final Map<int, MigrationStep> migrationSteps = {
+    // #63: which household a queued change is about.
+    2: (m) async {
+      final db = m.database as AppDatabase;
+      await m.addColumn(db.pendingMutations, db.pendingMutations.householdId);
+      await m.create(db.pendingMutationHousehold);
+    },
+  };
 
   @override
   MigrationStrategy get migration => MigrationStrategy(

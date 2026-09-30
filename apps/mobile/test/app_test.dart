@@ -58,7 +58,7 @@ void main() {
   testWidgets('every route opens its placeholder screen', (tester) async {
     final container = await startApp(tester, api: FakeAuthApi(session: true));
     for (final (path, title) in [
-      ('/households', 'Households'),
+      ('/households/new', 'New household'),
       ('/household/h-1', 'Household'),
       ('/visit/h-2', 'Visit'),
       ('/sync', 'Uploads'),

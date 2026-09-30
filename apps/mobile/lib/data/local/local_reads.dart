@@ -74,6 +74,38 @@ extension LocalReads on AppDatabase {
                   BoothAssignment.fromJson(a as Map<String, dynamic>),
               ],
       );
+
+  /// One row per household still on the roll, for the households list.
+  Stream<List<HouseholdSummary>> watchHouseholdSummaries() => customSelect(
+    """
+SELECT h.id, h.display_address, h.house_key,
+  (SELECT COUNT(*) FROM voters v
+     WHERE v.household_id = h.id AND v.record_status = 'active') AS members,
+  (SELECT group_concat(json_extract(v.official, '\$.name'), char(10))
+     FROM voters v
+     WHERE v.household_id = h.id AND v.record_status = 'active') AS names,
+  (SELECT group_concat(json_extract(fv.value, '\$'), char(10))
+     FROM field_values fv JOIN voters v ON v.id = fv.entity_id
+     WHERE v.household_id = h.id AND fv.field_key = 'name'
+       AND fv.is_current = 1) AS current_names,
+  (SELECT vi.outcome FROM visits vi WHERE vi.household_id = h.id
+     ORDER BY vi.started_at DESC LIMIT 1) AS last_outcome,
+  (SELECT COUNT(*) FROM visits vi
+     WHERE vi.household_id = h.id AND vi.server_id IS NULL)
+  + (SELECT COUNT(*) FROM pending_mutation pm
+     WHERE pm.household_id = h.id AND pm.status != 'conflict') AS on_phone,
+  (SELECT COUNT(*) FROM pending_mutation pm
+     WHERE pm.household_id = h.id AND pm.status = 'conflict')
+  + (SELECT COUNT(*) FROM field_values fv
+     WHERE fv.is_current = 1 AND fv.conflict_with_id IS NOT NULL
+       AND (fv.entity_id = h.id OR fv.entity_id IN
+         (SELECT v.id FROM voters v WHERE v.household_id = h.id)))
+    AS conflicts
+FROM households h
+WHERE h.status != 'removed'
+""",
+    readsFrom: {households, voters, fieldValues, visits, pendingMutations},
+  ).map(HouseholdSummary.fromRow).watch();
 }
 
 /// A booth the volunteer is assigned to.
@@ -90,4 +122,94 @@ class BoothAssignment {
   final String code;
 
   Map<String, String> toJson() => {'name': name, 'code': code};
+}
+
+/// A household as the list shows it.
+class HouseholdSummary {
+  const HouseholdSummary({
+    required this.id,
+    required this.address,
+    required this.houseKey,
+    required this.members,
+    this.memberNames = const [],
+    this.lastOutcome,
+    this.onPhone = 0,
+    this.conflicts = 0,
+  });
+
+  factory HouseholdSummary.fromRow(QueryRow row) {
+    List<String> lines(String column) =>
+        (row.readNullable<String>(column) ?? '')
+            .split('\n')
+            .where((s) => s.isNotEmpty)
+            .toList();
+    return HouseholdSummary(
+      id: row.read<String>('id'),
+      address: row.read<String>('display_address'),
+      houseKey: row.read<String>('house_key'),
+      members: row.read<int>('members'),
+      memberNames: [...lines('names'), ...lines('current_names')],
+      lastOutcome: row.readNullable<String>('last_outcome'),
+      onPhone: row.read<int>('on_phone'),
+      conflicts: row.read<int>('conflicts'),
+    );
+  }
+
+  final String id;
+  final String address;
+  final String houseKey;
+  final int members;
+
+  /// Names on the roll and as corrected, for search.
+  final List<String> memberNames;
+
+  /// The latest visit's outcome (API code), or null when never visited.
+  final String? lastOutcome;
+
+  /// Visits and changes on the phone, not yet uploaded.
+  final int onPhone;
+
+  /// Details someone else changed too: the volunteer chooses which to keep.
+  final int conflicts;
+
+  VisitStatus get visitStatus => switch (lastOutcome) {
+    null => VisitStatus.notVisited,
+    'follow_up_requested' => VisitStatus.followUp,
+    _ => VisitStatus.visited,
+  };
+
+  /// The chip: a conflict first, then anything on the phone, then uploaded
+  /// (for a household that has been visited); none for one not visited.
+  HouseholdSync? get sync {
+    if (conflicts > 0) return HouseholdSync.chooseValue;
+    if (onPhone > 0) return HouseholdSync.onPhone;
+    if (lastOutcome != null) return HouseholdSync.uploaded;
+    return null;
+  }
+
+  /// [query] is in the address or a member's name (any case).
+  bool matches(String query) {
+    final q = query.trim().toLowerCase();
+    if (q.isEmpty) return true;
+    return address.toLowerCase().contains(q) ||
+        memberNames.any((n) => n.toLowerCase().contains(q));
+  }
+}
+
+enum VisitStatus { notVisited, visited, followUp }
+
+enum HouseholdSync { uploaded, onPhone, chooseValue }
+
+/// House numbers in the order people count them: 2 before 12/4 before 15A.
+int compareHouseKeys(String a, String b) {
+  final pattern = RegExp(r'(\d+)|(\D+)');
+  final pa = pattern.allMatches(a.toLowerCase()).toList();
+  final pb = pattern.allMatches(b.toLowerCase()).toList();
+  for (var i = 0; i < pa.length && i < pb.length; i++) {
+    final x = pa[i].group(0)!, y = pb[i].group(0)!;
+    final nx = int.tryParse(x), ny = int.tryParse(y);
+    final c = nx != null && ny != null ? nx.compareTo(ny) : x.compareTo(y);
+    if (c != 0) return c;
+  }
+  return pa.length.compareTo(pb.length);
 }

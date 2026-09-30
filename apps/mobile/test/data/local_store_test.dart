@@ -86,7 +86,7 @@ void main() {
       'sync_meta',
       'pending_mutation',
     });
-    expect(db.schemaVersion, 1);
+    expect(db.schemaVersion, 2);
   });
 
   test('data survives closing and reopening with the key', () async {
@@ -264,8 +264,63 @@ void main() {
       );
     });
 
-    test('version 1 has no steps yet', () {
-      expect(AppDatabase.migrationSteps, isEmpty);
+    test('every version after 1 has a step', () {
+      expect(AppDatabase.migrationSteps.keys, [2]);
+    });
+
+    test('1 → 2 adds the household to queued changes, keeping them', () async {
+      // A version-2 database, taken back to version 1's shape, with a change
+      // queued in it.
+      var db = await store.open();
+      await db
+          .into(db.pendingMutations)
+          .insert(
+            PendingMutationsCompanion.insert(
+              key: 'mutation-v1',
+              type: 'visit.create',
+              payload: '{"x":1}',
+              createdAt: DateTime.utc(2026, 9, 29),
+            ),
+          );
+      await db.customStatement('DROP INDEX pending_mutation_household');
+      await db.customStatement(
+        'ALTER TABLE pending_mutation DROP COLUMN household_id',
+      );
+      await db.customStatement('PRAGMA user_version = 1');
+      await db.close();
+
+      // The app opens it: the step runs.
+      store = LocalStore(
+        directory: () async => dir,
+        keys: DatabaseKeyStore(secrets),
+        inBackground: false,
+      );
+      db = await store.open();
+      final row = await db.select(db.pendingMutations).getSingle();
+      expect(row.key, 'mutation-v1');
+      expect(row.payload, '{"x":1}');
+      expect(row.householdId, isNull);
+      final version = await db.customSelect('PRAGMA user_version').getSingle();
+      expect(version.read<int>('user_version'), 2);
+      final index = await db
+          .customSelect(
+            "SELECT name FROM sqlite_master WHERE type = 'index' "
+            "AND name = 'pending_mutation_household'",
+          )
+          .get();
+      expect(index, hasLength(1));
+      // And the new column is usable.
+      await db
+          .into(db.pendingMutations)
+          .insert(
+            PendingMutationsCompanion.insert(
+              key: 'mutation-v2',
+              type: 'visit.create',
+              payload: '{}',
+              householdId: const Value('h-1'),
+              createdAt: DateTime.utc(2026, 9, 30),
+            ),
+          );
     });
   });
 }

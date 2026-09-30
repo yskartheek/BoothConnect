@@ -6,35 +6,24 @@ import 'package:go_router/go_router.dart';
 import 'package:intl/intl.dart';
 
 import '../../app/router.dart';
-import '../../data/local/app_database.dart';
 import '../../data/local/local_reads.dart';
-import '../../data/local/local_store.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../theme/app_theme.dart';
 import '../../theme/glass_surface.dart';
 import '../../theme/tokens.g.dart';
 import '../../widgets/states.dart';
 import '../auth/auth_controller.dart';
+import '../shared/local_watch.dart';
 import '../sync/sync_controller.dart';
 
-/// Watches over the phone's database, which the home screen reads (never
-/// the API).
-StreamProvider<T> _local<T>(Stream<T> Function(AppDatabase db) watch) =>
-    StreamProvider<T>((ref) {
-      // Signed out, the database is being wiped or gone: reading it would
-      // open a new one (with a new key) while the screen is still up.
-      if (ref.watch(authProvider) != AuthStatus.signedIn) {
-        return const Stream.empty();
-      }
-      // Loading until the database is open; then the watch itself.
-      final db = ref.watch(appDatabaseProvider).value;
-      return db == null ? const Stream.empty() : watch(db);
-    });
-
-final boothsProvider = _local<List<BoothAssignment>>((db) => db.watchBooths());
-final householdCountProvider = _local<int>((db) => db.watchHouseholdCount());
-final visitedCountProvider = _local<int>((db) => db.watchVisitedCount());
-final pendingCountProvider = _local<int>((db) => db.watchPendingCount());
+final boothsProvider = localWatch<List<BoothAssignment>>(
+  (db) => db.watchBooths(),
+);
+final householdCountProvider = localWatch<int>(
+  (db) => db.watchHouseholdCount(),
+);
+final visitedCountProvider = localWatch<int>((db) => db.watchVisitedCount());
+final pendingCountProvider = localWatch<int>((db) => db.watchPendingCount());
 
 /// Home: the volunteer's booth, visit progress, changes waiting to upload,
 /// and the way to the households and the sync center. Pull down to

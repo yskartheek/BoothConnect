@@ -7,6 +7,7 @@ import '../features/auth/sign_in_screen.dart';
 import '../features/home/home_screen.dart';
 import '../features/households/household_screen.dart';
 import '../features/households/households_screen.dart';
+import '../features/households/new_household_screen.dart';
 import '../features/sync/sync_screen.dart';
 import '../features/visit/visit_screen.dart';
 import '../widgets/states.dart';
@@ -18,6 +19,7 @@ abstract final class Routes {
   static const signIn = '/sign-in';
   static const home = '/';
   static const households = '/households';
+  static const newHousehold = '/households/new';
   static const sync = '/sync';
   static String household(String id) => '/household/${Uri.encodeComponent(id)}';
   static String visit(String householdId) =>
@@ -83,6 +85,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.households,
         builder: (context, state) => const HouseholdsScreen(),
+      ),
+      GoRoute(
+        path: Routes.newHousehold,
+        builder: (context, state) => const NewHouseholdScreen(),
       ),
       GoRoute(
         path: '/household/:id',
