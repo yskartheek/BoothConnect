@@ -317,18 +317,28 @@ void main() {
       WidgetTester tester, {
       List<HouseholdSummary>? households,
       TargetPlatform platform = TargetPlatform.android,
+      Locale locale = const Locale('en'),
+      double textScale = 1,
     }) async {
       rows = StreamController<List<HouseholdSummary>>();
       addTearDown(rows.close);
       await tester.pumpWidget(
         ProviderScope(
+          // A new scope each time: overrides can't change within one.
+          key: UniqueKey(),
           overrides: [
             householdSummariesProvider.overrideWith((ref) => rows.stream),
           ],
           child: MaterialApp(
             theme: AppTheme.light().copyWith(platform: platform),
+            locale: locale,
             localizationsDelegates: AppLocalizations.localizationsDelegates,
             supportedLocales: AppLocalizations.supportedLocales,
+            builder: (context, child) => MediaQuery.withClampedTextScaling(
+              minScaleFactor: textScale,
+              maxScaleFactor: textScale,
+              child: child!,
+            ),
             home: const HouseholdsScreen(),
           ),
         ),
@@ -476,6 +486,26 @@ void main() {
         ),
         findsOneWidget,
       );
+    });
+
+    testWidgets('fits a small phone at 2× text', (tester) async {
+      tester.view.physicalSize = const Size(320, 480);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      for (final platform in [TargetPlatform.android, TargetPlatform.iOS]) {
+        for (final locale in const [Locale('en'), Locale('te')]) {
+          final reason = '$platform $locale';
+          await show(tester, platform: platform, locale: locale, textScale: 2);
+          expect(tester.takeException(), isNull, reason: reason);
+          // Down to the last household, a screen at a time.
+          final last = find.text('16 Gandhi Road').hitTestable();
+          while (last.evaluate().isEmpty) {
+            await tester.drag(find.byType(ListView), const Offset(0, -200));
+            await tester.pumpAndSettle();
+            expect(tester.takeException(), isNull, reason: reason);
+          }
+        }
+      }
     });
 
     testWidgets('in Telugu', (tester) async {

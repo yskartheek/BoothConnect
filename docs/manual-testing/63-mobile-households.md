@@ -53,6 +53,10 @@
    no floating button.
 8. Optional: switch the phone's language to Telugu.
    **Expect:** the search hint, filters and "_n_ సభ్యులు" are in Telugu.
+9. Optional: with the phone still in Telugu, set the largest font size
+   (Settings → Display → Font size) and reopen **Households**.
+   **Expect:** every row lays out; long upload chips wrap onto two lines
+   instead of pushing the address off the row.
 
 ## Pass criteria
 
