@@ -184,6 +184,30 @@ over a Drift watch that reads only while signed in; home and the list use it.
 `startApp(overrides: …)` in the test harness replaces providers for app-level
 tests.
 
+## Household screen (#64)
+
+`features/households/household_screen.dart` shows one household from the
+phone's database, with four providers per household (`localWatchFamily`,
+disposed when the screen closes):
+
+- `householdProvider` (the row: address, location),
+  `householdSummaryProvider` (`watchHouseholdSummaries(householdId: …)`:
+  last visit, upload chip; null once removed from the roll),
+  `memberCardsProvider` (`watchMemberCards`) and `disabledFieldsProvider`.
+- **Member cards:** each detail is its latest current field value, else the
+  roll's (`official`). A value of the wrong type is left out. Roll order,
+  then members added by volunteers by name.
+- **Disabled fields** (`field_definitions.enabled = false`) are never shown:
+  `age`, `gender`, `occupation` on the cards; `address` (area, landmark,
+  PIN code) and `household_location` (the map) on the address card.
+- **Map preview:** drawn on the phone, no map tiles: the location isn't sent
+  anywhere and it works offline.
+- **Start visit:** a bottom button on iOS, an extended floating button on
+  Android. **Edit** goes to `Routes.householdAddress` (#115), **Add member**
+  to `Routes.newMember` and a card to `Routes.member` (#114).
+
+Gender labels are the shared `gender.*` strings (`genderLabel(l10n, code)`).
+
 ## Screen states (#58)
 
 Every screen shows one of these while it has nothing else to show

@@ -48,6 +48,19 @@ String? syncStateLabel(AppLocalizations l10n, String code) {
   return null;
 }
 
+/// The label for a `gender` code from the API, or null if it is unknown.
+String? genderLabel(AppLocalizations l10n, String code) {
+  switch (code) {
+    case 'female':
+      return l10n.genderFemale;
+    case 'male':
+      return l10n.genderMale;
+    case 'third_gender':
+      return l10n.genderThirdGender;
+  }
+  return null;
+}
+
 /// The label for a `error` code from the API, or null if it is unknown.
 String? errorMessage(AppLocalizations l10n, String code) {
   switch (code) {

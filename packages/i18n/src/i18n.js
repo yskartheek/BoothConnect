@@ -14,6 +14,7 @@ export const APP_NAMESPACES = ['mobile', 'web'];
 export const LOOKUP_GROUPS = {
   visitOutcome: 'visitOutcomeLabel',
   syncState: 'syncStateLabel',
+  gender: 'genderLabel',
   error: 'errorMessage',
 };
 

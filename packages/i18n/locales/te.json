@@ -58,6 +58,22 @@
   "mobile.householdsNoResultsMessage": "మరో చిరునామా లేదా పేరు, లేదా మరో ఫిల్టర్ ప్రయత్నించండి.",
   "mobile.householdsClearSearch": "శోధన మరియు ఫిల్టర్ తొలగించండి",
   "mobile.householdNewTitle": "కొత్త ఇల్లు",
+  "mobile.householdEdit": "మార్చండి",
+  "mobile.householdLastVisit": "చివరి సందర్శన {date} · {outcome}",
+  "mobile.householdNotVisitedYet": "ఇంకా సందర్శించలేదు",
+  "mobile.householdLocationSaved": "స్థానం సేవ్ అయింది",
+  "mobile.householdLocationAccuracy": "స్థానం సేవ్ అయింది, {meters} మీ. వరకు ఖచ్చితం",
+  "mobile.householdMembersHeading": "సభ్యులు · {count}",
+  "mobile.householdAddMember": "సభ్యుడిని జోడించండి",
+  "mobile.householdNoMembersTitle": "ఇంకా సభ్యులు లేరు",
+  "mobile.householdNoMembersMessage": "ఇక్కడ నివసించేవారిని 'సభ్యుడిని జోడించండి'తో జోడించండి.",
+  "mobile.householdStartVisit": "సందర్శన ప్రారంభించండి",
+  "mobile.householdNotFoundTitle": "ఇల్లు కనబడలేదు",
+  "mobile.householdNotFoundMessage": "ఇది జాబితా నుండి తొలగించబడి ఉండవచ్చు. ఇళ్ల జాబితాకు తిరిగి వెళ్లండి.",
+  "mobile.memberAge": "వయస్సు {age}",
+  "mobile.memberTitle": "సభ్యుడు",
+  "mobile.memberAddTitle": "సభ్యుడిని జోడించండి",
+  "mobile.householdAddressTitle": "చిరునామా",
 
   "web.appTitle": "BoothConnect అడ్మిన్",
   "web.appDescription": "BoothConnect క్షేత్ర కార్యకలాపాల నిర్వహణ పోర్టల్",
@@ -607,5 +623,8 @@
   "consent.caste.notice": "కులం లేదా సామాజిక వర్గాన్ని తెలియజేయడం ఐచ్ఛికం. ఓటరు అంగీకరిస్తే, అధికారం ఉన్న సిబ్బంది మాత్రమే దాన్ని చూడగలరు, అది వాలంటీర్ జాబితాల్లో ఉండదు, మరియు ఎవరినీ గుర్తించని సమూహ గణాంకాల్లో మాత్రమే ఉపయోగించబడుతుంది. ఓటరు ఎప్పుడైనా తమ అంగీకారాన్ని ఉపసంహరించుకోవచ్చు.",
   "consent.caste.agree": "ఓటరు తెలియజేయడానికి అంగీకరించారు",
   "consent.caste.decline": "ఓటరు తెలియజేయడానికి ఇష్టపడలేదు",
-  "consent.withdraw": "అంగీకారాన్ని ఉపసంహరించండి"
+  "consent.withdraw": "అంగీకారాన్ని ఉపసంహరించండి",
+  "gender.female": "స్త్రీ",
+  "gender.male": "పురుషుడు",
+  "gender.third_gender": "తృతీయ లింగం"
 }
