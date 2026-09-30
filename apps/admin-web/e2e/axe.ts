@@ -6,6 +6,8 @@ import { expect, type Page } from '@playwright/test';
  * (WCAG 2.1 A and AA rules). #77 runs this on every Milestone 1 page.
  */
 export async function expectAccessible(page: Page) {
+  // Next streams the <title> of a dynamic page after its body: let it arrive.
+  await expect(page).toHaveTitle(/\S/);
   const { violations } = await new AxeBuilder({ page })
     .withTags(['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa'])
     .analyze();

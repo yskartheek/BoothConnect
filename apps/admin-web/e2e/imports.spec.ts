@@ -233,7 +233,10 @@ test('review a file: counts, correct a row beside its page, confirm, and see it 
   const panel = page.getByRole('region', { name: 'Row 1/3, page 3' });
   const image = panel.getByRole('img', { name: 'Page 3 of the roll' });
   await expect(image).toBeVisible();
-  expect(await image.evaluate((img: HTMLImageElement) => img.naturalWidth)).toBeGreaterThan(0);
+  // Visible isn't loaded: wait for the image itself.
+  await expect
+    .poll(() => image.evaluate((img: HTMLImageElement) => (img.complete ? img.naturalWidth : 0)))
+    .toBeGreaterThan(0);
   await panel.getByLabel('Gender').selectOption({ label: 'Male' });
   await expectAccessible(page);
   await panel.getByRole('button', { name: 'Save correction' }).click();
