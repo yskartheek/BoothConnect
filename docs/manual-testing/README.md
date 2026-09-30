@@ -111,3 +111,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #72   | [Roll import step 2: batch extraction progress](72-import-progress.md)                          | Ready to test   |
 | #74   | [Admin web: analytics explorer](74-analytics-explorer.md)                                       | Ready to test   |
 | #75   | [Admin web: voter record view](75-voter-record.md)                                              | Ready to test   |
+| #76   | [Admin web: audit explorer](76-audit-explorer.md)                                               | Ready to test   |
