@@ -249,12 +249,19 @@ class _HouseholdRow extends StatelessWidget {
       subtitle: Text('${l10n.householdMembers(h.members)} · $status'),
       trailing: sync == null
           ? null
-          : SyncStatusChip(
-              status: switch (sync) {
-                HouseholdSync.uploaded => SyncStatus.synced,
-                HouseholdSync.onPhone => SyncStatus.pending,
-                HouseholdSync.chooseValue => SyncStatus.conflict,
-              },
+          // At most 40% of the row, so the address keeps room; the chip's
+          // word wraps at large text sizes (Telugu labels are long).
+          : ConstrainedBox(
+              constraints: BoxConstraints(
+                maxWidth: MediaQuery.sizeOf(context).width * 0.4,
+              ),
+              child: SyncStatusChip(
+                status: switch (sync) {
+                  HouseholdSync.uploaded => SyncStatus.synced,
+                  HouseholdSync.onPhone => SyncStatus.pending,
+                  HouseholdSync.chooseValue => SyncStatus.conflict,
+                },
+              ),
             ),
       onTap: () => context.push(Routes.household(h.id)),
     );

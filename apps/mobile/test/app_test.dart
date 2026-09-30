@@ -11,6 +11,7 @@ import 'package:flutter_test/flutter_test.dart';
 
 import 'support/app_harness.dart';
 import 'support/fake_auth_api.dart';
+import 'support/memory_secrets.dart';
 
 void main() {
   testWidgets('a signed-out user is redirected to sign-in', (tester) async {
@@ -108,19 +109,23 @@ void main() {
     });
     expect(file!.existsSync(), isTrue);
 
+    final secrets = container.read(secretStoreProvider) as MemorySecrets;
+    expect(secrets.values, contains(DatabaseKeyStore.secretName));
+
     await tester.tap(find.byTooltip('Sign out'));
-    // Signed out at once; the wipe follows.
+    // Signed out at once; the wipe follows. It deletes the file (and its
+    // -wal, -shm) before the key, so wait for the key too.
     await waitFor(
       tester,
       () =>
           container.read(authProvider) == AuthStatus.signedOut &&
-          !file.existsSync(),
+          !file.existsSync() &&
+          !secrets.values.containsKey(DatabaseKeyStore.secretName),
     );
     expect(location(container), '/sign-in');
     expect(container.read(authProvider), AuthStatus.signedOut);
     expect(file.existsSync(), isFalse);
     // No new database was opened behind the sign-out: no key left either.
-    final secrets = container.read(secretStoreProvider);
     expect(await secrets.read(DatabaseKeyStore.secretName), isNull);
     expect(api.logouts, 1);
   });
