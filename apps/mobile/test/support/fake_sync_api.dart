@@ -45,6 +45,51 @@ class FakeSyncApi implements SyncApi {
     if (next is ApiError) throw next;
     return next as Map<String, dynamic>;
   }
+
+  /// Push failures to throw, one per call, before answering normally.
+  final pushErrors = <ApiError>[];
+
+  /// Every batch sent, in order.
+  final pushed = <List<Map<String, Object?>>>[];
+
+  /// What the server stored, by key: a key sent again is a `duplicate`.
+  final stored = <String, Map<String, dynamic>>{};
+
+  /// The answer for a change the server hasn't seen; by default `applied`,
+  /// with server ids made from the key.
+  Map<String, dynamic> Function(Map<String, Object?> mutation) answer = applied;
+
+  static Map<String, dynamic> applied(Map<String, Object?> m) => {
+    'status': 'applied',
+    'result': {
+      'id': 'server-${m['key']}',
+      'fieldValueId': 'server-fv-${m['key']}',
+    },
+  };
+
+  @override
+  Future<List<Map<String, dynamic>>> push(
+    List<Map<String, Object?>> mutations,
+  ) async {
+    pushed.add(mutations);
+    if (pushErrors.isNotEmpty) throw pushErrors.removeAt(0);
+    return [
+      for (final m in mutations)
+        {
+          'key': m['key'],
+          'type': m['type'],
+          ...stored.containsKey(m['key'])
+              ? {'status': 'duplicate', 'result': stored[m['key']]!['result']}
+              : _store(m),
+        },
+    ];
+  }
+
+  Map<String, dynamic> _store(Map<String, Object?> m) {
+    final result = answer(m);
+    if (result['status'] != 'rejected') stored[m['key']! as String] = result;
+    return result;
+  }
 }
 
 const offline = ApiError(ApiError.network);

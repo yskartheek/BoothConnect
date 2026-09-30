@@ -21,4 +21,21 @@ class SyncApi {
       throw ApiError.fromDio(e);
     }
   }
+
+  /// Sends queued changes (`{key, type, payload}`), applied in order. Returns
+  /// one result per change: `{key, status, result?, code?, …}`.
+  Future<List<Map<String, dynamic>>> push(
+    List<Map<String, Object?>> mutations,
+  ) async {
+    try {
+      final response = await _dio.post<Map<String, dynamic>>(
+        '/v1/sync/push',
+        data: {'mutations': mutations},
+      );
+      return (response.data!['results'] as List<dynamic>)
+          .cast<Map<String, dynamic>>();
+    } on DioException catch (e) {
+      throw ApiError.fromDio(e);
+    }
+  }
 }
