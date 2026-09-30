@@ -92,6 +92,39 @@ with SQLCipher:
 table, run `pnpm --filter mobile generate` (`dart run build_runner build`).
 CI fails if the committed file is stale.
 
+## Sync pull (#61)
+
+`SyncRepository.pull()` (`lib/data/sync/`) downloads the volunteer's booths
+from `GET /v1/sync/pull` into the local database.
+
+- **Pages:** each page is written in one transaction together with the
+  cursor after it, so an interrupted pull (offline, app closed) resumes at
+  the next page and never leaves half a page. It pulls until `hasMore` is
+  false.
+- **Snapshots:** every page of a full snapshot says `reset`. The cache
+  (households, voters, field values, definitions, visits from the server) is
+  cleared on its first page only, tracked by `snapshot_in_progress` in
+  `sync_meta`. Visits recorded on the phone and not yet uploaded, and the push
+  queue, are never cleared.
+- **Deltas** upsert only the rows the API sends. `removedFieldValueIds`
+  (consent withdrawn) are deleted.
+- **When:** `SyncTriggers` (around the app) pulls:
+  - when the volunteer signs in, or the app opens with a stored session;
+  - when the app comes back to the foreground;
+  - when the phone is back online.
+
+  Screens call `syncControllerProvider.notifier.pullNow()` for
+  pull-to-refresh. One pull runs at a time; the others join it.
+  `SyncController` says `syncing`, `offline` (the data stays) or `failed`,
+  and when the last pull finished.
+- **Whose data:** `sync_meta.owner` holds the volunteer's id. Signing in as
+  someone else (after a session ended without a sign-out) wipes the database
+  first.
+- **Screens read the local database only** (`local_reads.dart`):
+  `watchHouseholds()` (still on the roll), `watchHousehold(id)` and
+  `watchMembers(householdId)` (active, in roll order). They update when a
+  pull writes.
+
 ## Screen states (#58)
 
 Every screen shows one of these while it has nothing else to show

@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api/providers.dart';
 import '../../data/local/local_store.dart';
+import '../sync/sync_controller.dart';
 
 enum AuthStatus {
   /// Checking for a stored session at launch.
@@ -47,6 +48,8 @@ class AuthController extends Notifier<AuthStatus> {
       await api.logout();
       return SignInResult.noAssignment;
     }
+    // Another volunteer's data (left by an ended session) is wiped first.
+    await ref.read(syncControllerProvider.notifier).prepareFor(me.id);
     state = AuthStatus.signedIn;
     return SignInResult.signedIn;
   }

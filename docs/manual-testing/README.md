@@ -117,3 +117,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #58   | [Mobile shared state widgets and sync status chip](58-mobile-states.md)                         | Ready to test   |
 | #59   | [Mobile encrypted local database](59-mobile-encrypted-db.md)                                    | Ready to test   |
 | #60   | [Mobile sign-in with a code, and the API client](60-mobile-sign-in.md)                          | Ready to test   |
+| #61   | [Mobile sync pull: the booth's data on the phone](61-mobile-sync-pull.md)                       | Ready to test   |
