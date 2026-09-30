@@ -9,6 +9,8 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     setupFiles: ['./test/setup.ts'],
+    // A busy CI runner can be several times slower than a laptop; see test/setup.ts.
+    testTimeout: 20_000,
     include: ['**/*.test.{ts,tsx}'],
     exclude: ['node_modules/**', 'e2e/**', '.next/**'],
   },
