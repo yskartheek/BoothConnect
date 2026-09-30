@@ -10,6 +10,7 @@ import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
 import 'package:boothconnect_mobile/features/households/household_screen.dart';
 import 'package:boothconnect_mobile/features/visit/visit_screen.dart';
 import 'package:boothconnect_mobile/l10n/generated/app_localizations.dart';
+import 'package:boothconnect_mobile/theme/glass_system_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,6 +27,13 @@ Future<ProviderContainer> startApp(
   WidgetTester tester, {
   bool signedIn = false,
 }) async {
+  // The phone's glass settings channel answers with nothing in tests.
+  final messenger = tester.binding.defaultBinaryMessenger;
+  messenger.setMockStreamHandler(
+    glassSettingsChannel,
+    MockStreamHandler.inline(onListen: (arguments, events) {}),
+  );
+  addTearDown(() => messenger.setMockStreamHandler(glassSettingsChannel, null));
   final dir = Directory.systemTemp.createTempSync('bc_app_test');
   final container = ProviderContainer(
     overrides: [
@@ -167,7 +175,15 @@ void main() {
     expect(file!.existsSync(), isTrue);
 
     await tester.tap(find.byTooltip('Sign out'));
-    await tester.runAsync(() => Future<void>.delayed(Duration.zero));
+    // The wipe is real file I/O. Each step's result comes back on the real
+    // clock and runs on the next pump: alternate until it is done.
+    for (var i = 0; i < 500; i++) {
+      if (container.read(authProvider) == AuthStatus.signedOut) break;
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
     expect(location(container), '/sign-in');
     expect(container.read(authProvider), AuthStatus.signedOut);
