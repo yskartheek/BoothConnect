@@ -83,6 +83,10 @@ export function BatchProgress({ batchId }: { batchId: string }) {
             </label>
             <progress id={`${id}-overall`} max={files.length} value={finished} />
             <p role="status" className="muted">
+              {/* The label above isn't announced as it changes: say the count here too. */}
+              <span className="visually-hidden">
+                {t('imports.extracted', { done: finished, total: files.length })}.{' '}
+              </span>
               {working ? t('imports.stillWorking') : t('imports.allFinished')}
             </p>
           </div>
