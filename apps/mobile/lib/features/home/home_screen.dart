@@ -21,6 +21,11 @@ import '../sync/sync_controller.dart';
 /// the API).
 StreamProvider<T> _local<T>(Stream<T> Function(AppDatabase db) watch) =>
     StreamProvider<T>((ref) {
+      // Signed out, the database is being wiped or gone: reading it would
+      // open a new one (with a new key) while the screen is still up.
+      if (ref.watch(authProvider) != AuthStatus.signedIn) {
+        return const Stream.empty();
+      }
       // Loading until the database is open; then the watch itself.
       final db = ref.watch(appDatabaseProvider).value;
       return db == null ? const Stream.empty() : watch(db);

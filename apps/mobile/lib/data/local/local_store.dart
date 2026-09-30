@@ -89,7 +89,9 @@ final localStoreProvider = Provider<LocalStore>(
   ),
 );
 
-/// The open database. Invalidate it after [LocalStore.wipe].
-final appDatabaseProvider = FutureProvider<AppDatabase>(
+/// The open database ([LocalStore] keeps it; this just hands it out).
+/// Dropped when nothing uses it, so after sign-out, once the screens stop
+/// reading, nothing reopens the wiped database.
+final appDatabaseProvider = FutureProvider.autoDispose<AppDatabase>(
   (ref) => ref.watch(localStoreProvider).open(),
 );

@@ -142,12 +142,18 @@ The four figures are Riverpod stream providers over Drift watches
 (`boothsProvider`, `householdCountProvider`, `visitedCountProvider`,
 `pendingCountProvider`).
 
-**Testing note:** Drift watches never settle on a widget test's fake clock:
-closing the database waits on them. So app-level widget tests replace these
-providers with plain streams (`test/support/app_harness.dart`), and
-`test/features/home_test.dart` checks the real watches on a real clock. On a
-phone, there's no fake clock, and closing the database with live watches
-takes milliseconds.
+**Sign-out and the database:** sign-out marks the volunteer signed out first
+(screens stop reading, no pull starts), waits for a running pull, then wipes.
+`appDatabaseProvider` disposes itself when unused, and the home figures don't
+read while signed out, so nothing reopens the wiped database with a new key.
+A later sign-in in the same session opens a fresh one.
+
+**Widget tests and Drift:** closing the database after a widget test has
+ended never finishes: Drift waits on the test's fake clock, which nothing
+advances any more. `test/support/app_harness.dart` therefore takes the screens
+down (cancelling their watches) and closes the database while the test still
+runs. On a phone there's no fake clock; closing with live watches takes
+milliseconds.
 
 **Generated string arguments** are in alphabetical order of their
 placeholders: `homeVisited(total, visited)`, `homeBoothLine(code, name)`.

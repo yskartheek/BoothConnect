@@ -6,6 +6,7 @@ import 'package:boothconnect_mobile/data/local/database_key.dart';
 import 'package:boothconnect_mobile/data/local/local_reads.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/data/sync/sync_repository.dart';
+import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/home/home_screen.dart';
 import 'package:boothconnect_mobile/features/sync/sync_controller.dart';
 import 'package:boothconnect_mobile/l10n/generated/app_localizations.dart';
@@ -53,6 +54,11 @@ PendingMutationsCompanion mutation(String key) =>
       createdAt: DateTime.utc(2026, 9, 30, 9),
     );
 
+class _SignedIn extends AuthController {
+  @override
+  AuthStatus build() => AuthStatus.signedIn;
+}
+
 void main() {
   group('the home figures come from the local database', () {
     // A real clock, as on a phone: Drift watches don't settle on a widget
@@ -70,7 +76,10 @@ void main() {
         inBackground: false,
       );
       container = ProviderContainer(
-        overrides: [localStoreProvider.overrideWithValue(store)],
+        overrides: [
+          localStoreProvider.overrideWithValue(store),
+          authProvider.overrideWith(_SignedIn.new),
+        ],
       );
       db = await container.read(appDatabaseProvider.future);
     });

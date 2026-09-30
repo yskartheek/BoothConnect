@@ -1,5 +1,6 @@
 import 'package:boothconnect_mobile/app/router.dart';
 import 'package:boothconnect_mobile/data/local/app_database.dart';
+import 'package:boothconnect_mobile/data/local/database_key.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
@@ -108,13 +109,19 @@ void main() {
     expect(file!.existsSync(), isTrue);
 
     await tester.tap(find.byTooltip('Sign out'));
+    // Signed out at once; the wipe follows.
     await waitFor(
       tester,
-      () => container.read(authProvider) == AuthStatus.signedOut,
+      () =>
+          container.read(authProvider) == AuthStatus.signedOut &&
+          !file.existsSync(),
     );
     expect(location(container), '/sign-in');
     expect(container.read(authProvider), AuthStatus.signedOut);
     expect(file.existsSync(), isFalse);
+    // No new database was opened behind the sign-out: no key left either.
+    final secrets = container.read(secretStoreProvider);
+    expect(await secrets.read(DatabaseKeyStore.secretName), isNull);
     expect(api.logouts, 1);
   });
 

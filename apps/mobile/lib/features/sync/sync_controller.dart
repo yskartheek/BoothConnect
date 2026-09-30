@@ -102,6 +102,9 @@ class SyncController extends Notifier<SyncState> {
     _running = null;
   });
 
+  /// Completes when no pull is running.
+  Future<void> whenIdle() => _running ?? Future.value();
+
   Future<void> _pull() async {
     state = state.copyWith(phase: SyncPhase.syncing);
     try {

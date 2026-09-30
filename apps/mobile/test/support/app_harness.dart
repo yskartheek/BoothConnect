@@ -7,7 +7,6 @@ import 'package:boothconnect_mobile/data/api/providers.dart';
 import 'package:boothconnect_mobile/data/local/database_key.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
-import 'package:boothconnect_mobile/features/home/home_screen.dart';
 import 'package:boothconnect_mobile/features/sync/sync_controller.dart';
 import 'package:boothconnect_mobile/theme/glass_system_settings.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
@@ -51,13 +50,6 @@ Future<ProviderContainer> startApp(
       connectivityChangesProvider.overrideWithValue(
         connectivity ?? const Stream.empty(),
       ),
-      // Drift watches never settle on a widget test's fake clock, so the
-      // home screen's figures come from plain streams here.
-      // test/features/home_test.dart checks the real watches on a real clock.
-      boothsProvider.overrideWith((ref) => Stream.value(const [])),
-      householdCountProvider.overrideWith((ref) => Stream.value(0)),
-      visitedCountProvider.overrideWith((ref) => Stream.value(0)),
-      pendingCountProvider.overrideWith((ref) => Stream.value(0)),
       localStoreProvider.overrideWithValue(
         LocalStore(
           directory: () async => dir,
@@ -69,8 +61,13 @@ Future<ProviderContainer> startApp(
     ],
   );
   addTearDown(() async {
-    await container.read(localStoreProvider).wipe();
+    // Take the screens down first: that cancels their database watches.
+    // Then close the database while the test's clock still runs; closed
+    // after the test, Drift would wait on a fake clock nothing advances.
+    await tester.pumpWidget(const SizedBox());
+    final store = container.read(localStoreProvider);
     container.dispose();
+    await settle(tester, store.wipe());
     dir.deleteSync(recursive: true);
   });
   await tester.pumpWidget(
