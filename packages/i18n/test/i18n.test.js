@@ -38,13 +38,21 @@ test('every key is translated in every locale', () => {
   assert.deepEqual(Object.keys(locales), ['en', 'te']);
 });
 
-test('shared groups cover visit outcomes, sync states, error codes and consent', () => {
+test('shared groups cover visit outcomes, sync states, error codes, consent and gender', () => {
   const groups = new Set(
     Object.keys(en)
       .filter((k) => !k.startsWith('@'))
       .map((k) => k.split('.')[0]),
   );
-  for (const group of ['visitOutcome', 'syncState', 'error', 'consent', 'mobile', 'web']) {
+  for (const group of [
+    'visitOutcome',
+    'syncState',
+    'error',
+    'consent',
+    'gender',
+    'mobile',
+    'web',
+  ]) {
     assert.ok(groups.has(group), group);
   }
 });

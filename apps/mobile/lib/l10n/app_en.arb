@@ -263,6 +263,83 @@
   "@householdNewTitle": {
     "description": "App bar title of the new household screen."
   },
+  "householdEdit": "Edit",
+  "@householdEdit": {
+    "description": "Household screen header action: opens the household address screen."
+  },
+  "householdLastVisit": "Last visit {date} · {outcome}",
+  "@householdLastVisit": {
+    "description": "Household card. {date}: e.g. 26 Sep; {outcome}: the visit outcome label.",
+    "placeholders": {
+      "date": {},
+      "outcome": {}
+    }
+  },
+  "householdNotVisitedYet": "Not visited yet",
+  "@householdNotVisitedYet": {
+    "description": "Household card: no visit recorded for this household."
+  },
+  "householdLocationSaved": "Location saved",
+  "@householdLocationSaved": {
+    "description": "Screen reader label of the map thumbnail when a location is saved without an accuracy."
+  },
+  "householdLocationAccuracy": "Location saved, accurate to {meters} m",
+  "@householdLocationAccuracy": {
+    "description": "Screen reader label of the map thumbnail. {meters}: a whole number of metres.",
+    "placeholders": {
+      "meters": {}
+    }
+  },
+  "householdMembersHeading": "Members · {count}",
+  "@householdMembersHeading": {
+    "description": "Heading above the member cards. {count}: number of members.",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "householdAddMember": "Add member",
+  "@householdAddMember": {
+    "description": "Button: add someone who lives here but is not on the official list."
+  },
+  "householdNoMembersTitle": "No members yet",
+  "@householdNoMembersTitle": {
+    "description": "Household screen, no active members."
+  },
+  "householdNoMembersMessage": "Add the people who live here with Add member.",
+  "@householdNoMembersMessage": {
+    "description": "Household screen, no active members: what to do."
+  },
+  "householdStartVisit": "Start visit",
+  "@householdStartVisit": {
+    "description": "Main button of the household screen: opens the visit form."
+  },
+  "householdNotFoundTitle": "Household not found",
+  "@householdNotFoundTitle": {
+    "description": "The household is not on this phone, or was removed from the roll."
+  },
+  "householdNotFoundMessage": "It may have been removed from the roll. Go back to the households list.",
+  "@householdNotFoundMessage": {
+    "description": "Explains the household not found state."
+  },
+  "memberAge": "Age {age}",
+  "@memberAge": {
+    "description": "Screen reader text for a member's age on the member card.",
+    "placeholders": {
+      "age": {}
+    }
+  },
+  "memberTitle": "Member",
+  "@memberTitle": {
+    "description": "App bar title of the member details screen."
+  },
+  "memberAddTitle": "Add member",
+  "@memberAddTitle": {
+    "description": "App bar title of the add member screen."
+  },
+  "householdAddressTitle": "Address",
+  "@householdAddressTitle": {
+    "description": "App bar title of the household address screen."
+  },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {
     "description": "Visit outcome (API: completed)."
@@ -446,5 +523,17 @@
   "consentWithdraw": "Withdraw agreement",
   "@consentWithdraw": {
     "description": "Action that withdraws a recorded consent."
+  },
+  "genderFemale": "Female",
+  "@genderFemale": {
+    "description": "Gender (API code: female)."
+  },
+  "genderMale": "Male",
+  "@genderMale": {
+    "description": "Gender (API code: male)."
+  },
+  "genderThirdGender": "Third gender",
+  "@genderThirdGender": {
+    "description": "Gender (API code: third_gender)."
   }
 }

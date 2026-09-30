@@ -120,3 +120,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #61   | [Mobile sync pull: the booth's data on the phone](61-mobile-sync-pull.md)                       | Ready to test   |
 | #62   | [Mobile home screen: booth, visits and uploads](62-mobile-home.md)                              | Ready to test   |
 | #63   | [Mobile households list with search and status filter](63-mobile-households.md)                 | Ready to test   |
+| #64   | [Mobile household screen: address, members, Start visit](64-mobile-household.md)                | Ready to test   |

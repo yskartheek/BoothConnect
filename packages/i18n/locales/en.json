@@ -155,6 +155,62 @@
   "@mobile.householdsClearSearch": { "description": "Button that shows every household again." },
   "mobile.householdNewTitle": "New household",
   "@mobile.householdNewTitle": { "description": "App bar title of the new household screen." },
+  "mobile.householdEdit": "Edit",
+  "@mobile.householdEdit": {
+    "description": "Household screen header action: opens the household address screen."
+  },
+  "mobile.householdLastVisit": "Last visit {date} · {outcome}",
+  "@mobile.householdLastVisit": {
+    "description": "Household card. {date}: e.g. 26 Sep; {outcome}: the visit outcome label."
+  },
+  "mobile.householdNotVisitedYet": "Not visited yet",
+  "@mobile.householdNotVisitedYet": {
+    "description": "Household card: no visit recorded for this household."
+  },
+  "mobile.householdLocationSaved": "Location saved",
+  "@mobile.householdLocationSaved": {
+    "description": "Screen reader label of the map thumbnail when a location is saved without an accuracy."
+  },
+  "mobile.householdLocationAccuracy": "Location saved, accurate to {meters} m",
+  "@mobile.householdLocationAccuracy": {
+    "description": "Screen reader label of the map thumbnail. {meters}: a whole number of metres."
+  },
+  "mobile.householdMembersHeading": "Members · {count}",
+  "@mobile.householdMembersHeading": {
+    "description": "Heading above the member cards. {count}: number of members."
+  },
+  "mobile.householdAddMember": "Add member",
+  "@mobile.householdAddMember": {
+    "description": "Button: add someone who lives here but is not on the official list."
+  },
+  "mobile.householdNoMembersTitle": "No members yet",
+  "@mobile.householdNoMembersTitle": { "description": "Household screen, no active members." },
+  "mobile.householdNoMembersMessage": "Add the people who live here with Add member.",
+  "@mobile.householdNoMembersMessage": {
+    "description": "Household screen, no active members: what to do."
+  },
+  "mobile.householdStartVisit": "Start visit",
+  "@mobile.householdStartVisit": {
+    "description": "Main button of the household screen: opens the visit form."
+  },
+  "mobile.householdNotFoundTitle": "Household not found",
+  "@mobile.householdNotFoundTitle": {
+    "description": "The household is not on this phone, or was removed from the roll."
+  },
+  "mobile.householdNotFoundMessage": "It may have been removed from the roll. Go back to the households list.",
+  "@mobile.householdNotFoundMessage": { "description": "Explains the household not found state." },
+  "mobile.memberAge": "Age {age}",
+  "@mobile.memberAge": {
+    "description": "Screen reader text for a member's age on the member card."
+  },
+  "mobile.memberTitle": "Member",
+  "@mobile.memberTitle": { "description": "App bar title of the member details screen." },
+  "mobile.memberAddTitle": "Add member",
+  "@mobile.memberAddTitle": { "description": "App bar title of the add member screen." },
+  "mobile.householdAddressTitle": "Address",
+  "@mobile.householdAddressTitle": {
+    "description": "App bar title of the household address screen."
+  },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },
@@ -1385,5 +1441,11 @@
   "consent.caste.decline": "Voter doesn't want to share",
   "@consent.caste.decline": { "description": "Button: keeps the field hidden." },
   "consent.withdraw": "Withdraw agreement",
-  "@consent.withdraw": { "description": "Action that withdraws a recorded consent." }
+  "@consent.withdraw": { "description": "Action that withdraws a recorded consent." },
+  "gender.female": "Female",
+  "@gender.female": { "description": "Gender (API code: female)." },
+  "gender.male": "Male",
+  "@gender.male": { "description": "Gender (API code: male)." },
+  "gender.third_gender": "Third gender",
+  "@gender.third_gender": { "description": "Gender (API code: third_gender)." }
 }

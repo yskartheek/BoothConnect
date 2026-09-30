@@ -5,9 +5,11 @@ import 'package:go_router/go_router.dart';
 import '../features/auth/auth_controller.dart';
 import '../features/auth/sign_in_screen.dart';
 import '../features/home/home_screen.dart';
+import '../features/households/household_address_screen.dart';
 import '../features/households/household_screen.dart';
 import '../features/households/households_screen.dart';
 import '../features/households/new_household_screen.dart';
+import '../features/members/member_screen.dart';
 import '../features/sync/sync_screen.dart';
 import '../features/visit/visit_screen.dart';
 import '../widgets/states.dart';
@@ -22,6 +24,10 @@ abstract final class Routes {
   static const newHousehold = '/households/new';
   static const sync = '/sync';
   static String household(String id) => '/household/${Uri.encodeComponent(id)}';
+  static String householdAddress(String id) => '${household(id)}/address';
+  static String newMember(String householdId) =>
+      '${household(householdId)}/members/new';
+  static String member(String id) => '/member/${Uri.encodeComponent(id)}';
   static String visit(String householdId) =>
       '/visit/${Uri.encodeComponent(householdId)}';
 }
@@ -94,6 +100,21 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: '/household/:id',
         builder: (context, state) =>
             HouseholdScreen(householdId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/household/:id/address',
+        builder: (context, state) =>
+            HouseholdAddressScreen(householdId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/household/:id/members/new',
+        builder: (context, state) =>
+            MemberScreen.add(householdId: state.pathParameters['id']!),
+      ),
+      GoRoute(
+        path: '/member/:id',
+        builder: (context, state) =>
+            MemberScreen(memberId: state.pathParameters['id']!),
       ),
       GoRoute(
         path: '/visit/:householdId',

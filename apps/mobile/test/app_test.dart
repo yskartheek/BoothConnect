@@ -4,7 +4,9 @@ import 'package:boothconnect_mobile/data/local/database_key.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
+import 'package:boothconnect_mobile/features/households/household_address_screen.dart';
 import 'package:boothconnect_mobile/features/households/household_screen.dart';
+import 'package:boothconnect_mobile/features/members/member_screen.dart';
 import 'package:boothconnect_mobile/features/visit/visit_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -25,6 +27,9 @@ void main() {
     for (final path in [
       '/households',
       '/household/h-1',
+      '/household/h-1/address',
+      '/household/h-1/members/new',
+      '/member/v-1',
       '/visit/h-1',
       '/sync',
     ]) {
@@ -59,13 +64,29 @@ void main() {
     final container = await startApp(tester, api: FakeAuthApi(session: true));
     for (final (path, title) in [
       ('/households/new', 'New household'),
-      ('/household/h-1', 'Household'),
+      ('/household/h-1/address', 'Address'),
+      ('/household/h-1/members/new', 'Add member'),
+      ('/member/v-1', 'Member'),
       ('/visit/h-2', 'Visit'),
       ('/sync', 'Uploads'),
     ]) {
       await go(tester, container, path);
       expect(find.widgetWithText(AppBar, title), findsOneWidget, reason: path);
       expect(find.text('This screen is being built.'), findsOneWidget);
+      if (path == '/household/h-1/address') {
+        final screen = tester.widget<HouseholdAddressScreen>(
+          find.byType(HouseholdAddressScreen),
+        );
+        expect(screen.householdId, 'h-1');
+      }
+      if (path == '/household/h-1/members/new') {
+        final screen = tester.widget<MemberScreen>(find.byType(MemberScreen));
+        expect((screen.householdId, screen.memberId), ('h-1', null));
+      }
+      if (path == '/member/v-1') {
+        final screen = tester.widget<MemberScreen>(find.byType(MemberScreen));
+        expect((screen.householdId, screen.memberId), (null, 'v-1'));
+      }
       if (path.startsWith('/visit/')) {
         final visit = tester.widget<VisitScreen>(find.byType(VisitScreen));
         expect(visit.householdId, 'h-2');
