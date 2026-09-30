@@ -4,14 +4,6 @@
   "@appTitle": {
     "description": "App name, shown in the app bar and the OS task switcher."
   },
-  "homeWelcome": "Welcome to BoothConnect",
-  "@homeWelcome": {
-    "description": "Heading on the placeholder home screen."
-  },
-  "homeComingSoon": "Your booth's progress and pending uploads will appear here.",
-  "@homeComingSoon": {
-    "description": "Body text on the placeholder home screen, shown until the home screen is built."
-  },
   "signInTitle": "Sign in",
   "@signInTitle": {
     "description": "Heading and app bar title of the sign-in screen."
@@ -141,6 +133,68 @@
   "signInUseAnotherNumber": "Use another number",
   "@signInUseAnotherNumber": {
     "description": "Button on the denied state, back to the phone step."
+  },
+  "homeBoothTitle": "Your booth",
+  "@homeBoothTitle": {
+    "description": "Heading of the booth card on the home screen."
+  },
+  "homeBoothLine": "{name}, booth {code}",
+  "@homeBoothLine": {
+    "description": "The assigned booth: {name} is the polling station, {code} its number.",
+    "placeholders": {
+      "code": {},
+      "name": {}
+    }
+  },
+  "homeNoBooth": "No booth assigned yet. Ask your coordinator.",
+  "@homeNoBooth": {
+    "description": "Shown when the volunteer has no booth assignment on record."
+  },
+  "homeProgressTitle": "Visits",
+  "@homeProgressTitle": {
+    "description": "Heading of the visit progress card."
+  },
+  "homeVisited": "{visited} of {total} households visited",
+  "@homeVisited": {
+    "description": "Visit progress; both are numbers.",
+    "placeholders": {
+      "total": {},
+      "visited": {}
+    }
+  },
+  "homeUploadsTitle": "Uploads",
+  "@homeUploadsTitle": {
+    "description": "Heading of the uploads card."
+  },
+  "homePending": "Waiting to upload: {count}",
+  "@homePending": {
+    "description": "Number of changes on the phone not yet uploaded.",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "homeAllUploaded": "Everything is uploaded.",
+  "@homeAllUploaded": {
+    "description": "Shown when no change is waiting to upload."
+  },
+  "homeUpdated": "Booth data updated {time}",
+  "@homeUpdated": {
+    "description": "When the booth's data was last downloaded; {time} is a date and time.",
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "homeNeverUpdated": "Booth data not downloaded yet.",
+  "@homeNeverUpdated": {
+    "description": "Shown before the first download."
+  },
+  "homeUpdating": "Downloading booth data…",
+  "@homeUpdating": {
+    "description": "Shown while downloading."
+  },
+  "homeUpdateFailed": "Couldn't download the booth data. Pull down to try again.",
+  "@homeUpdateFailed": {
+    "description": "Shown when the last download failed (not offline)."
   },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {

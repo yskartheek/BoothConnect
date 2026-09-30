@@ -49,7 +49,7 @@ class AuthController extends Notifier<AuthStatus> {
       return SignInResult.noAssignment;
     }
     // Another volunteer's data (left by an ended session) is wiped first.
-    await ref.read(syncControllerProvider.notifier).prepareFor(me.id);
+    await ref.read(syncControllerProvider.notifier).prepareFor(me);
     state = AuthStatus.signedIn;
     return SignInResult.signedIn;
   }
@@ -62,9 +62,12 @@ class AuthController extends Notifier<AuthStatus> {
   /// so the next volunteer on this phone starts empty.
   Future<void> signOut() async {
     await ref.read(authApiProvider).logout();
-    await ref.read(localStoreProvider).wipe();
-    ref.invalidate(appDatabaseProvider);
+    // Signed out first: screens stop reading and no new pull starts. Then
+    // a pull still running finishes before the wipe, so nothing reopens
+    // the database (with a new key) behind it.
     state = AuthStatus.signedOut;
+    await ref.read(syncControllerProvider.notifier).whenIdle();
+    await ref.read(localStoreProvider).wipe();
   }
 }
 

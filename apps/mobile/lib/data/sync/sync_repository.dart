@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import '../local/app_database.dart';
+import '../local/local_reads.dart';
 import 'sync_api.dart';
 
 /// What a pull did.
@@ -28,6 +29,7 @@ class SyncRepository {
   static const snapshotKey = 'snapshot_in_progress';
   static const ownerKey = 'owner';
   static const lastPullKey = 'last_pull_at';
+  static const assignmentsKey = 'assignments';
 
   /// A runaway loop guard: far more pages than any booth has.
   static const maxPages = 1000;
@@ -62,6 +64,13 @@ class SyncRepository {
   Future<String?> owner() => _meta(ownerKey);
 
   Future<void> setOwner(String userId) => _setMeta(ownerKey, userId);
+
+  /// The volunteer's booths, for the home screen (they come from
+  /// `GET /v1/me`, which the pull doesn't repeat).
+  Future<void> setBooths(List<BoothAssignment> booths) => _setMeta(
+    assignmentsKey,
+    jsonEncode([for (final b in booths) b.toJson()]),
+  );
 
   Future<int> _apply(Map<String, dynamic> page) async {
     var rows = 0;

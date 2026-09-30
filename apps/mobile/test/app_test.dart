@@ -1,5 +1,6 @@
 import 'package:boothconnect_mobile/app/router.dart';
 import 'package:boothconnect_mobile/data/local/app_database.dart';
+import 'package:boothconnect_mobile/data/local/database_key.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
@@ -18,7 +19,7 @@ void main() {
     expect(location(container), '/sign-in');
     expect(find.byType(SignInScreen), findsOneWidget);
     expect(find.text('Sign in'), findsOneWidget);
-    expect(find.text('Welcome to BoothConnect'), findsNothing);
+    expect(find.text('Your booth'), findsNothing);
 
     // Every other page is closed too.
     for (final path in [
@@ -48,7 +49,7 @@ void main() {
   testWidgets('signed in, sign-in goes on to home', (tester) async {
     final container = await startApp(tester, api: FakeAuthApi(session: true));
     expect(location(container), '/');
-    expect(find.text('Welcome to BoothConnect'), findsOneWidget);
+    expect(find.text('Your booth'), findsOneWidget);
 
     await go(tester, container, '/sign-in');
     expect(location(container), '/');
@@ -84,12 +85,12 @@ void main() {
     await tester.pumpAndSettle();
     expect(location(container), '/');
 
-    await tester.tap(find.text('Uploads'));
+    await tester.tap(find.widgetWithText(OutlinedButton, 'Uploads'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, 'Uploads'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('Welcome to BoothConnect'), findsOneWidget);
+    expect(find.text('Your booth'), findsOneWidget);
   });
 
   testWidgets('signing out wipes the phone and goes back to sign-in', (
@@ -108,13 +109,19 @@ void main() {
     expect(file!.existsSync(), isTrue);
 
     await tester.tap(find.byTooltip('Sign out'));
+    // Signed out at once; the wipe follows.
     await waitFor(
       tester,
-      () => container.read(authProvider) == AuthStatus.signedOut,
+      () =>
+          container.read(authProvider) == AuthStatus.signedOut &&
+          !file.existsSync(),
     );
     expect(location(container), '/sign-in');
     expect(container.read(authProvider), AuthStatus.signedOut);
     expect(file.existsSync(), isFalse);
+    // No new database was opened behind the sign-out: no key left either.
+    final secrets = container.read(secretStoreProvider);
+    expect(await secrets.read(DatabaseKeyStore.secretName), isNull);
     expect(api.logouts, 1);
   });
 

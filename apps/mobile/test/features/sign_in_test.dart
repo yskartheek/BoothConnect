@@ -35,7 +35,7 @@ void main() {
     expect(api.verified, [('+919876543210', goodCode)]);
     expect(container.read(authProvider), AuthStatus.signedIn);
     expect(location(container), '/');
-    expect(find.text('Welcome to BoothConnect'), findsOneWidget);
+    expect(find.text('Your booth'), findsOneWidget);
   });
 
   testWidgets('a wrong code says so, and the right one still works', (

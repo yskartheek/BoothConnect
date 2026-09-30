@@ -125,6 +125,39 @@ from `GET /v1/sync/pull` into the local database.
   `watchMembers(householdId)` (active, in roll order). They update when a
   pull writes.
 
+## Home (#62)
+
+`features/home/home_screen.dart` reads only the local database:
+- **Booth:** the volunteer's booths, saved at sign-in from `GET /v1/me` (volunteer
+  assignments only, in `sync_meta.assignments`).
+- **Visits:** "_n_ of _total_ households visited". Visited means a household
+  still on the roll with at least one visit, uploaded or still on the phone.
+- **Uploads:** the number of changes waiting in `pending_mutation`, as a
+  badge, plus when the booth data was last downloaded (or that it's
+  downloading or failed). The button goes to the Uploads screen.
+- An offline banner while there's no connection (`onlineProvider`), and
+  pull-to-refresh to download the booth's latest data.
+
+The four figures are Riverpod stream providers over Drift watches
+(`boothsProvider`, `householdCountProvider`, `visitedCountProvider`,
+`pendingCountProvider`).
+
+**Sign-out and the database:** sign-out marks the volunteer signed out first
+(screens stop reading, no pull starts), waits for a running pull, then wipes.
+`appDatabaseProvider` disposes itself when unused, and the home figures don't
+read while signed out, so nothing reopens the wiped database with a new key.
+A later sign-in in the same session opens a fresh one.
+
+**Widget tests and Drift:** closing the database after a widget test has
+ended never finishes: Drift waits on the test's fake clock, which nothing
+advances any more. `test/support/app_harness.dart` therefore takes the screens
+down (cancelling their watches) and closes the database while the test still
+runs. On a phone there's no fake clock; closing with live watches takes
+milliseconds.
+
+**Generated string arguments** are in alphabetical order of their
+placeholders: `homeVisited(total, visited)`, `homeBoothLine(code, name)`.
+
 ## Screen states (#58)
 
 Every screen shows one of these while it has nothing else to show

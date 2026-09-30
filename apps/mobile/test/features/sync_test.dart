@@ -1,6 +1,9 @@
 import 'dart:async';
 
+import 'package:boothconnect_mobile/data/api/auth_api.dart';
 import 'package:boothconnect_mobile/data/local/app_database.dart';
+import 'package:boothconnect_mobile/data/local/database_key.dart';
+import 'package:boothconnect_mobile/data/local/local_reads.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/data/sync/sync_repository.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
@@ -13,6 +16,7 @@ import 'package:flutter_test/flutter_test.dart';
 import '../support/app_harness.dart';
 import '../support/fake_auth_api.dart';
 import '../support/fake_sync_api.dart';
+import '../support/memory_secrets.dart';
 
 Map<String, dynamic> snapshot(String cursor, String householdId) => syncPage(
   cursor: cursor,
@@ -78,7 +82,21 @@ void main() {
 
   testWidgets('signing in pulls, and a signed-out app doesn’t', (tester) async {
     final sync = FakeSyncApi([snapshot('c-1', 'h-1')]);
-    final c = await startApp(tester, syncApi: sync);
+    final c = await startApp(
+      tester,
+      syncApi: sync,
+      api: FakeAuthApi(
+        assignments: const [
+          volunteerAssignment,
+          Assignment(
+            role: 'admin',
+            nodeType: 'ac',
+            nodeName: 'Demo Assembly Constituency',
+            nodeCode: '101',
+          ),
+        ],
+      ),
+    );
     // Signed out: resuming the app pulls nothing.
     backgroundAndResume(tester);
     await tester.pump();
@@ -89,6 +107,9 @@ void main() {
     expect(await householdIds(tester, c), ['h-1']);
     final db = await database(tester, c);
     expect(await settle(tester, SyncRepository(db, sync).owner()), 'u-1');
+    // Only the volunteer assignment is a booth for the home screen.
+    final booths = await settle(tester, db.watchBooths().first);
+    expect(booths.map((b) => '${b.name} ${b.code}'), ['Demo Primary School 1']);
   });
 
   testWidgets('another volunteer’s data is wiped when someone else signs in', (
@@ -148,6 +169,55 @@ void main() {
     // Not wiped: a delta pull from the saved cursor.
     expect(sync.calls, [null, 'c-1']);
     expect(await householdIds(tester, c), ['h-1']);
+  });
+
+  testWidgets('signing out and in again, in the same session, works', (
+    tester,
+  ) async {
+    final sync = FakeSyncApi([snapshot('c-1', 'h-1'), snapshot('c-2', 'h-2')]);
+    final c = await startApp(tester, syncApi: sync);
+    await signInThroughScreen(tester);
+    await waitFor(tester, () => sync.calls.length == 1 && idle(c));
+
+    await tester.tap(find.byTooltip('Sign out'));
+    await waitFor(tester, () => c.read(authProvider) == AuthStatus.signedOut);
+    await tester.pumpAndSettle();
+
+    // A fresh database: a full snapshot, written and read back.
+    await signInThroughScreen(tester);
+    await waitFor(tester, () => sync.calls.length == 2 && idle(c));
+    expect(c.read(syncControllerProvider).phase, SyncPhase.idle);
+    expect(sync.calls, [null, null]);
+    expect(await householdIds(tester, c), ['h-2']);
+  });
+
+  testWidgets('coming back to the app during sign-out doesn’t pull', (
+    tester,
+  ) async {
+    final sync = FakeSyncApi();
+    final c = await startApp(
+      tester,
+      api: FakeAuthApi(session: true),
+      syncApi: sync,
+    );
+    await waitFor(tester, () => sync.calls.length == 1 && idle(c));
+
+    await tester.tap(find.byTooltip('Sign out'));
+    await tester.pump();
+    // The wipe is under way: the app comes back to the foreground.
+    backgroundAndResume(tester);
+    // Signed out at once; the wipe (and the key) follows.
+    final secrets = c.read(secretStoreProvider) as MemorySecrets;
+    await waitFor(
+      tester,
+      () =>
+          c.read(authProvider) == AuthStatus.signedOut &&
+          !secrets.values.containsKey(DatabaseKeyStore.secretName),
+    );
+    await tester.pumpAndSettle();
+    // No pull reopened the database: still no key, and one pull in all.
+    expect(secrets.values.containsKey(DatabaseKeyStore.secretName), isFalse);
+    expect(sync.calls, hasLength(1));
   });
 
   testWidgets('resuming the app pulls', (tester) async {

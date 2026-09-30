@@ -55,13 +55,19 @@ Future<ProviderContainer> startApp(
           directory: () async => dir,
           keys: DatabaseKeyStore(secrets),
           inBackground: false,
+          closeStreamsSynchronously: true,
         ),
       ),
     ],
   );
   addTearDown(() async {
-    await container.read(localStoreProvider).wipe();
+    // Take the screens down first: that cancels their database watches.
+    // Then close the database while the test's clock still runs; closed
+    // after the test, Drift would wait on a fake clock nothing advances.
+    await tester.pumpWidget(const SizedBox());
+    final store = container.read(localStoreProvider);
     container.dispose();
+    await settle(tester, store.wipe());
     dir.deleteSync(recursive: true);
   });
   await tester.pumpWidget(
