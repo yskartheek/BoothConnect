@@ -1,13 +1,21 @@
+import 'dart:io';
+
 import 'package:boothconnect_mobile/app/app.dart';
 import 'package:boothconnect_mobile/app/router.dart';
+import 'package:boothconnect_mobile/data/local/app_database.dart';
+import 'package:boothconnect_mobile/data/local/database_key.dart';
+import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
 import 'package:boothconnect_mobile/features/households/household_screen.dart';
 import 'package:boothconnect_mobile/features/visit/visit_screen.dart';
 import 'package:boothconnect_mobile/l10n/generated/app_localizations.dart';
+import 'package:boothconnect_mobile/theme/glass_system_settings.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
+
+import 'support/memory_secrets.dart';
 
 class _SignedIn extends AuthController {
   @override
@@ -19,10 +27,31 @@ Future<ProviderContainer> startApp(
   WidgetTester tester, {
   bool signedIn = false,
 }) async {
-  final container = ProviderContainer(
-    overrides: [if (signedIn) authProvider.overrideWith(_SignedIn.new)],
+  // The phone's glass settings channel answers with nothing in tests.
+  final messenger = tester.binding.defaultBinaryMessenger;
+  messenger.setMockStreamHandler(
+    glassSettingsChannel,
+    MockStreamHandler.inline(onListen: (arguments, events) {}),
   );
-  addTearDown(container.dispose);
+  addTearDown(() => messenger.setMockStreamHandler(glassSettingsChannel, null));
+  final dir = Directory.systemTemp.createTempSync('bc_app_test');
+  final container = ProviderContainer(
+    overrides: [
+      if (signedIn) authProvider.overrideWith(_SignedIn.new),
+      localStoreProvider.overrideWithValue(
+        LocalStore(
+          directory: () async => dir,
+          keys: DatabaseKeyStore(MemorySecrets()),
+          inBackground: false,
+        ),
+      ),
+    ],
+  );
+  addTearDown(() async {
+    await container.read(localStoreProvider).wipe();
+    container.dispose();
+    dir.deleteSync(recursive: true);
+  });
   await tester.pumpWidget(
     UncontrolledProviderScope(
       container: container,
@@ -131,12 +160,34 @@ void main() {
     expect(find.text('Welcome to BoothConnect'), findsOneWidget);
   });
 
-  testWidgets('signing out goes back to sign-in', (tester) async {
+  testWidgets('signing out wipes the phone and goes back to sign-in', (
+    tester,
+  ) async {
     final container = await startApp(tester, signedIn: true);
+    final store = container.read(localStoreProvider);
+    final file = await tester.runAsync(() async {
+      final db = await store.open();
+      await db
+          .into(db.syncMeta)
+          .insert(SyncMetaCompanion.insert(key: 'cursor', value: 'c-1'));
+      return store.file();
+    });
+    expect(file!.existsSync(), isTrue);
+
     await tester.tap(find.byTooltip('Sign out'));
+    // The wipe is real file I/O. Each step's result comes back on the real
+    // clock and runs on the next pump: alternate until it is done.
+    for (var i = 0; i < 500; i++) {
+      if (container.read(authProvider) == AuthStatus.signedOut) break;
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 10)),
+      );
+      await tester.pump();
+    }
     await tester.pumpAndSettle();
     expect(location(container), '/sign-in');
     expect(container.read(authProvider), AuthStatus.signedOut);
+    expect(file.existsSync(), isFalse);
   });
 
   testWidgets('an unknown link says so and leads home', (tester) async {
