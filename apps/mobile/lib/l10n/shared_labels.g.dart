@@ -61,6 +61,31 @@ String? genderLabel(AppLocalizations l10n, String code) {
   return null;
 }
 
+/// The label for a `field` code from the API, or null if it is unknown.
+String? fieldLabel(AppLocalizations l10n, String code) {
+  switch (code) {
+    case 'name':
+      return l10n.fieldName;
+    case 'age':
+      return l10n.fieldAge;
+    case 'gender':
+      return l10n.fieldGender;
+    case 'mobile_number':
+      return l10n.fieldMobileNumber;
+    case 'occupation':
+      return l10n.fieldOccupation;
+    case 'additional_info':
+      return l10n.fieldAdditionalInfo;
+    case 'caste_community':
+      return l10n.fieldCasteCommunity;
+    case 'address':
+      return l10n.fieldAddress;
+    case 'household_location':
+      return l10n.fieldHouseholdLocation;
+  }
+  return null;
+}
+
 /// The label for a `error` code from the API, or null if it is unknown.
 String? errorMessage(AppLocalizations l10n, String code) {
   switch (code) {

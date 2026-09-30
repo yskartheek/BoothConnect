@@ -38,7 +38,7 @@ test('every key is translated in every locale', () => {
   assert.deepEqual(Object.keys(locales), ['en', 'te']);
 });
 
-test('shared groups cover visit outcomes, sync states, error codes, consent and gender', () => {
+test('shared groups cover visit outcomes, sync states, error codes, consent, gender and field labels', () => {
   const groups = new Set(
     Object.keys(en)
       .filter((k) => !k.startsWith('@'))

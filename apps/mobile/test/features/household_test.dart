@@ -610,7 +610,11 @@ void main() {
           await tester.tap(tap);
           await tester.pumpAndSettle();
           final screen = tester.widget<T>(find.byType(T));
-          await tester.tap(find.byType(BackButton));
+          // The visit form has Cancel (✕) rather than back.
+          final back = find.byType(BackButton);
+          await tester.tap(
+            back.evaluate().isNotEmpty ? back : find.byTooltip('Cancel'),
+          );
           await tester.pumpAndSettle();
           expect(find.byType(HouseholdScreen), findsOneWidget);
           return screen;

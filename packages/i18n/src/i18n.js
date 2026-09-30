@@ -15,6 +15,7 @@ export const LOOKUP_GROUPS = {
   visitOutcome: 'visitOutcomeLabel',
   syncState: 'syncStateLabel',
   gender: 'genderLabel',
+  field: 'fieldLabel',
   error: 'errorMessage',
 };
 
