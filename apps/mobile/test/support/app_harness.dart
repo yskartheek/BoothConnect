@@ -94,11 +94,14 @@ Future<void> signInThroughScreen(
 }
 
 /// Lets real async work (file and database I/O) run until [done] holds.
+/// Each result comes back on the real clock and its continuation runs on
+/// the next pump, so real time and pumps alternate.
 Future<void> waitFor(WidgetTester tester, bool Function() done) async {
-  await tester.runAsync(() async {
-    for (var i = 0; i < 100 && !done(); i++) {
-      await Future<void>.delayed(const Duration(milliseconds: 10));
-    }
-  });
+  for (var i = 0; i < 500 && !done(); i++) {
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 10)),
+    );
+    await tester.pump();
+  }
   await tester.pumpAndSettle();
 }
