@@ -8,9 +8,53 @@
   "@homeWelcome": {
     "description": "Heading on the placeholder home screen."
   },
-  "homeComingSoon": "Sign-in and your assigned households will appear here.",
+  "homeComingSoon": "Your booth's progress and pending uploads will appear here.",
   "@homeComingSoon": {
-    "description": "Body text on the placeholder home screen, shown until sign-in exists."
+    "description": "Body text on the placeholder home screen, shown until the home screen is built."
+  },
+  "signInTitle": "Sign in",
+  "@signInTitle": {
+    "description": "Heading and app bar title of the sign-in screen."
+  },
+  "signInComingSoon": "Sign-in with a code sent to your phone is being built.",
+  "@signInComingSoon": {
+    "description": "Placeholder text on the sign-in screen until OTP sign-in exists."
+  },
+  "signInDevContinue": "Continue (development build)",
+  "@signInDevContinue": {
+    "description": "Button on the placeholder sign-in screen, shown only in development builds."
+  },
+  "signOut": "Sign out",
+  "@signOut": {
+    "description": "Button that signs the volunteer out."
+  },
+  "householdsTitle": "Households",
+  "@householdsTitle": {
+    "description": "Title of the households list, and the home screen button that opens it."
+  },
+  "householdTitle": "Household",
+  "@householdTitle": {
+    "description": "App bar title of one household's screen."
+  },
+  "visitTitle": "Visit",
+  "@visitTitle": {
+    "description": "App bar title of the visit form."
+  },
+  "syncTitle": "Uploads",
+  "@syncTitle": {
+    "description": "Title of the sync center, and the home screen button that opens it."
+  },
+  "screenComingSoon": "This screen is being built.",
+  "@screenComingSoon": {
+    "description": "Placeholder text on screens that aren't built yet."
+  },
+  "notFoundTitle": "Page not found",
+  "@notFoundTitle": {
+    "description": "Shown for a link the app doesn't know."
+  },
+  "goHome": "Go to home",
+  "@goHome": {
+    "description": "Button back to the home screen."
   },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {

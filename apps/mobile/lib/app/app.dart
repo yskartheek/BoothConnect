@@ -15,6 +15,8 @@ class BoothConnectApp extends ConsumerWidget {
       onGenerateTitle: (context) => AppLocalizations.of(context).appTitle,
       theme: AppTheme.light(),
       darkTheme: AppTheme.dark(),
+      // Light or dark follows the phone's setting.
+      themeMode: ThemeMode.system,
       builder: (context, child) =>
           SystemGlassSettings(child: child ?? const SizedBox.shrink()),
       localizationsDelegates: AppLocalizations.localizationsDelegates,

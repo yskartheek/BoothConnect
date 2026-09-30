@@ -3,10 +3,42 @@
   "@mobile.appTitle": { "description": "App name, shown in the app bar and the OS task switcher." },
   "mobile.homeWelcome": "Welcome to BoothConnect",
   "@mobile.homeWelcome": { "description": "Heading on the placeholder home screen." },
-  "mobile.homeComingSoon": "Sign-in and your assigned households will appear here.",
+  "mobile.homeComingSoon": "Your booth's progress and pending uploads will appear here.",
   "@mobile.homeComingSoon": {
-    "description": "Body text on the placeholder home screen, shown until sign-in exists."
+    "description": "Body text on the placeholder home screen, shown until the home screen is built."
   },
+  "mobile.signInTitle": "Sign in",
+  "@mobile.signInTitle": { "description": "Heading and app bar title of the sign-in screen." },
+  "mobile.signInComingSoon": "Sign-in with a code sent to your phone is being built.",
+  "@mobile.signInComingSoon": {
+    "description": "Placeholder text on the sign-in screen until OTP sign-in exists."
+  },
+  "mobile.signInDevContinue": "Continue (development build)",
+  "@mobile.signInDevContinue": {
+    "description": "Button on the placeholder sign-in screen, shown only in development builds."
+  },
+  "mobile.signOut": "Sign out",
+  "@mobile.signOut": { "description": "Button that signs the volunteer out." },
+  "mobile.householdsTitle": "Households",
+  "@mobile.householdsTitle": {
+    "description": "Title of the households list, and the home screen button that opens it."
+  },
+  "mobile.householdTitle": "Household",
+  "@mobile.householdTitle": { "description": "App bar title of one household's screen." },
+  "mobile.visitTitle": "Visit",
+  "@mobile.visitTitle": { "description": "App bar title of the visit form." },
+  "mobile.syncTitle": "Uploads",
+  "@mobile.syncTitle": {
+    "description": "Title of the sync center, and the home screen button that opens it."
+  },
+  "mobile.screenComingSoon": "This screen is being built.",
+  "@mobile.screenComingSoon": {
+    "description": "Placeholder text on screens that aren't built yet."
+  },
+  "mobile.notFoundTitle": "Page not found",
+  "@mobile.notFoundTitle": { "description": "Shown for a link the app doesn't know." },
+  "mobile.goHome": "Go to home",
+  "@mobile.goHome": { "description": "Button back to the home screen." },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

@@ -21,6 +21,22 @@ pnpm --filter mobile format         # apply dart format
 | `lib/l10n/`             | Generated ARB files + `shared_labels.g.dart` (don't edit)   |
 | `test/`                 | Widget and unit tests                                       |
 
+## Navigation and sign-in (#57)
+
+`lib/app/router.dart` holds the routes: `/sign-in`, `/` (home),
+`/households`, `/household/:id`, `/visit/:householdId` and `/sync` (the
+Uploads screen). Build paths with `Routes`, e.g. `Routes.household(id)`.
+
+- `authProvider` (`features/auth/auth_controller.dart`) says whether the
+  volunteer is signed in. OTP sign-in and the stored tokens (#60) set it.
+- `authRedirect` sends a signed-out user to `/sign-in?from=<page>` and, once
+  signed in, back to that page (only a path in this app) or home. The router
+  re-checks it whenever `authProvider` changes.
+- Until #60, the sign-in screen is a placeholder. Development builds show
+  **Continue (development build)**; release builds don't.
+- An unknown path shows `NotFoundScreen`. Screens not yet built use
+  `PlaceholderScreen` (`lib/widgets/`).
+
 All user-visible text lives in `packages/i18n/locales/` (English and Telugu),
 never directly in widgets. Add a key there under `mobile.` (or a shared group),
 then run `pnpm --filter @boothconnect/i18n build:mobile` to regenerate
