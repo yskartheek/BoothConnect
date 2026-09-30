@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+import '../features/sync/sync_triggers.dart';
 import '../l10n/generated/app_localizations.dart';
 import '../theme/app_theme.dart';
 import '../theme/glass_system_settings.dart';
@@ -17,8 +18,9 @@ class BoothConnectApp extends ConsumerWidget {
       darkTheme: AppTheme.dark(),
       // Light or dark follows the phone's setting.
       themeMode: ThemeMode.system,
-      builder: (context, child) =>
-          SystemGlassSettings(child: child ?? const SizedBox.shrink()),
+      builder: (context, child) => SystemGlassSettings(
+        child: SyncTriggers(child: child ?? const SizedBox.shrink()),
+      ),
       localizationsDelegates: AppLocalizations.localizationsDelegates,
       supportedLocales: AppLocalizations.supportedLocales,
       routerConfig: ref.watch(routerProvider),

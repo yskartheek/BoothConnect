@@ -102,7 +102,7 @@ void main() {
       final db = await store.open();
       await db
           .into(db.syncMeta)
-          .insert(SyncMetaCompanion.insert(key: 'cursor', value: 'c-1'));
+          .insert(SyncMetaCompanion.insert(key: 'test-marker', value: '1'));
       return store.file();
     });
     expect(file!.existsSync(), isTrue);
@@ -142,7 +142,7 @@ void main() {
       final db = await store.open();
       await db
           .into(db.syncMeta)
-          .insert(SyncMetaCompanion.insert(key: 'cursor', value: 'c-1'));
+          .insert(SyncMetaCompanion.insert(key: 'test-marker', value: '1'));
       return store.file();
     });
     expect(file!.existsSync(), isTrue);
