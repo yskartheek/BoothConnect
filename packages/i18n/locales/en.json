@@ -39,6 +39,28 @@
   "@mobile.notFoundTitle": { "description": "Shown for a link the app doesn't know." },
   "mobile.goHome": "Go to home",
   "@mobile.goHome": { "description": "Button back to the home screen." },
+  "mobile.stateLoading": "Loading…",
+  "@mobile.stateLoading": { "description": "Shown while a screen's data loads." },
+  "mobile.stateEmptyTitle": "Nothing here yet",
+  "@mobile.stateEmptyTitle": { "description": "Default heading of an empty list." },
+  "mobile.stateErrorTitle": "Something went wrong",
+  "@mobile.stateErrorTitle": { "description": "Heading when a screen can't load." },
+  "mobile.stateRetry": "Try again",
+  "@mobile.stateRetry": { "description": "Button that loads the screen again after an error." },
+  "mobile.stateDeniedTitle": "No access",
+  "@mobile.stateDeniedTitle": {
+    "description": "Heading when the volunteer isn't allowed to see something."
+  },
+  "mobile.stateDeniedMessage": "You don't have access to this. Ask your coordinator if you think you should.",
+  "@mobile.stateDeniedMessage": { "description": "Explains the denied state." },
+  "mobile.stateOfflineTitle": "You're offline",
+  "@mobile.stateOfflineTitle": { "description": "Heading of the offline banner." },
+  "mobile.stateOfflineMessage": "Your changes stay on this phone and upload when you're back online.",
+  "@mobile.stateOfflineMessage": { "description": "Offline banner text." },
+  "mobile.syncStatusLabel": "Upload status: {state}",
+  "@mobile.syncStatusLabel": {
+    "description": "Screen-reader label of the sync status chip; {state} is e.g. \"Uploaded\"."
+  },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

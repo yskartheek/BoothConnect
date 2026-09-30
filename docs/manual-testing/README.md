@@ -114,3 +114,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #76   | [Admin web: audit explorer](76-audit-explorer.md)                                               | Ready to test   |
 | #77   | [Admin web accessibility pass](77-accessibility.md)                                             | Ready to test   |
 | #57   | [Mobile app shell: navigation, sign-in redirect, theme](57-mobile-shell.md)                     | Ready to test   |
+| #58   | [Mobile shared state widgets and sync status chip](58-mobile-states.md)                         | Ready to test   |

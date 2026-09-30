@@ -56,6 +56,45 @@
   "@goHome": {
     "description": "Button back to the home screen."
   },
+  "stateLoading": "Loading…",
+  "@stateLoading": {
+    "description": "Shown while a screen's data loads."
+  },
+  "stateEmptyTitle": "Nothing here yet",
+  "@stateEmptyTitle": {
+    "description": "Default heading of an empty list."
+  },
+  "stateErrorTitle": "Something went wrong",
+  "@stateErrorTitle": {
+    "description": "Heading when a screen can't load."
+  },
+  "stateRetry": "Try again",
+  "@stateRetry": {
+    "description": "Button that loads the screen again after an error."
+  },
+  "stateDeniedTitle": "No access",
+  "@stateDeniedTitle": {
+    "description": "Heading when the volunteer isn't allowed to see something."
+  },
+  "stateDeniedMessage": "You don't have access to this. Ask your coordinator if you think you should.",
+  "@stateDeniedMessage": {
+    "description": "Explains the denied state."
+  },
+  "stateOfflineTitle": "You're offline",
+  "@stateOfflineTitle": {
+    "description": "Heading of the offline banner."
+  },
+  "stateOfflineMessage": "Your changes stay on this phone and upload when you're back online.",
+  "@stateOfflineMessage": {
+    "description": "Offline banner text."
+  },
+  "syncStatusLabel": "Upload status: {state}",
+  "@syncStatusLabel": {
+    "description": "Screen-reader label of the sync status chip; {state} is e.g. \"Uploaded\".",
+    "placeholders": {
+      "state": {}
+    }
+  },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {
     "description": "Visit outcome (API: completed)."
