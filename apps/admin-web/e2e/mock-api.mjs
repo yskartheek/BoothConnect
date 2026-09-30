@@ -689,6 +689,60 @@ function voterRequest(req, res, url, body) {
   }
   return error(res, 404, 'NOT_FOUND');
 }
+// The audit log (#76): a few synthetic events, newest first; ids and counts only.
+const AUDIT = [
+  ['auth.login', 'session', null, 'success', 'u-admin', {}],
+  ['import.file.confirm', 'import_file', 'file-demo-1', 'success', 'u-admin', { voters: 40 }],
+  [
+    'import.file.committed',
+    'import_file',
+    'file-demo-1',
+    'success',
+    null,
+    { voters: 40, householdsCreated: 33 },
+  ],
+  ['role.grant', 'role_assignment', 'ra-demo', 'success', 'u-admin', { role: 'volunteer' }],
+  ['auth.login', 'session', null, 'failure', null, { reason: 'otp_invalid' }],
+].map(([action, resourceType, resourceId, result, actor, metadata], i, all) => ({
+  id: `audit-${i + 1}`,
+  seq: String(all.length - i),
+  at: new Date(Date.UTC(2026, 8, 29, 10, 0) - i * 60_000).toISOString(),
+  action,
+  resourceType,
+  resourceId,
+  result,
+  actor: actor ? { id: actor, name: 'Test Admin' } : null,
+  sessionId: actor ? 'session-demo' : null,
+  requestId: `request-${i + 1}`,
+  metadata,
+  prevHash: `hash-${all.length - i - 1}`,
+  hash: `hash-${all.length - i}`,
+}));
+function auditEvents(res, url) {
+  const action = url.searchParams.get('action');
+  if (action && !/^[a-z0-9_.]+\*?$/.test(action)) {
+    return send(res, 400, {
+      requestId: 'mock',
+      code: 'VALIDATION_FAILED',
+      message: 'Request validation failed',
+      details: [{ field: 'action', errors: ['action must look like "auth.login" or "import.*"'] }],
+    });
+  }
+  const matches = (e) =>
+    (!action ||
+      (action.endsWith('*') ? e.action.startsWith(action.slice(0, -1)) : e.action === action)) &&
+    (!url.searchParams.get('result') || e.result === url.searchParams.get('result')) &&
+    (!url.searchParams.get('actorId') || e.actor?.id === url.searchParams.get('actorId'));
+  const items = AUDIT.filter(matches);
+  const verify = url.searchParams.get('verify') === 'true';
+  return send(res, 200, {
+    items: items.slice(0, Number(url.searchParams.get('limit') ?? 50)),
+    nextCursor: null,
+    ...(verify
+      ? { verification: { checked: AUDIT.length, intact: true, firstBrokenSeq: null } }
+      : {}),
+  });
+}
 
 /** Answers an import request; false when it isn't one. */
 function importRoute(req, res, url, body) {
@@ -1026,6 +1080,7 @@ createServer(async (req, res) => {
     a.validUntil = new Date().toISOString();
     return send(res, 200, assignmentView(a));
   }
+  if (req.method === 'GET' && url.pathname === '/v1/audit-events') return auditEvents(res, url);
   const voterRoute = voterRequest(req, res, url, body);
   if (voterRoute !== false) return;
   if (req.method === 'GET' && url.pathname === '/v1/geographies') {

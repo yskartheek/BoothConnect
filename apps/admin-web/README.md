@@ -88,6 +88,11 @@ The browser never holds a token.
 - **Browser tests** (`pnpm test:e2e`) run against `e2e/mock-api.mjs`, a
   stand-in for the API with a synthetic admin and volunteer. The code is
   always `123456`.
+- **Accessibility (#77):** `e2e/accessibility.spec.ts` runs axe
+  (`e2e/axe.ts`, WCAG 2.1 A/AA) on every Milestone 1 page in both themes, and
+  fails on any serious or critical violation. It also walks the import wizard
+  with the keyboard alone, checking the focus ring at every Tab stop. The page
+  specs run axe on their own states (dialogs, drawers, forms).
 
 ## Geography (#103)
 
@@ -246,3 +251,19 @@ admin's area, from the API's `/v1/analytics/nodes/:id/summary` and
     `baseVersion` (a change meanwhile becomes a conflict, not an overwrite).
     The API stores it as `admin_corrected`. Consent-gated fields aren't
     corrected here.
+
+## Audit explorer (#76)
+
+`/audit` (`components/audit/`) reads `GET /v1/audit-events`:
+
+- **Filters** live in the address (`filters.ts`): `actor`, `action` (or a
+  `prefix.*`), `resourceType`, `resourceId`, `result`, and `from`/`to` dates.
+  `to` is inclusive on the page; the API gets the start of the next day.
+  They apply on **Apply filters** (`router.replace`), and the page is keyed
+  by them.
+- **Table:** newest first, 50 at a time (`nextCursor`). **Details** opens a
+  side drawer (Radix Dialog) with every field, the metadata as the API
+  redacted it, and the hashes.
+- **Verify chain** calls the same endpoint with `verify=true` and the date
+  range only (the chain is checked over every event in the range).
+- A refused filter shows the API's per-field reasons from `details`.
