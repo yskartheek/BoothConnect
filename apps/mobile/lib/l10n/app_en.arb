@@ -196,6 +196,73 @@
   "@homeUpdateFailed": {
     "description": "Shown when the last download failed (not offline)."
   },
+  "householdsSearchHint": "Search address or member name",
+  "@householdsSearchHint": {
+    "description": "Hint in the households search box."
+  },
+  "householdsFilterAll": "All",
+  "@householdsFilterAll": {
+    "description": "Filter: every household."
+  },
+  "householdsFilterNotVisited": "Not visited",
+  "@householdsFilterNotVisited": {
+    "description": "Filter, and a household's status: no visit yet."
+  },
+  "householdsFilterVisited": "Visited",
+  "@householdsFilterVisited": {
+    "description": "Filter: visited, last visit not asking to come back."
+  },
+  "householdsFilterFollowUp": "Follow-up",
+  "@householdsFilterFollowUp": {
+    "description": "Filter: the last visit asked to come back later."
+  },
+  "householdsFilterLabel": "{filter}: {count} households",
+  "@householdsFilterLabel": {
+    "description": "Screen-reader label of a filter chip; {filter} is e.g. \"Visited\".",
+    "placeholders": {
+      "count": {},
+      "filter": {}
+    }
+  },
+  "householdMembers": "{count, plural, =1{1 member} other{{count} members}}",
+  "@householdMembers": {
+    "description": "Number of members in a household.",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "householdsAdd": "Add household",
+  "@householdsAdd": {
+    "description": "Button that opens the new household screen (Android)."
+  },
+  "householdsAddShort": "Add",
+  "@householdsAddShort": {
+    "description": "Header button that opens the new household screen (iOS)."
+  },
+  "householdsEmptyTitle": "No households yet",
+  "@householdsEmptyTitle": {
+    "description": "Shown when the booth has no households on the phone."
+  },
+  "householdsEmptyMessage": "Your booth's households appear here once they're downloaded. Pull down to try again.",
+  "@householdsEmptyMessage": {
+    "description": "Explains the empty list."
+  },
+  "householdsNoResultsTitle": "No households match",
+  "@householdsNoResultsTitle": {
+    "description": "Shown when the search and filter find nothing."
+  },
+  "householdsNoResultsMessage": "Try another address or name, or another filter.",
+  "@householdsNoResultsMessage": {
+    "description": "Explains the empty search result."
+  },
+  "householdsClearSearch": "Clear search and filter",
+  "@householdsClearSearch": {
+    "description": "Button that shows every household again."
+  },
+  "householdNewTitle": "New household",
+  "@householdNewTitle": {
+    "description": "App bar title of the new household screen."
+  },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {
     "description": "Visit outcome (API: completed)."

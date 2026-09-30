@@ -158,6 +158,32 @@ milliseconds.
 **Generated string arguments** are in alphabetical order of their
 placeholders: `homeVisited(total, visited)`, `homeBoothLine(code, name)`.
 
+## Households list (#63)
+
+`features/households/households_screen.dart` reads
+`watchHouseholdSummaries()` (`local_reads.dart`): one row per household still
+on the roll, with active members, member names (roll and corrected, for
+search), the latest visit's outcome, what's on the phone (visits not uploaded,
+queued changes) and conflicts (queued changes in conflict, details with
+`conflict_with_id`).
+
+- **Order:** `compareHouseKeys`, so 2 comes before 12/4 before 15A.
+- **Search** matches the address or any member name, in any case. **Filters:**
+  All, Not visited, Visited (any other outcome) and Follow-up (last outcome
+  `follow_up_requested`), each with its count. Screen readers hear "Visited: 38
+  households" and whether it's selected.
+- **Chip** (`HouseholdSummary.sync`): Choose value if anything conflicts, else
+  On phone if anything is waiting, else Uploaded if visited; none otherwise.
+- **Add household:** in the header on iOS, a floating button on Android
+  (`Routes.newHousehold`, a placeholder until #115).
+- `pending_mutation.household_id` (schema version 2) ties a queued change to
+  its household. The #66 push worker fills it.
+
+`localWatch` (`features/shared/local_watch.dart`) makes a stream provider
+over a Drift watch that reads only while signed in; home and the list use it.
+`startApp(overrides: …)` in the test harness replaces providers for app-level
+tests.
+
 ## Screen states (#58)
 
 Every screen shows one of these while it has nothing else to show

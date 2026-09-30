@@ -169,6 +169,7 @@ class SyncMeta extends Table {
 /// first. The sync worker (#66) sends, retries and clears these.
 @DataClassName('PendingMutationRow')
 @TableIndex(name: 'pending_mutation_status', columns: {#status})
+@TableIndex(name: 'pending_mutation_household', columns: {#householdId})
 class PendingMutations extends Table {
   @override
   String get tableName => 'pending_mutation';
@@ -182,6 +183,10 @@ class PendingMutations extends Table {
 
   /// `field.change`, `visit.create`, … (the API's mutation types).
   TextColumn get type => text()();
+
+  /// The household the change is about (for a member, their household), so
+  /// the households list can show it as "On phone" (schema version 2).
+  TextColumn get householdId => text().nullable()();
 
   /// JSON.
   TextColumn get payload => text()();

@@ -109,6 +109,52 @@
   "@mobile.homeUpdateFailed": {
     "description": "Shown when the last download failed (not offline)."
   },
+  "mobile.householdsSearchHint": "Search address or member name",
+  "@mobile.householdsSearchHint": { "description": "Hint in the households search box." },
+  "mobile.householdsFilterAll": "All",
+  "@mobile.householdsFilterAll": { "description": "Filter: every household." },
+  "mobile.householdsFilterNotVisited": "Not visited",
+  "@mobile.householdsFilterNotVisited": {
+    "description": "Filter, and a household's status: no visit yet."
+  },
+  "mobile.householdsFilterVisited": "Visited",
+  "@mobile.householdsFilterVisited": {
+    "description": "Filter: visited, last visit not asking to come back."
+  },
+  "mobile.householdsFilterFollowUp": "Follow-up",
+  "@mobile.householdsFilterFollowUp": {
+    "description": "Filter: the last visit asked to come back later."
+  },
+  "mobile.householdsFilterLabel": "{filter}: {count} households",
+  "@mobile.householdsFilterLabel": {
+    "description": "Screen-reader label of a filter chip; {filter} is e.g. \"Visited\"."
+  },
+  "mobile.householdMembers": "{count, plural, =1{1 member} other{{count} members}}",
+  "@mobile.householdMembers": { "description": "Number of members in a household." },
+  "mobile.householdsAdd": "Add household",
+  "@mobile.householdsAdd": {
+    "description": "Button that opens the new household screen (Android)."
+  },
+  "mobile.householdsAddShort": "Add",
+  "@mobile.householdsAddShort": {
+    "description": "Header button that opens the new household screen (iOS)."
+  },
+  "mobile.householdsEmptyTitle": "No households yet",
+  "@mobile.householdsEmptyTitle": {
+    "description": "Shown when the booth has no households on the phone."
+  },
+  "mobile.householdsEmptyMessage": "Your booth's households appear here once they're downloaded. Pull down to try again.",
+  "@mobile.householdsEmptyMessage": { "description": "Explains the empty list." },
+  "mobile.householdsNoResultsTitle": "No households match",
+  "@mobile.householdsNoResultsTitle": {
+    "description": "Shown when the search and filter find nothing."
+  },
+  "mobile.householdsNoResultsMessage": "Try another address or name, or another filter.",
+  "@mobile.householdsNoResultsMessage": { "description": "Explains the empty search result." },
+  "mobile.householdsClearSearch": "Clear search and filter",
+  "@mobile.householdsClearSearch": { "description": "Button that shows every household again." },
+  "mobile.householdNewTitle": "New household",
+  "@mobile.householdNewTitle": { "description": "App bar title of the new household screen." },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

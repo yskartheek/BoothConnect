@@ -3798,6 +3798,17 @@ class $PendingMutationsTable extends PendingMutations
     type: DriftSqlType.string,
     requiredDuringInsert: true,
   );
+  static const VerificationMeta _householdIdMeta = const VerificationMeta(
+    'householdId',
+  );
+  @override
+  late final GeneratedColumn<String> householdId = GeneratedColumn<String>(
+    'household_id',
+    aliasedName,
+    true,
+    type: DriftSqlType.string,
+    requiredDuringInsert: false,
+  );
   static const VerificationMeta _payloadMeta = const VerificationMeta(
     'payload',
   );
@@ -3870,6 +3881,7 @@ class $PendingMutationsTable extends PendingMutations
     id,
     key,
     type,
+    householdId,
     payload,
     status,
     attempts,
@@ -3907,6 +3919,15 @@ class $PendingMutationsTable extends PendingMutations
       );
     } else if (isInserting) {
       context.missing(_typeMeta);
+    }
+    if (data.containsKey('household_id')) {
+      context.handle(
+        _householdIdMeta,
+        householdId.isAcceptableOrUnknown(
+          data['household_id']!,
+          _householdIdMeta,
+        ),
+      );
     }
     if (data.containsKey('payload')) {
       context.handle(
@@ -3972,6 +3993,10 @@ class $PendingMutationsTable extends PendingMutations
         DriftSqlType.string,
         data['${effectivePrefix}type'],
       )!,
+      householdId: attachedDatabase.typeMapping.read(
+        DriftSqlType.string,
+        data['${effectivePrefix}household_id'],
+      ),
       payload: attachedDatabase.typeMapping.read(
         DriftSqlType.string,
         data['${effectivePrefix}payload'],
@@ -4017,6 +4042,10 @@ class PendingMutationRow extends DataClass
   /// `field.change`, `visit.create`, … (the API's mutation types).
   final String type;
 
+  /// The household the change is about (for a member, their household), so
+  /// the households list can show it as "On phone" (schema version 2).
+  final String? householdId;
+
   /// JSON.
   final String payload;
 
@@ -4032,6 +4061,7 @@ class PendingMutationRow extends DataClass
     required this.id,
     required this.key,
     required this.type,
+    this.householdId,
     required this.payload,
     required this.status,
     required this.attempts,
@@ -4045,6 +4075,9 @@ class PendingMutationRow extends DataClass
     map['id'] = Variable<int>(id);
     map['key'] = Variable<String>(key);
     map['type'] = Variable<String>(type);
+    if (!nullToAbsent || householdId != null) {
+      map['household_id'] = Variable<String>(householdId);
+    }
     map['payload'] = Variable<String>(payload);
     map['status'] = Variable<String>(status);
     map['attempts'] = Variable<int>(attempts);
@@ -4063,6 +4096,9 @@ class PendingMutationRow extends DataClass
       id: Value(id),
       key: Value(key),
       type: Value(type),
+      householdId: householdId == null && nullToAbsent
+          ? const Value.absent()
+          : Value(householdId),
       payload: Value(payload),
       status: Value(status),
       attempts: Value(attempts),
@@ -4085,6 +4121,7 @@ class PendingMutationRow extends DataClass
       id: serializer.fromJson<int>(json['id']),
       key: serializer.fromJson<String>(json['key']),
       type: serializer.fromJson<String>(json['type']),
+      householdId: serializer.fromJson<String?>(json['householdId']),
       payload: serializer.fromJson<String>(json['payload']),
       status: serializer.fromJson<String>(json['status']),
       attempts: serializer.fromJson<int>(json['attempts']),
@@ -4100,6 +4137,7 @@ class PendingMutationRow extends DataClass
       'id': serializer.toJson<int>(id),
       'key': serializer.toJson<String>(key),
       'type': serializer.toJson<String>(type),
+      'householdId': serializer.toJson<String?>(householdId),
       'payload': serializer.toJson<String>(payload),
       'status': serializer.toJson<String>(status),
       'attempts': serializer.toJson<int>(attempts),
@@ -4113,6 +4151,7 @@ class PendingMutationRow extends DataClass
     int? id,
     String? key,
     String? type,
+    Value<String?> householdId = const Value.absent(),
     String? payload,
     String? status,
     int? attempts,
@@ -4123,6 +4162,7 @@ class PendingMutationRow extends DataClass
     id: id ?? this.id,
     key: key ?? this.key,
     type: type ?? this.type,
+    householdId: householdId.present ? householdId.value : this.householdId,
     payload: payload ?? this.payload,
     status: status ?? this.status,
     attempts: attempts ?? this.attempts,
@@ -4137,6 +4177,9 @@ class PendingMutationRow extends DataClass
       id: data.id.present ? data.id.value : this.id,
       key: data.key.present ? data.key.value : this.key,
       type: data.type.present ? data.type.value : this.type,
+      householdId: data.householdId.present
+          ? data.householdId.value
+          : this.householdId,
       payload: data.payload.present ? data.payload.value : this.payload,
       status: data.status.present ? data.status.value : this.status,
       attempts: data.attempts.present ? data.attempts.value : this.attempts,
@@ -4154,6 +4197,7 @@ class PendingMutationRow extends DataClass
           ..write('id: $id, ')
           ..write('key: $key, ')
           ..write('type: $type, ')
+          ..write('householdId: $householdId, ')
           ..write('payload: $payload, ')
           ..write('status: $status, ')
           ..write('attempts: $attempts, ')
@@ -4169,6 +4213,7 @@ class PendingMutationRow extends DataClass
     id,
     key,
     type,
+    householdId,
     payload,
     status,
     attempts,
@@ -4183,6 +4228,7 @@ class PendingMutationRow extends DataClass
           other.id == this.id &&
           other.key == this.key &&
           other.type == this.type &&
+          other.householdId == this.householdId &&
           other.payload == this.payload &&
           other.status == this.status &&
           other.attempts == this.attempts &&
@@ -4195,6 +4241,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
   final Value<int> id;
   final Value<String> key;
   final Value<String> type;
+  final Value<String?> householdId;
   final Value<String> payload;
   final Value<String> status;
   final Value<int> attempts;
@@ -4205,6 +4252,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
     this.id = const Value.absent(),
     this.key = const Value.absent(),
     this.type = const Value.absent(),
+    this.householdId = const Value.absent(),
     this.payload = const Value.absent(),
     this.status = const Value.absent(),
     this.attempts = const Value.absent(),
@@ -4216,6 +4264,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
     this.id = const Value.absent(),
     required String key,
     required String type,
+    this.householdId = const Value.absent(),
     required String payload,
     this.status = const Value.absent(),
     this.attempts = const Value.absent(),
@@ -4230,6 +4279,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
     Expression<int>? id,
     Expression<String>? key,
     Expression<String>? type,
+    Expression<String>? householdId,
     Expression<String>? payload,
     Expression<String>? status,
     Expression<int>? attempts,
@@ -4241,6 +4291,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
       if (id != null) 'id': id,
       if (key != null) 'key': key,
       if (type != null) 'type': type,
+      if (householdId != null) 'household_id': householdId,
       if (payload != null) 'payload': payload,
       if (status != null) 'status': status,
       if (attempts != null) 'attempts': attempts,
@@ -4254,6 +4305,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
     Value<int>? id,
     Value<String>? key,
     Value<String>? type,
+    Value<String?>? householdId,
     Value<String>? payload,
     Value<String>? status,
     Value<int>? attempts,
@@ -4265,6 +4317,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
       id: id ?? this.id,
       key: key ?? this.key,
       type: type ?? this.type,
+      householdId: householdId ?? this.householdId,
       payload: payload ?? this.payload,
       status: status ?? this.status,
       attempts: attempts ?? this.attempts,
@@ -4285,6 +4338,9 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
     }
     if (type.present) {
       map['type'] = Variable<String>(type.value);
+    }
+    if (householdId.present) {
+      map['household_id'] = Variable<String>(householdId.value);
     }
     if (payload.present) {
       map['payload'] = Variable<String>(payload.value);
@@ -4313,6 +4369,7 @@ class PendingMutationsCompanion extends UpdateCompanion<PendingMutationRow> {
           ..write('id: $id, ')
           ..write('key: $key, ')
           ..write('type: $type, ')
+          ..write('householdId: $householdId, ')
           ..write('payload: $payload, ')
           ..write('status: $status, ')
           ..write('attempts: $attempts, ')
@@ -4358,6 +4415,10 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     'pending_mutation_status',
     'CREATE INDEX pending_mutation_status ON pending_mutation (status)',
   );
+  late final Index pendingMutationHousehold = Index(
+    'pending_mutation_household',
+    'CREATE INDEX pending_mutation_household ON pending_mutation (household_id)',
+  );
   @override
   Iterable<TableInfo<Table, Object?>> get allTables =>
       allSchemaEntities.whereType<TableInfo<Table, Object?>>();
@@ -4375,6 +4436,7 @@ abstract class _$AppDatabase extends GeneratedDatabase {
     fieldValuesEntity,
     visitsHousehold,
     pendingMutationStatus,
+    pendingMutationHousehold,
   ];
 }
 
@@ -6221,6 +6283,7 @@ typedef $$PendingMutationsTableCreateCompanionBuilder =
       Value<int> id,
       required String key,
       required String type,
+      Value<String?> householdId,
       required String payload,
       Value<String> status,
       Value<int> attempts,
@@ -6233,6 +6296,7 @@ typedef $$PendingMutationsTableUpdateCompanionBuilder =
       Value<int> id,
       Value<String> key,
       Value<String> type,
+      Value<String?> householdId,
       Value<String> payload,
       Value<String> status,
       Value<int> attempts,
@@ -6262,6 +6326,11 @@ class $$PendingMutationsTableFilterComposer
 
   ColumnFilters<String> get type => $composableBuilder(
     column: $table.type,
+    builder: (column) => ColumnFilters(column),
+  );
+
+  ColumnFilters<String> get householdId => $composableBuilder(
+    column: $table.householdId,
     builder: (column) => ColumnFilters(column),
   );
 
@@ -6320,6 +6389,11 @@ class $$PendingMutationsTableOrderingComposer
     builder: (column) => ColumnOrderings(column),
   );
 
+  ColumnOrderings<String> get householdId => $composableBuilder(
+    column: $table.householdId,
+    builder: (column) => ColumnOrderings(column),
+  );
+
   ColumnOrderings<String> get payload => $composableBuilder(
     column: $table.payload,
     builder: (column) => ColumnOrderings(column),
@@ -6368,6 +6442,11 @@ class $$PendingMutationsTableAnnotationComposer
 
   GeneratedColumn<String> get type =>
       $composableBuilder(column: $table.type, builder: (column) => column);
+
+  GeneratedColumn<String> get householdId => $composableBuilder(
+    column: $table.householdId,
+    builder: (column) => column,
+  );
 
   GeneratedColumn<String> get payload =>
       $composableBuilder(column: $table.payload, builder: (column) => column);
@@ -6430,6 +6509,7 @@ class $$PendingMutationsTableTableManager
                 Value<int> id = const Value.absent(),
                 Value<String> key = const Value.absent(),
                 Value<String> type = const Value.absent(),
+                Value<String?> householdId = const Value.absent(),
                 Value<String> payload = const Value.absent(),
                 Value<String> status = const Value.absent(),
                 Value<int> attempts = const Value.absent(),
@@ -6440,6 +6520,7 @@ class $$PendingMutationsTableTableManager
                 id: id,
                 key: key,
                 type: type,
+                householdId: householdId,
                 payload: payload,
                 status: status,
                 attempts: attempts,
@@ -6452,6 +6533,7 @@ class $$PendingMutationsTableTableManager
                 Value<int> id = const Value.absent(),
                 required String key,
                 required String type,
+                Value<String?> householdId = const Value.absent(),
                 required String payload,
                 Value<String> status = const Value.absent(),
                 Value<int> attempts = const Value.absent(),
@@ -6462,6 +6544,7 @@ class $$PendingMutationsTableTableManager
                 id: id,
                 key: key,
                 type: type,
+                householdId: householdId,
                 payload: payload,
                 status: status,
                 attempts: attempts,
