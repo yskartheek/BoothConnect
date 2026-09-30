@@ -134,7 +134,10 @@ describe('BatchProgress', () => {
   it('shows overall progress, and filters by status', async () => {
     setUp([batchOf(FILES)]);
     expect(await screen.findByLabelText('Files extracted: 5 of 6')).toHaveAttribute('value', '5');
-    expect(screen.getByText('Still working. This page updates by itself.')).toBeInTheDocument();
+    // The live region says the count too: the label isn't announced as it changes.
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Files extracted: 5 of 6. Still working. This page updates by itself.',
+    );
     const filter = screen.getByLabelText('Show');
     expect(
       within(filter)
@@ -199,10 +202,18 @@ describe('BatchProgress', () => {
       f.status === 'extracting' ? { ...f, ...extracted(300, true), status: 'ready' as const } : f,
     );
     const calls = setUp([batchOf(FILES), batchOf(done)]);
-    await screen.findByText('Still working. This page updates by itself.');
+    // The loading state is a status too: wait for the batch's own.
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent(
+        'Still working. This page updates by itself.',
+      ),
+    );
+    const status = screen.getByRole('status');
     // Asked again (however slow the first render was), and the page caught up.
     await act(() => vi.advanceTimersByTimeAsync(POLL_MS));
-    expect(await screen.findByText('Every file has finished.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(status).toHaveTextContent('Files extracted: 6 of 6. Every file has finished.'),
+    );
     expect(screen.getByLabelText('Files extracted: 6 of 6')).toBeInTheDocument();
     expect(calls.length).toBeGreaterThanOrEqual(2);
     // Nothing is working: no more requests.

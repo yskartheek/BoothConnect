@@ -88,6 +88,11 @@ The browser never holds a token.
 - **Browser tests** (`pnpm test:e2e`) run against `e2e/mock-api.mjs`, a
   stand-in for the API with a synthetic admin and volunteer. The code is
   always `123456`.
+- **Accessibility (#77):** `e2e/accessibility.spec.ts` runs axe
+  (`e2e/axe.ts`, WCAG 2.1 A/AA) on every Milestone 1 page in both themes, and
+  fails on any serious or critical violation. It also walks the import wizard
+  with the keyboard alone, checking the focus ring at every Tab stop. The page
+  specs run axe on their own states (dialogs, drawers, forms).
 
 ## Geography (#103)
 
