@@ -49,7 +49,7 @@ class AuthController extends Notifier<AuthStatus> {
       return SignInResult.noAssignment;
     }
     // Another volunteer's data (left by an ended session) is wiped first.
-    await ref.read(syncControllerProvider.notifier).prepareFor(me.id);
+    await ref.read(syncControllerProvider.notifier).prepareFor(me);
     state = AuthStatus.signedIn;
     return SignInResult.signedIn;
   }

@@ -1,12 +1,6 @@
 {
   "mobile.appTitle": "BoothConnect",
   "@mobile.appTitle": { "description": "App name, shown in the app bar and the OS task switcher." },
-  "mobile.homeWelcome": "Welcome to BoothConnect",
-  "@mobile.homeWelcome": { "description": "Heading on the placeholder home screen." },
-  "mobile.homeComingSoon": "Your booth's progress and pending uploads will appear here.",
-  "@mobile.homeComingSoon": {
-    "description": "Body text on the placeholder home screen, shown until the home screen is built."
-  },
   "mobile.signInTitle": "Sign in",
   "@mobile.signInTitle": { "description": "Heading and app bar title of the sign-in screen." },
   "mobile.signOut": "Sign out",
@@ -82,6 +76,38 @@
   "mobile.signInUseAnotherNumber": "Use another number",
   "@mobile.signInUseAnotherNumber": {
     "description": "Button on the denied state, back to the phone step."
+  },
+  "mobile.homeBoothTitle": "Your booth",
+  "@mobile.homeBoothTitle": { "description": "Heading of the booth card on the home screen." },
+  "mobile.homeBoothLine": "{name}, booth {code}",
+  "@mobile.homeBoothLine": {
+    "description": "The assigned booth: {name} is the polling station, {code} its number."
+  },
+  "mobile.homeNoBooth": "No booth assigned yet. Ask your coordinator.",
+  "@mobile.homeNoBooth": {
+    "description": "Shown when the volunteer has no booth assignment on record."
+  },
+  "mobile.homeProgressTitle": "Visits",
+  "@mobile.homeProgressTitle": { "description": "Heading of the visit progress card." },
+  "mobile.homeVisited": "{visited} of {total} households visited",
+  "@mobile.homeVisited": { "description": "Visit progress; both are numbers." },
+  "mobile.homeUploadsTitle": "Uploads",
+  "@mobile.homeUploadsTitle": { "description": "Heading of the uploads card." },
+  "mobile.homePending": "Waiting to upload: {count}",
+  "@mobile.homePending": { "description": "Number of changes on the phone not yet uploaded." },
+  "mobile.homeAllUploaded": "Everything is uploaded.",
+  "@mobile.homeAllUploaded": { "description": "Shown when no change is waiting to upload." },
+  "mobile.homeUpdated": "Booth data updated {time}",
+  "@mobile.homeUpdated": {
+    "description": "When the booth's data was last downloaded; {time} is a date and time."
+  },
+  "mobile.homeNeverUpdated": "Booth data not downloaded yet.",
+  "@mobile.homeNeverUpdated": { "description": "Shown before the first download." },
+  "mobile.homeUpdating": "Downloading booth data…",
+  "@mobile.homeUpdating": { "description": "Shown while downloading." },
+  "mobile.homeUpdateFailed": "Couldn't download the booth data. Pull down to try again.",
+  "@mobile.homeUpdateFailed": {
+    "description": "Shown when the last download failed (not offline)."
   },
 
   "web.appTitle": "BoothConnect Admin",

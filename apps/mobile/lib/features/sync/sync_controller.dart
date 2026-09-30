@@ -4,7 +4,9 @@ import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../../data/api/api_error.dart';
+import '../../data/api/auth_api.dart';
 import '../../data/api/providers.dart';
+import '../../data/local/local_reads.dart';
 import '../../data/local/local_store.dart';
 import '../../data/sync/sync_api.dart';
 import '../../data/sync/sync_repository.dart';
@@ -46,9 +48,21 @@ final syncApiProvider = Provider<SyncApi>(
   (ref) => SyncApi(ref.watch(dioProvider)),
 );
 
-/// Phone connectivity changes; tests override it.
-final connectivityChangesProvider = Provider<Stream<List<ConnectivityResult>>>(
-  (ref) => Connectivity().onConnectivityChanged,
+/// The phone's connectivity: the current state, then each change. Tests
+/// override it.
+final connectivityChangesProvider = Provider<Stream<List<ConnectivityResult>>>((
+  ref,
+) async* {
+  final connectivity = Connectivity();
+  yield await connectivity.checkConnectivity();
+  yield* connectivity.onConnectivityChanged;
+});
+
+/// Whether the phone has a connection (true until it says otherwise).
+final onlineProvider = StreamProvider<bool>(
+  (ref) => ref
+      .watch(connectivityChangesProvider)
+      .map((results) => results.any((r) => r != ConnectivityResult.none)),
 );
 
 /// Runs sync pulls: one at a time, however many triggers fire.
@@ -63,16 +77,23 @@ class SyncController extends Notifier<SyncState> {
     ref.read(syncApiProvider),
   );
 
-  /// Before the first pull for [userId]: a database holding another
+  /// Before the first pull for [me]: a database holding another
   /// volunteer's data (their session ended without a sign-out) is wiped.
-  Future<void> prepareFor(String userId) async {
+  /// Then it records who owns it and their booths.
+  Future<void> prepareFor(Me me) async {
     final owner = await (await _repository()).owner();
-    if (owner != null && owner != userId) {
+    if (owner != null && owner != me.id) {
       await ref.read(localStoreProvider).wipe();
       ref.invalidate(appDatabaseProvider);
       state = const SyncState();
     }
-    await (await _repository()).setOwner(userId);
+    final repository = await _repository();
+    await repository.setOwner(me.id);
+    await repository.setBooths([
+      for (final a in me.assignments)
+        if (a.role == 'volunteer')
+          BoothAssignment(name: a.nodeName, code: a.nodeCode),
+    ]);
   }
 
   /// Pulls now (after sign-in, on resume, when back online, or on

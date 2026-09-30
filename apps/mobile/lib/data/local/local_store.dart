@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:drift/drift.dart' show DatabaseConnection;
 import 'package:drift/native.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:path/path.dart' as p;
@@ -15,6 +16,7 @@ class LocalStore {
     required this.directory,
     required this.keys,
     this.inBackground = true,
+    this.closeStreamsSynchronously = false,
   });
 
   static const fileName = 'boothconnect.db';
@@ -25,6 +27,11 @@ class LocalStore {
 
   /// Runs queries on a background isolate (the app); tests use false.
   final bool inBackground;
+
+  /// Widget tests set this. Drift otherwise keeps a cancelled watch alive
+  /// until a timer runs, and closing the database waits for that timer,
+  /// which a widget test's fake clock never fires after the test.
+  final bool closeStreamsSynchronously;
 
   AppDatabase? _db;
 
@@ -39,7 +46,12 @@ class LocalStore {
     final executor = inBackground
         ? NativeDatabase.createInBackground(dbFile, setup: setup)
         : NativeDatabase(dbFile, setup: setup);
-    return _db = AppDatabase(executor);
+    return _db = AppDatabase(
+      DatabaseConnection(
+        executor,
+        closeStreamsSynchronously: closeStreamsSynchronously,
+      ),
+    );
   }
 
   /// Closes the database and deletes its files and key: nothing the

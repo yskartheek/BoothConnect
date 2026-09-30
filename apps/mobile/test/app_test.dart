@@ -18,7 +18,7 @@ void main() {
     expect(location(container), '/sign-in');
     expect(find.byType(SignInScreen), findsOneWidget);
     expect(find.text('Sign in'), findsOneWidget);
-    expect(find.text('Welcome to BoothConnect'), findsNothing);
+    expect(find.text('Your booth'), findsNothing);
 
     // Every other page is closed too.
     for (final path in [
@@ -48,7 +48,7 @@ void main() {
   testWidgets('signed in, sign-in goes on to home', (tester) async {
     final container = await startApp(tester, api: FakeAuthApi(session: true));
     expect(location(container), '/');
-    expect(find.text('Welcome to BoothConnect'), findsOneWidget);
+    expect(find.text('Your booth'), findsOneWidget);
 
     await go(tester, container, '/sign-in');
     expect(location(container), '/');
@@ -89,7 +89,7 @@ void main() {
     expect(find.widgetWithText(AppBar, 'Uploads'), findsOneWidget);
     await tester.tap(find.byType(BackButton));
     await tester.pumpAndSettle();
-    expect(find.text('Welcome to BoothConnect'), findsOneWidget);
+    expect(find.text('Your booth'), findsOneWidget);
   });
 
   testWidgets('signing out wipes the phone and goes back to sign-in', (

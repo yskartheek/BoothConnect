@@ -55,6 +55,7 @@ Future<ProviderContainer> startApp(
           directory: () async => dir,
           keys: DatabaseKeyStore(secrets),
           inBackground: false,
+          closeStreamsSynchronously: true,
         ),
       ),
     ],
