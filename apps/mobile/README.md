@@ -177,7 +177,7 @@ queued changes) and conflicts (queued changes in conflict, details with
 - **Add household:** in the header on iOS, a floating button on Android
   (`Routes.newHousehold`, a placeholder until #115).
 - `pending_mutation.household_id` (schema version 2) ties a queued change to
-  its household. The #66 push worker fills it.
+  its household. `LocalWrites` (#65) fills it.
 
 `localWatch` (`features/shared/local_watch.dart`) makes a stream provider
 over a Drift watch that reads only while signed in; home and the list use it.
@@ -207,6 +207,36 @@ disposed when the screen closes):
   to `Routes.newMember` and a card to `Routes.member` (#114).
 
 Gender labels are the shared `gender.*` strings (`genderLabel(l10n, code)`).
+
+## Visit form and writes on the phone (#65)
+
+`features/visit/visit_screen.dart`: the outcome (plain-language chips, the
+rarer ones behind **More options…**), who the volunteer met, notes, and
+**Save visit**. **No one home** and **Refused** save at once. **Who did you
+meet?** shows for Met the family, Met some members and Come back later; each
+member row says what changed during this visit
+(`watchMemberChangesSince`) and has **Edit** (`Routes.member`, #114).
+
+`lib/data/local/local_writes.dart` (`LocalWrites`) writes on the phone. Each
+write and its queued `pending_mutation` go in one transaction, with a new
+idempotency `key` (`newId()`, a v4 UUID) and the household id. Payloads follow
+`POST /v1/sync/push`:
+
+- `recordVisit(...)`: a `visits` row (a new `clientId`, no `serverId` yet,
+  the volunteer from `sync_meta.owner`) and `visit.create`. Fails, writing
+  nothing, when no volunteer is signed in.
+- `changeField(...)`: a new current `field_values` row (the old one is no
+  longer current; `supersedesId` points to it) and `field.change` with
+  `baseVersion` = the value it replaced (null for a new detail). Changing the
+  same field again while its change is still `pending` updates that change
+  instead, keeping the original base; once it's being uploaded, a further
+  edit is a change of its own.
+
+Times in payloads are `isoMillis` (UTC, to the millisecond), so they compare
+as strings.
+
+`localWatchFamily` also takes records, e.g. `visitChangesProvider((id,
+startedAt))`.
 
 ## Screen states (#58)
 

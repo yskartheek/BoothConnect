@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:drift/drift.dart';
 
 import 'app_database.dart';
+import 'ids.dart';
 
 /// What screens read. They read the phone's database only, never the API,
 /// so they work offline; sync keeps the database current. Watches update
@@ -133,6 +134,38 @@ WHERE h.status != 'removed' AND (?1 IS NULL OR h.id = ?1)
       readsFrom: {voters, fieldValues},
     ).map(MemberCard.fromRow).watch();
   }
+
+  /// The member details changed on this phone since [since] and not yet
+  /// uploaded, by member: for "Updated mobile, occupation" in a visit.
+  Stream<Map<String, List<String>>> watchMemberChangesSince(
+    String householdId,
+    DateTime since,
+  ) =>
+      customSelect(
+        r"SELECT json_extract(payload, '$.entityId') AS member, "
+        r"json_extract(payload, '$.fieldKey') AS field "
+        "FROM pending_mutation WHERE type = 'field.change' "
+        'AND household_id = ?1 '
+        r"AND json_extract(payload, '$.entityType') = 'voter' "
+        r"AND json_extract(payload, '$.collectedAt') >= ?2 "
+        'ORDER BY id',
+        variables: [
+          Variable<String>(householdId),
+          Variable<String>(isoMillis(since)),
+        ],
+        readsFrom: {pendingMutations},
+      ).watch().map((rows) {
+        final changes = <String, List<String>>{};
+        for (final row in rows) {
+          final fields = changes.putIfAbsent(
+            row.read<String>('member'),
+            () => [],
+          );
+          final field = row.read<String>('field');
+          if (!fields.contains(field)) fields.add(field);
+        }
+        return changes;
+      });
 
   /// Keys of fields no longer collected: never shown, nor their values.
   Stream<Set<String>> watchDisabledFieldKeys() =>

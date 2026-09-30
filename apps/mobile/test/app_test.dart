@@ -61,14 +61,13 @@ void main() {
     expect(location(container), '/');
   });
 
-  testWidgets('every route opens its placeholder screen', (tester) async {
+  testWidgets('every route opens its screen', (tester) async {
     final container = await startApp(tester, api: FakeAuthApi(session: true));
     for (final (path, title) in [
       ('/households/new', 'New household'),
       ('/household/h-1/address', 'Address'),
       ('/household/h-1/members/new', 'Add member'),
       ('/member/v-1', 'Member'),
-      ('/visit/h-2', 'Visit'),
       ('/sync', 'Uploads'),
     ]) {
       await go(tester, container, path);
@@ -88,11 +87,14 @@ void main() {
         final screen = tester.widget<MemberScreen>(find.byType(MemberScreen));
         expect((screen.householdId, screen.memberId), (null, 'v-1'));
       }
-      if (path.startsWith('/visit/')) {
-        final visit = tester.widget<VisitScreen>(find.byType(VisitScreen));
-        expect(visit.householdId, 'h-2');
-      }
     }
+
+    // The visit form, for a household this phone doesn't have.
+    await go(tester, container, '/visit/h-2');
+    final visit = tester.widget<VisitScreen>(find.byType(VisitScreen));
+    expect(visit.householdId, 'h-2');
+    expect(find.widgetWithText(AppBar, 'Visit'), findsOneWidget);
+    expect(find.text('Household not found'), findsOneWidget);
   });
 
   testWidgets('home opens households and uploads, and back returns', (

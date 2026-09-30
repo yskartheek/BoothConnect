@@ -211,6 +211,50 @@
   "@mobile.householdAddressTitle": {
     "description": "App bar title of the household address screen."
   },
+  "mobile.visitTitleFor": "Visit · {address}",
+  "@mobile.visitTitleFor": {
+    "description": "App bar title of the visit form. {address}: the household's address."
+  },
+  "mobile.visitCancel": "Cancel",
+  "@mobile.visitCancel": { "description": "Leaves the visit form without saving." },
+  "mobile.visitHowDidItGo": "How did it go?",
+  "@mobile.visitHowDidItGo": { "description": "Heading above the visit outcomes." },
+  "mobile.visitMoreOptions": "More options…",
+  "@mobile.visitMoreOptions": { "description": "Shows the less common visit outcomes." },
+  "mobile.visitFewerOptions": "Fewer options",
+  "@mobile.visitFewerOptions": { "description": "Hides the less common visit outcomes again." },
+  "mobile.visitWhoDidYouMeet": "Who did you meet?",
+  "@mobile.visitWhoDidYouMeet": {
+    "description": "Heading above the members checklist in the visit form."
+  },
+  "mobile.visitNoChanges": "No changes",
+  "@mobile.visitNoChanges": {
+    "description": "Member row in the visit form: met, nothing changed."
+  },
+  "mobile.visitNotMet": "Not met",
+  "@mobile.visitNotMet": { "description": "Member row in the visit form: not ticked as met." },
+  "mobile.visitUpdated": "Updated {fields}",
+  "@mobile.visitUpdated": {
+    "description": "Member row in the visit form. {fields}: the changed details, e.g. \"mobile number, occupation\"."
+  },
+  "mobile.visitEditMember": "Edit",
+  "@mobile.visitEditMember": { "description": "Link on a member row: opens the member's details." },
+  "mobile.visitEditMemberLabel": "Edit {name}",
+  "@mobile.visitEditMemberLabel": {
+    "description": "Screen reader label of the Edit link. {name}: the member's name."
+  },
+  "mobile.visitNotes": "Notes (optional)",
+  "@mobile.visitNotes": { "description": "Label of the visit notes field." },
+  "mobile.visitNotesHint": "Don't record health, religion or party details.",
+  "@mobile.visitNotesHint": { "description": "Helper text under the notes field." },
+  "mobile.visitSave": "Save visit",
+  "@mobile.visitSave": { "description": "Saves the visit on the phone." },
+  "mobile.visitSaved": "Visit saved. It uploads when you're online.",
+  "@mobile.visitSaved": { "description": "Shown after saving a visit." },
+  "mobile.visitSaveFailed": "Couldn't save the visit. Try again.",
+  "@mobile.visitSaveFailed": { "description": "Shown when saving a visit fails." },
+  "mobile.visitChooseOutcome": "Choose how the visit went to save it.",
+  "@mobile.visitChooseOutcome": { "description": "Shown under Save while no outcome is chosen." },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },
@@ -1447,5 +1491,33 @@
   "gender.male": "Male",
   "@gender.male": { "description": "Gender (API code: male)." },
   "gender.third_gender": "Third gender",
-  "@gender.third_gender": { "description": "Gender (API code: third_gender)." }
+  "@gender.third_gender": { "description": "Gender (API code: third_gender)." },
+  "field.name": "Name",
+  "@field.name": { "description": "Label of the name field (field definition labelKey)." },
+  "field.age": "Age",
+  "@field.age": { "description": "Label of the age field (field definition labelKey)." },
+  "field.gender": "Gender",
+  "@field.gender": { "description": "Label of the gender field (field definition labelKey)." },
+  "field.mobile_number": "Mobile number",
+  "@field.mobile_number": {
+    "description": "Label of the mobile_number field (field definition labelKey)."
+  },
+  "field.occupation": "Occupation",
+  "@field.occupation": {
+    "description": "Label of the occupation field (field definition labelKey)."
+  },
+  "field.additional_info": "Additional info",
+  "@field.additional_info": {
+    "description": "Label of the additional_info field (field definition labelKey)."
+  },
+  "field.caste_community": "Caste / community",
+  "@field.caste_community": {
+    "description": "Label of the caste_community field (field definition labelKey)."
+  },
+  "field.address": "Address",
+  "@field.address": { "description": "Label of the address field (field definition labelKey)." },
+  "field.household_location": "Location",
+  "@field.household_location": {
+    "description": "Label of the household_location field (field definition labelKey)."
+  }
 }
