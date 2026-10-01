@@ -307,6 +307,31 @@ triggers and the visit form.
 - "Yours" compares `collected_by_id` with `sync_meta.owner`
   (`watchOwner()`). Your own value is chosen first, else the newest.
 
+## Member details (#114)
+
+`features/members/member_screen.dart` edits a member (`/member/:id`) or adds
+one (`/household/:id/members/new`, `MemberScreen.add`):
+
+- Values come from `watchMemberDetail(id)`: the latest current value of
+  each field, else the roll's (`official`). The official reference is the
+  EPIC, plus the booth when the volunteer has one.
+- **Save** writes only what changed (`LocalWrites.changeField`), or adds the
+  member (`addMember`: a `volunteer_added` voter with its values on the
+  phone, and `member.create` with the phone-made id). An emptied detail keeps
+  its value.
+- **Caste / community** (`caste_community`) needs **Voter agrees to share
+  this**. `captureConsent` (purpose, `consentNoticeVersion`, in person) and
+  `queueRestrictedField` queue `consent.capture` and then the value with
+  that `consentId`.
+- **Restricted details are never kept on the phone.** The value is only in
+  the queue until it uploads, and a pull deletes values of restricted
+  fields even if the server sends them.
+- Disabled fields are hidden. A field whose definition lists `options` is a
+  list to choose from.
+- Pushing `member.create`: the result's `fields[].fieldValueId` replace the
+  phone's ids (`_fieldValueIds`, not sent), and an edit based on them waits
+  for the next batch.
+
 ## End-to-end test (#68)
 
 `test/e2e/offline_sync_test.dart` runs the whole app against

@@ -6,6 +6,10 @@ import 'app_database.dart';
 import 'ids.dart';
 import 'local_reads.dart';
 
+/// The consent notice the volunteer reads out (its version is recorded with
+/// each consent).
+const consentNoticeVersion = '2026.1';
+
 /// Changes made on the phone. Each is written to the local database and
 /// queued in `pending_mutation` in one transaction, so it shows at once,
 /// works offline, and is uploaded by the sync worker (#66). Payloads follow
@@ -156,6 +160,115 @@ extension LocalWrites on AppDatabase {
       // with "_" stay on the phone.
       '_fieldValueId': localId,
     });
+  });
+
+  /// Records the member's agreement to share [purpose] (a field key, e.g.
+  /// `caste_community`) and queues `consent.capture`. Returns its id, which
+  /// the values it covers name as `consentId`.
+  Future<String> captureConsent({
+    required String voterId,
+    required String householdId,
+    required String purpose,
+    required DateTime at,
+    String noticeVersion = consentNoticeVersion,
+  }) async {
+    final id = newId();
+    await _queue('consent.capture', householdId, at, {
+      'id': id,
+      'voterId': voterId,
+      'purpose': purpose,
+      'noticeVersion': noticeVersion,
+      'method': 'in_person_verbal',
+      'capturedAt': isoMillis(at),
+    });
+    return id;
+  }
+
+  /// Queues a restricted detail (caste / community) for upload without
+  /// keeping it on the phone: once uploaded, only authorised staff see it.
+  /// The phone never holds the current value, so there is no base.
+  Future<void> queueRestrictedField({
+    required String voterId,
+    required String householdId,
+    required String fieldKey,
+    required Object value,
+    required String consentId,
+    required DateTime at,
+  }) => _queue('field.change', householdId, at, {
+    'entityType': 'voter',
+    'entityId': voterId,
+    'fieldKey': fieldKey,
+    'value': value,
+    'baseVersion': null,
+    'consentId': consentId,
+    'collectedAt': isoMillis(at),
+  });
+
+  /// Adds someone who lives in [householdId] but isn't on the official list,
+  /// and queues `member.create`. [fields] are other details (mobile number,
+  /// occupation, …). Returns the member's id, made on the phone.
+  Future<String> addMember({
+    required String householdId,
+    required String name,
+    int? age,
+    String? gender,
+    Map<String, Object> fields = const {},
+    required DateTime at,
+  }) => transaction(() async {
+    final household = await (select(
+      households,
+    )..where((t) => t.id.equals(householdId))).getSingle();
+    final owner = await _owner();
+    final id = newId();
+    await into(voters).insert(
+      VotersCompanion.insert(
+        id: id,
+        householdId: householdId,
+        partId: household.partId,
+        pollingStationId: household.pollingStationId,
+        origin: 'volunteer_added',
+        recordStatus: 'active',
+        official: 'null',
+        previousVoterIds: const [],
+      ),
+    );
+    final values = <String, Object>{
+      'name': name,
+      'age': ?age,
+      'gender': ?gender,
+      ...fields,
+    };
+    final localIds = <String, String>{};
+    for (final MapEntry(:key, :value) in values.entries) {
+      final valueId = localIds[key] = newId();
+      await into(fieldValues).insert(
+        FieldValuesCompanion.insert(
+          id: valueId,
+          entityType: 'voter',
+          entityId: id,
+          fieldKey: key,
+          value: jsonEncode(value),
+          sourceType: 'volunteer_collected',
+          collectedById: Value(owner),
+          collectedAt: at,
+          isCurrent: true,
+        ),
+      );
+    }
+    await _queue('member.create', householdId, at, {
+      'householdId': householdId,
+      'id': id,
+      'name': name,
+      'age': ?age,
+      'gender': ?gender,
+      'fields': [
+        for (final MapEntry(:key, :value) in fields.entries)
+          {'fieldKey': key, 'value': value},
+      ],
+      // The phone's copies, given the server's ids once uploaded.
+      '_fieldValueIds': localIds,
+    });
+    return id;
   });
 
   /// Keeps [keepId], one of [conflict]'s two values, and queues

@@ -208,6 +208,48 @@ WHERE h.status != 'removed' AND (?1 IS NULL OR h.id = ?1)
           .watchSingleOrNull()
           .map((row) => row?.value);
 
+  /// One member for the details screen: the roll's record, each detail's
+  /// current value (the latest), and whether a restricted detail (caste /
+  /// community) is waiting to upload. Null when the member isn't on the
+  /// phone.
+  Stream<MemberDetail?> watchMemberDetail(String id) =>
+      // Read again whenever any of the three tables changes.
+      customSelect(
+        'SELECT 1',
+        readsFrom: {voters, fieldValues, pendingMutations},
+      ).watch().asyncMap((_) => _memberDetail(id));
+
+  Future<MemberDetail?> _memberDetail(String id) async {
+    final voter = await (select(
+      voters,
+    )..where((t) => t.id.equals(id))).getSingleOrNull();
+    if (voter == null) return null;
+    final rows =
+        await (select(fieldValues)
+              ..where((t) => t.entityId.equals(id) & t.isCurrent.equals(true))
+              ..orderBy([(t) => OrderingTerm(expression: t.collectedAt)]))
+            .get();
+    final waiting = await customSelect(
+      r"SELECT json_extract(payload, '$.fieldKey') AS field "
+      "FROM pending_mutation WHERE type = 'field.change' "
+      r"AND json_extract(payload, '$.entityId') = ?1 "
+      r"AND json_extract(payload, '$.consentId') IS NOT NULL",
+      variables: [Variable<String>(id)],
+    ).map((row) => row.read<String>('field')).get();
+    return MemberDetail(
+      voter: voter,
+      // The latest current value of each field wins.
+      current: {for (final r in rows) r.fieldKey: r},
+      waitingRestricted: waiting.toSet(),
+    );
+  }
+
+  /// The fields collected, by key.
+  Stream<Map<String, FieldDefinitionRow>> watchFieldDefinitions() =>
+      select(fieldDefinitions)
+          .watch()
+          .map((rows) => {for (final r in rows) r.key: r});
+
   /// Keys of fields no longer collected: never shown, nor their values.
   Stream<Set<String>> watchDisabledFieldKeys() =>
       (select(fieldDefinitions)..where((t) => t.enabled.not()))
@@ -522,5 +564,33 @@ Object? _decodeOrNull(String? json) {
     return jsonDecode(json);
   } on FormatException {
     return null;
+  }
+}
+
+/// A member as the details screen edits them.
+class MemberDetail {
+  const MemberDetail({
+    required this.voter,
+    required this.current,
+    this.waitingRestricted = const {},
+  });
+
+  final VoterRow voter;
+
+  /// The current value of each detail, by field key.
+  final Map<String, FieldValueRow> current;
+
+  /// Restricted details (with a consent) waiting to upload.
+  final Set<String> waitingRestricted;
+
+  Map<String, dynamic> get _official {
+    final o = _decodeOrNull(voter.official);
+    return o is Map<String, dynamic> ? o : const <String, dynamic>{};
+  }
+
+  /// [key]'s value: the current one, else the roll's.
+  Object? value(String key) {
+    final row = current[key];
+    return row != null ? _decodeOrNull(row.value) : _official[key];
   }
 }

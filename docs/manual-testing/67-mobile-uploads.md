@@ -33,7 +33,7 @@
    **Expect:** "Offline · 1 waiting", and "Visit · _address_" with "Waiting for the connection" (or a next-try time) and **On phone**.
 4. Turn airplane mode off and tap **Upload now**.
    **Expect:** within a few seconds, "Online · everything uploaded".
-5. Optional, once member editing (#114) is in: in airplane mode, change a member's mobile number on the phone. Meanwhile, change the same number on another phone or in the admin portal. Turn airplane mode off.
+5. Optional: in airplane mode, change a member's mobile number on the phone. Meanwhile, change the same number on another phone or in the admin portal. Turn airplane mode off.
    **Expect:**
    - **Choose which value to keep**, with both numbers, "Yours · …" and the other person's name;
    - choose one and tap **Keep selected value**: "Kept…", the card goes, and the household no longer shows **Choose value**.
@@ -44,5 +44,5 @@
 
 ## Known issues and notes
 
-- Until #114 (member details) the phone can't make its own detail edits, so conflicts and refused changes are covered by the widget and in-app tests (`uploads_test.dart`), not these steps.
+- Refused changes are covered by the widget and in-app tests (`uploads_test.dart`), not these steps.
 - The time shown for a value is the phone's local time.
