@@ -255,6 +255,82 @@
   "@mobile.visitSaveFailed": { "description": "Shown when saving a visit fails." },
   "mobile.visitChooseOutcome": "Choose how the visit went to save it.",
   "@mobile.visitChooseOutcome": { "description": "Shown under Save while no outcome is chosen." },
+  "mobile.syncIntro": "Everything you save stays on this phone first and uploads automatically. You only need this screen when something needs a choice.",
+  "@mobile.syncIntro": { "description": "Uploads screen: what the screen is for." },
+  "mobile.syncOnlineUploading": "Online · uploading {current} of {total}",
+  "@mobile.syncOnlineUploading": {
+    "description": "Uploads status chip. {current}: changes being uploaded now; {total}: changes waiting."
+  },
+  "mobile.syncOnlineWaiting": "Online · {count} waiting",
+  "@mobile.syncOnlineWaiting": {
+    "description": "Uploads status chip: online, changes waiting for their next try."
+  },
+  "mobile.syncOfflineWaiting": "Offline · {count} waiting",
+  "@mobile.syncOfflineWaiting": { "description": "Uploads status chip: offline, changes waiting." },
+  "mobile.syncOnlineDone": "Online · everything uploaded",
+  "@mobile.syncOnlineDone": { "description": "Uploads status chip: nothing waiting." },
+  "mobile.syncOfflineDone": "Offline · nothing waiting",
+  "@mobile.syncOfflineDone": { "description": "Uploads status chip: offline, nothing waiting." },
+  "mobile.syncChooseTitle": "Choose which value to keep",
+  "@mobile.syncChooseTitle": { "description": "Heading above the conflicts." },
+  "mobile.syncConflictTitle": "{who} · {field}",
+  "@mobile.syncConflictTitle": {
+    "description": "Conflict card title. {who}: the member's name or the address; {field}: the detail, e.g. Mobile number."
+  },
+  "mobile.syncConflictWhy": "{address}. Two people changed it while offline.",
+  "@mobile.syncConflictWhy": {
+    "description": "Conflict card explanation. {address}: the household's address."
+  },
+  "mobile.syncValueYours": "Yours · {time}",
+  "@mobile.syncValueYours": {
+    "description": "Who set a value, and when: the volunteer using the phone."
+  },
+  "mobile.syncValueBy": "{name} · {time}",
+  "@mobile.syncValueBy": { "description": "Who set a value, and when: another person." },
+  "mobile.syncValueSomeone": "Someone else · {time}",
+  "@mobile.syncValueSomeone": { "description": "Who set a value, and when: unknown person." },
+  "mobile.syncKeepSelected": "Keep selected value",
+  "@mobile.syncKeepSelected": { "description": "Button: keeps the chosen value of a conflict." },
+  "mobile.syncKept": "Kept. The other value stays in the history.",
+  "@mobile.syncKept": { "description": "Shown after choosing which value to keep." },
+  "mobile.syncWaitingTitle": "Waiting to upload",
+  "@mobile.syncWaitingTitle": { "description": "Heading above the queued changes." },
+  "mobile.syncNotUploadedTitle": "Not uploaded",
+  "@mobile.syncNotUploadedTitle": { "description": "Heading above changes the server refused." },
+  "mobile.syncItemVisit": "Visit · {address}",
+  "@mobile.syncItemVisit": { "description": "Queued change: a visit. {address}: the household." },
+  "mobile.syncItemChange": "{field} · {address}",
+  "@mobile.syncItemChange": {
+    "description": "Queued change: a detail. {field}: e.g. Occupation; {address}: the household."
+  },
+  "mobile.syncItemResolve": "Chosen value · {address}",
+  "@mobile.syncItemResolve": { "description": "Queued change: a value chosen in a conflict." },
+  "mobile.syncItemOther": "Change · {address}",
+  "@mobile.syncItemOther": { "description": "Queued change of another kind." },
+  "mobile.syncUploadingNow": "Uploading now",
+  "@mobile.syncUploadingNow": { "description": "Queued change being uploaded." },
+  "mobile.syncNextTry": "Next try at {time}",
+  "@mobile.syncNextTry": {
+    "description": "Queued change waiting to retry. {time}: e.g. 10:07 AM."
+  },
+  "mobile.syncWaiting": "Waiting for the connection",
+  "@mobile.syncWaiting": { "description": "Queued change not yet tried." },
+  "mobile.syncNotUploadedHelp": "Tap Retry. If it still isn't uploaded, tell your coordinator.",
+  "@mobile.syncNotUploadedHelp": { "description": "What to do about a change the server refused." },
+  "mobile.syncRetry": "Retry",
+  "@mobile.syncRetry": { "description": "Button: tries one change again now." },
+  "mobile.syncRetryLabel": "Retry: {item}",
+  "@mobile.syncRetryLabel": {
+    "description": "Screen reader label of a Retry button. {item}: the change, e.g. Visit \u00b7 12/4 Gandhi Road."
+  },
+  "mobile.syncUploadNow": "Upload now",
+  "@mobile.syncUploadNow": { "description": "Button: tries every waiting change now." },
+  "mobile.syncNothingWaiting": "Nothing is waiting. Everything you saved is on the server.",
+  "@mobile.syncNothingWaiting": { "description": "Uploads screen with an empty queue." },
+  "mobile.syncUnknownHousehold": "A household",
+  "@mobile.syncUnknownHousehold": {
+    "description": "Stands in for an address the phone doesn't have."
+  },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

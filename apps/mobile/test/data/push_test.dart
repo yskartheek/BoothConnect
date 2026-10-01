@@ -454,6 +454,25 @@ void main() {
       expect(await repository().nextAttemptAt(), isNull);
     });
 
+    test('an odd change on the phone doesn’t stop the batch', () async {
+      // Stored without the client id (an older or damaged row).
+      await db
+          .into(db.pendingMutations)
+          .insert(
+            PendingMutationsCompanion.insert(
+              key: 'mutation-odd',
+              type: 'visit.create',
+              payload: '{}',
+              createdAt: DateTime.utc(2026, 9, 30),
+            ),
+          );
+      await visit(db);
+      final result = await repository().pushDue(now: () => now);
+      expect(result.uploaded, 2);
+      expect(await queued(db), isEmpty);
+      expect((await db.select(db.visits).getSingle()).serverId, isNotNull);
+    });
+
     test('a server error answers like offline: retried later', () async {
       await visit(db);
       api.pushErrors.add(const ApiError('INTERNAL_ERROR', status: 503));

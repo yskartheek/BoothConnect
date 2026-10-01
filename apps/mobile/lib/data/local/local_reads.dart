@@ -167,6 +167,47 @@ WHERE h.status != 'removed' AND (?1 IS NULL OR h.id = ?1)
         return changes;
       });
 
+  /// Details two people changed at once, waiting for the volunteer to choose
+  /// which value to keep: each current value marked `conflict_with_id`, with
+  /// the value it conflicts with. Newest first.
+  Stream<List<OpenConflict>> watchOpenConflicts() {
+    const value = 'id, value, collected_by_id, collected_by_name, collected_at';
+    String columns(String t, String p) =>
+        value.split(', ').map((c) => '$t.$c AS ${p}_$c').join(', ');
+    return customSelect(
+      'SELECT a.entity_type, a.entity_id, a.field_key, '
+      '${columns('a', 'mine')}, ${columns('b', 'other')}, '
+      'h.id AS household_id, h.display_address, '
+      '(SELECT n.value FROM field_values n WHERE n.entity_id = v.id '
+      "AND n.field_key = 'name' AND n.is_current = 1 "
+      'ORDER BY n.collected_at DESC LIMIT 1) AS current_name, '
+      'v.official '
+      'FROM field_values a '
+      'JOIN field_values b ON b.id = a.conflict_with_id '
+      "LEFT JOIN voters v ON a.entity_type = 'voter' AND v.id = a.entity_id "
+      'LEFT JOIN households h ON h.id = COALESCE(v.household_id, a.entity_id) '
+      'WHERE a.is_current = 1 AND a.conflict_with_id IS NOT NULL '
+      'ORDER BY a.collected_at DESC',
+      readsFrom: {fieldValues, voters, households},
+    ).map(OpenConflict.fromRow).watch();
+  }
+
+  /// Changes waiting to upload (not those waiting for a choice), oldest
+  /// first, with the household's address.
+  Stream<List<UploadItem>> watchUploadQueue() => customSelect(
+    'SELECT m.id, m.type, m.status, m.attempts, m.next_attempt_at, '
+    'm.last_error, m.payload, h.display_address '
+    'FROM pending_mutation m LEFT JOIN households h ON h.id = m.household_id '
+    "WHERE m.status != 'conflict' ORDER BY m.id",
+    readsFrom: {pendingMutations, households},
+  ).map(UploadItem.fromRow).watch();
+
+  /// The signed-in volunteer's id (`sync_meta.owner`).
+  Stream<String?> watchOwner() =>
+      (select(syncMeta)..where((t) => t.key.equals('owner')))
+          .watchSingleOrNull()
+          .map((row) => row?.value);
+
   /// Keys of fields no longer collected: never shown, nor their values.
   Stream<Set<String>> watchDisabledFieldKeys() =>
       (select(fieldDefinitions)..where((t) => t.enabled.not()))
@@ -345,5 +386,141 @@ class MemberCard {
     } on FormatException {
       return null;
     }
+  }
+}
+
+/// One value of a conflict: what it is, who set it and when.
+class ConflictValue {
+  const ConflictValue({
+    required this.id,
+    required this.value,
+    required this.collectedAt,
+    this.collectedById,
+    this.collectedByName,
+  });
+
+  final String id;
+
+  /// Decoded JSON.
+  final Object? value;
+  final DateTime collectedAt;
+  final String? collectedById;
+  final String? collectedByName;
+}
+
+/// A detail two people changed at once.
+class OpenConflict {
+  const OpenConflict({
+    required this.entityType,
+    required this.entityId,
+    required this.fieldKey,
+    required this.mine,
+    required this.other,
+    this.householdId,
+    this.address,
+    this.memberName,
+  });
+
+  factory OpenConflict.fromRow(QueryRow row) {
+    ConflictValue value(String p) => ConflictValue(
+      id: row.read<String>('${p}_id'),
+      value: _decodeOrNull(row.read<String>('${p}_value')),
+      collectedAt: row.read<DateTime>('${p}_collected_at'),
+      collectedById: row.readNullable<String>('${p}_collected_by_id'),
+      collectedByName: row.readNullable<String>('${p}_collected_by_name'),
+    );
+    final official = _decodeOrNull(row.readNullable<String>('official'));
+    final current = _decodeOrNull(row.readNullable<String>('current_name'));
+    final name = current is String
+        ? current
+        : official is Map<String, dynamic> && official['name'] is String
+        ? official['name'] as String
+        : null;
+    return OpenConflict(
+      entityType: row.read<String>('entity_type'),
+      entityId: row.read<String>('entity_id'),
+      fieldKey: row.read<String>('field_key'),
+      mine: value('mine'),
+      other: value('other'),
+      householdId: row.readNullable<String>('household_id'),
+      address: row.readNullable<String>('display_address'),
+      memberName: name,
+    );
+  }
+
+  final String entityType;
+  final String entityId;
+  final String fieldKey;
+
+  /// The value marked as conflicting (the newer one).
+  final ConflictValue mine;
+
+  /// The value it conflicts with.
+  final ConflictValue other;
+  final String? householdId;
+  final String? address;
+
+  /// For a member's detail.
+  final String? memberName;
+
+  /// Both values, newest first.
+  List<ConflictValue> get values => other.collectedAt.isAfter(mine.collectedAt)
+      ? [other, mine]
+      : [mine, other];
+}
+
+/// A change waiting in the upload queue.
+class UploadItem {
+  const UploadItem({
+    required this.id,
+    required this.type,
+    required this.status,
+    required this.attempts,
+    this.nextAttemptAt,
+    this.lastError,
+    this.address,
+    this.fieldKey,
+  });
+
+  factory UploadItem.fromRow(QueryRow row) {
+    final payload = _decodeOrNull(row.read<String>('payload'));
+    return UploadItem(
+      id: row.read<int>('id'),
+      type: row.read<String>('type'),
+      status: row.read<String>('status'),
+      attempts: row.read<int>('attempts'),
+      nextAttemptAt: row.readNullable<DateTime>('next_attempt_at'),
+      lastError: row.readNullable<String>('last_error'),
+      address: row.readNullable<String>('display_address'),
+      fieldKey: payload is Map<String, dynamic> && payload['fieldKey'] is String
+          ? payload['fieldKey'] as String
+          : null,
+    );
+  }
+
+  final int id;
+
+  /// `visit.create`, `field.change`, …
+  final String type;
+
+  /// `pending`, `syncing` or `failed`.
+  final String status;
+  final int attempts;
+  final DateTime? nextAttemptAt;
+
+  /// The API's error code, for a change that wasn't uploaded.
+  final String? lastError;
+  final String? address;
+
+  /// For `field.change`.
+  final String? fieldKey;
+}
+
+Object? _decodeOrNull(String? json) {
+  if (json == null) return null;
+  try {
+    return jsonDecode(json);
+  } on FormatException {
+    return null;
   }
 }
