@@ -145,6 +145,18 @@ class PushRepository {
         ),
       );
 
+  /// Retry one change now (per-item retry).
+  Future<void> retryOne(int id) =>
+      (_db.update(_db.pendingMutations)..where(
+            (t) => t.id.equals(id) & t.status.isIn(['pending', 'failed']),
+          ))
+          .write(
+            const PendingMutationsCompanion(
+              status: Value('pending'),
+              nextAttemptAt: Value(null),
+            ),
+          );
+
   /// When the next change waiting to retry is due, or null if none waits.
   Future<DateTime?> nextAttemptAt() async {
     final next = _db.pendingMutations.nextAttemptAt.min();
@@ -238,10 +250,12 @@ class PushRepository {
     switch (mutation.type) {
       case 'visit.create':
         final serverId = result['id'];
-        if (serverId is String) {
-          await (_db.update(
-                _db.visits,
-              )..where((t) => t.clientId.equals(payload['clientId'] as String)))
+        final clientId = payload['clientId'];
+        // Anything unexpected is left for the next pull to settle; it never
+        // stops the rest of the batch.
+        if (serverId is String && clientId is String) {
+          await (_db.update(_db.visits)
+                ..where((t) => t.clientId.equals(clientId)))
               .write(VisitsCompanion(serverId: Value(serverId)));
         }
       case 'field.change':

@@ -144,6 +144,12 @@ class SyncController extends Notifier<SyncState> {
     return pushNow();
   }
 
+  /// Retry one change now.
+  Future<PushResult?> retryUpload(int id) async {
+    await (await _pushRepository()).retryOne(id);
+    return pushNow();
+  }
+
   /// Completes when no pull or push is running.
   Future<void> whenIdle() async {
     while (_running != null || _pushing != null) {

@@ -90,7 +90,13 @@ class SyncRepository {
     final definitions = _list(page, 'fieldDefinitions').map(_definition);
     final households = _list(page, 'households').map(_household);
     final voters = _list(page, 'voters').map(_voter);
-    final values = _list(page, 'fieldValues').map(_fieldValue);
+    // Open conflicts (last page): both values, so the volunteer can choose,
+    // even one this phone had stopped showing as current.
+    final values = [
+      ..._list(page, 'fieldValues'),
+      for (final c in _list(page, 'conflicts'))
+        ...(c as Map<String, dynamic>)['values'] as List<dynamic>,
+    ].map(_fieldValue);
     final visits = _list(page, 'visits').map(_visit);
     await _db.batch((b) {
       b.insertAllOnConflictUpdate(_db.fieldDefinitions, definitions.toList());

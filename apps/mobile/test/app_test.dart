@@ -7,6 +7,7 @@ import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
 import 'package:boothconnect_mobile/features/households/household_address_screen.dart';
 import 'package:boothconnect_mobile/features/households/household_screen.dart';
 import 'package:boothconnect_mobile/features/members/member_screen.dart';
+import 'package:boothconnect_mobile/features/sync/sync_screen.dart';
 import 'package:boothconnect_mobile/features/visit/visit_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -68,7 +69,6 @@ void main() {
       ('/household/h-1/address', 'Address'),
       ('/household/h-1/members/new', 'Add member'),
       ('/member/v-1', 'Member'),
-      ('/sync', 'Uploads'),
     ]) {
       await go(tester, container, path);
       expect(find.widgetWithText(AppBar, title), findsOneWidget, reason: path);
@@ -88,6 +88,11 @@ void main() {
         expect((screen.householdId, screen.memberId), (null, 'v-1'));
       }
     }
+
+    // Uploads, with nothing waiting.
+    await go(tester, container, '/sync');
+    expect(find.widgetWithText(AppBar, 'Uploads'), findsOneWidget);
+    expect(find.byType(SyncScreen), findsOneWidget);
 
     // The visit form, for a household this phone doesn't have.
     await go(tester, container, '/visit/h-2');

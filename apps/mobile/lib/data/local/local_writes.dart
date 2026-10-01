@@ -4,6 +4,7 @@ import 'package:drift/drift.dart';
 
 import 'app_database.dart';
 import 'ids.dart';
+import 'local_reads.dart';
 
 /// Changes made on the phone. Each is written to the local database and
 /// queued in `pending_mutation` in one transaction, so it shows at once,
@@ -156,6 +157,45 @@ extension LocalWrites on AppDatabase {
       '_fieldValueId': localId,
     });
   });
+
+  /// Keeps [keepId], one of [conflict]'s two values, and queues
+  /// `conflict.resolve`. The other value stays in the history (no longer
+  /// current), and the change that ended in this conflict leaves the
+  /// queue: the server already has it.
+  Future<void> resolveConflict(OpenConflict conflict, String keepId) =>
+      transaction(() async {
+        final ids = [conflict.mine.id, conflict.other.id];
+        if (!ids.contains(keepId)) {
+          throw ArgumentError.value(keepId, 'keepId', 'not in the conflict');
+        }
+        await (update(fieldValues)..where((t) => t.id.isIn(ids))).write(
+          const FieldValuesCompanion(
+            isCurrent: Value(false),
+            conflictWithId: Value(null),
+          ),
+        );
+        await (update(fieldValues)..where((t) => t.id.equals(keepId))).write(
+          const FieldValuesCompanion(isCurrent: Value(true)),
+        );
+        await customUpdate(
+          "DELETE FROM pending_mutation WHERE status = 'conflict' "
+          "AND type = 'field.change' "
+          r"AND json_extract(payload, '$.entityId') = ?1 "
+          r"AND json_extract(payload, '$.fieldKey') = ?2",
+          variables: [
+            Variable<String>(conflict.entityId),
+            Variable<String>(conflict.fieldKey),
+          ],
+          updates: {pendingMutations},
+          updateKind: UpdateKind.delete,
+        );
+        await _queue(
+          'conflict.resolve',
+          conflict.householdId ?? conflict.entityId,
+          DateTime.now(),
+          {'conflictId': conflict.mine.id, 'keepFieldValueId': keepId},
+        );
+      });
 
   Future<void> _queue(
     String type,

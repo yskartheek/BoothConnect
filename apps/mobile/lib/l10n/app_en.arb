@@ -417,6 +417,168 @@
   "@visitChooseOutcome": {
     "description": "Shown under Save while no outcome is chosen."
   },
+  "syncIntro": "Everything you save stays on this phone first and uploads automatically. You only need this screen when something needs a choice.",
+  "@syncIntro": {
+    "description": "Uploads screen: what the screen is for."
+  },
+  "syncOnlineUploading": "Online · uploading {current} of {total}",
+  "@syncOnlineUploading": {
+    "description": "Uploads status chip. {current}: changes being uploaded now; {total}: changes waiting.",
+    "placeholders": {
+      "current": {},
+      "total": {}
+    }
+  },
+  "syncOnlineWaiting": "Online · {count} waiting",
+  "@syncOnlineWaiting": {
+    "description": "Uploads status chip: online, changes waiting for their next try.",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "syncOfflineWaiting": "Offline · {count} waiting",
+  "@syncOfflineWaiting": {
+    "description": "Uploads status chip: offline, changes waiting.",
+    "placeholders": {
+      "count": {}
+    }
+  },
+  "syncOnlineDone": "Online · everything uploaded",
+  "@syncOnlineDone": {
+    "description": "Uploads status chip: nothing waiting."
+  },
+  "syncOfflineDone": "Offline · nothing waiting",
+  "@syncOfflineDone": {
+    "description": "Uploads status chip: offline, nothing waiting."
+  },
+  "syncChooseTitle": "Choose which value to keep",
+  "@syncChooseTitle": {
+    "description": "Heading above the conflicts."
+  },
+  "syncConflictTitle": "{who} · {field}",
+  "@syncConflictTitle": {
+    "description": "Conflict card title. {who}: the member's name or the address; {field}: the detail, e.g. Mobile number.",
+    "placeholders": {
+      "field": {},
+      "who": {}
+    }
+  },
+  "syncConflictWhy": "{address}. Two people changed it while offline.",
+  "@syncConflictWhy": {
+    "description": "Conflict card explanation. {address}: the household's address.",
+    "placeholders": {
+      "address": {}
+    }
+  },
+  "syncValueYours": "Yours · {time}",
+  "@syncValueYours": {
+    "description": "Who set a value, and when: the volunteer using the phone.",
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "syncValueBy": "{name} · {time}",
+  "@syncValueBy": {
+    "description": "Who set a value, and when: another person.",
+    "placeholders": {
+      "name": {},
+      "time": {}
+    }
+  },
+  "syncValueSomeone": "Someone else · {time}",
+  "@syncValueSomeone": {
+    "description": "Who set a value, and when: unknown person.",
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "syncKeepSelected": "Keep selected value",
+  "@syncKeepSelected": {
+    "description": "Button: keeps the chosen value of a conflict."
+  },
+  "syncKept": "Kept. The other value stays in the history.",
+  "@syncKept": {
+    "description": "Shown after choosing which value to keep."
+  },
+  "syncWaitingTitle": "Waiting to upload",
+  "@syncWaitingTitle": {
+    "description": "Heading above the queued changes."
+  },
+  "syncNotUploadedTitle": "Not uploaded",
+  "@syncNotUploadedTitle": {
+    "description": "Heading above changes the server refused."
+  },
+  "syncItemVisit": "Visit · {address}",
+  "@syncItemVisit": {
+    "description": "Queued change: a visit. {address}: the household.",
+    "placeholders": {
+      "address": {}
+    }
+  },
+  "syncItemChange": "{field} · {address}",
+  "@syncItemChange": {
+    "description": "Queued change: a detail. {field}: e.g. Occupation; {address}: the household.",
+    "placeholders": {
+      "address": {},
+      "field": {}
+    }
+  },
+  "syncItemResolve": "Chosen value · {address}",
+  "@syncItemResolve": {
+    "description": "Queued change: a value chosen in a conflict.",
+    "placeholders": {
+      "address": {}
+    }
+  },
+  "syncItemOther": "Change · {address}",
+  "@syncItemOther": {
+    "description": "Queued change of another kind.",
+    "placeholders": {
+      "address": {}
+    }
+  },
+  "syncUploadingNow": "Uploading now",
+  "@syncUploadingNow": {
+    "description": "Queued change being uploaded."
+  },
+  "syncNextTry": "Next try at {time}",
+  "@syncNextTry": {
+    "description": "Queued change waiting to retry. {time}: e.g. 10:07 AM.",
+    "placeholders": {
+      "time": {}
+    }
+  },
+  "syncWaiting": "Waiting for the connection",
+  "@syncWaiting": {
+    "description": "Queued change not yet tried."
+  },
+  "syncNotUploadedHelp": "Tap Retry. If it still isn't uploaded, tell your coordinator.",
+  "@syncNotUploadedHelp": {
+    "description": "What to do about a change the server refused."
+  },
+  "syncRetry": "Retry",
+  "@syncRetry": {
+    "description": "Button: tries one change again now."
+  },
+  "syncRetryLabel": "Retry: {item}",
+  "@syncRetryLabel": {
+    "description": "Screen reader label of a Retry button. {item}: the change, e.g. Visit · 12/4 Gandhi Road.",
+    "placeholders": {
+      "item": {}
+    }
+  },
+  "syncUploadNow": "Upload now",
+  "@syncUploadNow": {
+    "description": "Button: tries every waiting change now."
+  },
+  "syncNothingWaiting": "Nothing is waiting. Everything you saved is on the server.",
+  "@syncNothingWaiting": {
+    "description": "Uploads screen with an empty queue."
+  },
+  "syncUnknownHousehold": "A household",
+  "@syncUnknownHousehold": {
+    "description": "Stands in for an address the phone doesn't have."
+  },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {
     "description": "Visit outcome (API: completed)."
