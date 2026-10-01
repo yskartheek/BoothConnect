@@ -6,7 +6,7 @@ import 'package:boothconnect_mobile/data/local/local_store.dart';
 import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/sync/sync_controller.dart';
 import 'package:connectivity_plus/connectivity_plus.dart';
-import 'package:drift/drift.dart' show OrderingTerm;
+import 'package:drift/drift.dart' show OrderingTerm, Value;
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -119,7 +119,22 @@ void main() {
     expect(find.text('Offline · 1 waiting'), findsOneWidget);
     expect(find.text('Visit · ${FakeApiServer.address}'), findsOneWidget);
 
-    // --- Back online: it uploads by itself and shows as synced. -----------
+    // Offline a long time: its next try is an hour away.
+    final db2 = await settle(tester, app2.read(appDatabaseProvider.future));
+    await settle(
+      tester,
+      db2
+          .update(db2.pendingMutations)
+          .write(
+            PendingMutationsCompanion(
+              nextAttemptAt: Value(
+                DateTime.now().add(const Duration(hours: 1)),
+              ),
+            ),
+          ),
+    );
+
+    // --- Back online: it uploads at once and shows as synced. -------------
     server.down = false;
     network2.add([ConnectivityResult.wifi]);
     await waitFor(tester, () => server.visits.isNotEmpty);

@@ -307,6 +307,29 @@ triggers and the visit form.
 - "Yours" compares `collected_by_id` with `sync_meta.owner`
   (`watchOwner()`). Your own value is chosen first, else the newest.
 
+## End-to-end test (#68)
+
+`test/e2e/offline_sync_test.dart` runs the whole app against
+`FakeApiServer` (`test/support/fake_api_server.dart`), a stand-in API over
+real HTTP on localhost:
+
+1. Sign in and download the booth.
+2. Go offline and record a visit.
+3. Restart on the same encrypted database (the visit is still waiting).
+4. Come back online: the visit uploads once and shows as synced.
+
+It runs with `flutter test`, so it's in CI.
+
+- `startApp(apiBaseUrl: …)` uses the real API classes and HTTP client
+  against that URL. `startApp(directory: …, secrets: …)` starts on a given
+  database and key, and `stopApp(container)` closes the app as a phone would
+  (`LocalStore.close()`: the file and key stay).
+- `flutter_test` answers every HTTP request with 400; a test using real
+  HTTP sets `HttpOverrides.global = null`.
+- **Back online, waiting changes go at once:** `syncNow()` makes every
+  `pending` change due (`PushRepository.dueNow()`). The backoff is only for a
+  server that can't be reached while the phone seems online.
+
 ## Screen states (#58)
 
 Every screen shows one of these while it has nothing else to show
