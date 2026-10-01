@@ -17,7 +17,7 @@ committed; tests use synthetic PDFs.
   pack (Telugu later). On Windows, set `TESSERACT_CMD` if it isn't on `PATH`.
 
 Or skip both and use the Docker image (see below). Setup steps for Windows are
-in [`docs/SETUP.md`](../../docs/SETUP.md#6-roll-parser-python-optional).
+in [`docs/SETUP.md`](../../docs/SETUP.md#10-roll-parser-python-optional).
 
 ## Commands
 
