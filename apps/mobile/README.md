@@ -332,6 +332,49 @@ one (`/household/:id/members/new`, `MemberScreen.add`):
   phone's ids (`_fieldValueIds`, not sent), and an edit based on them waits
   for the next batch.
 
+## Household address and Add household (#115)
+
+`features/households/household_address_screen.dart` (`/household/:id/address`,
+**Edit** on the household) and `new_household_screen.dart`
+(`/households/new`, **Add household**) share `AddressForm`:
+
+- **Address:** house no., street, area / locality, PIN code (6 digits, or
+  empty) and landmark, filled from `households.structured_address`. At
+  least one part is needed. Parts are trimmed and empty ones left out
+  (`cleanAddress`); `displayAddress` joins them as the server does.
+- **Location:** `data/location/location_reader.dart` takes **one** fix when
+  the volunteer taps **Use my current location** (geolocator: permission
+  asked then, a 30 s limit). Nothing runs in the background. It is
+  enabled only once **The household agrees to store its location** is
+  ticked; the API stores the location with that consent
+  (`consentNoticeVersion`, in person). Unticking drops the reading.
+  Refused, refused for good (with **Open settings**), location off and no
+  fix each have their own message. Tests replace `locationReaderProvider`.
+- The map preview is `widgets/map_thumbnail.dart`, drawn on the phone (no
+  map tiles), with the accuracy and capture time.
+- **Save** (`LocalWrites`):
+  - `updateHousehold` updates the `households` row, adds the phone's
+    `address` / `household_location` field values, and queues
+    `household.update` with `addressBaseVersion` / `locationBaseVersion`
+    (the values the phone saw). Nothing changed: nothing is queued.
+  - `addHousehold` adds a `volunteer_added` household (part from a
+    household of the same booth, `houseKey` = house no. or `~id`) and
+    queues `household.create` with the phone-made id. A house number
+    already in the part is refused on the phone (`HouseNumberTaken`), as the
+    server would.
+  - Editing a household whose `household.create` hasn't been sent updates
+    that creation instead.
+- The booth of a new household is the only booth on the phone, else a list
+  (`watchPollingStationIds`, labelled from `BoothAssignment.id`, saved at
+  sign-in from `/v1/me`).
+- Pushing `household.update`: `results.address` / `results.location` give
+  the server's ids to the phone's values; an edit based on one waits for
+  the next batch, and `conflict.resolve` on either clears the change.
+- A full download (`reset`) keeps households with a `household.create`
+  waiting.
+- Platform strings: Android `ACCESS_FINE_LOCATION` and
+  `ACCESS_COARSE_LOCATION`, iOS `NSLocationWhenInUseUsageDescription`.
+
 ## End-to-end test (#68)
 
 `test/e2e/offline_sync_test.dart` runs the whole app against
@@ -386,7 +429,8 @@ language or the ARB files are out of date. See `packages/i18n/README.md`.
 
 Riverpod (state), go_router (navigation), Drift on SQLCipher (encrypted offline
 database), flutter_secure_storage (keys and tokens), dio (HTTP),
-connectivity_plus (online/offline), flutter_localizations + intl (strings).
+connectivity_plus (online/offline), flutter_localizations + intl (strings),
+geolocator (one location fix when asked).
 
 SQLCipher is selected in `pubspec.yaml` under `hooks.user_defines.sqlite3`.
 The `sqlite3` package downloads the matching prebuilt library from its GitHub

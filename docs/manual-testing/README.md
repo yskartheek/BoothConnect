@@ -126,3 +126,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #67   | [Mobile Uploads screen: queue status, Choose value, retry](67-mobile-uploads.md)                  | Ready to test   |
 | #68   | [Mobile end-to-end test: offline visit, restart, reconnect, synced](68-mobile-e2e-offline.md)     | Ready to test   |
 | #114  | [Mobile member details: every editable field, caste behind consent](114-mobile-member-details.md) | Ready to test   |
+| #115  | [Mobile household address, one-tap location and Add household](115-mobile-household-address.md)   | Ready to test   |
