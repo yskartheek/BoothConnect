@@ -24,13 +24,18 @@ class SyncApi {
 
   /// Sends queued changes (`{key, type, payload}`), applied in order. Returns
   /// one result per change: `{key, status, result?, code?, …}`.
+  ///
+  /// [idempotencyKey] names the request: the API requires one, and answers a
+  /// request sent again with the same key from its record.
   Future<List<Map<String, dynamic>>> push(
-    List<Map<String, Object?>> mutations,
-  ) async {
+    List<Map<String, Object?>> mutations, {
+    required String idempotencyKey,
+  }) async {
     try {
       final response = await _dio.post<Map<String, dynamic>>(
         '/v1/sync/push',
         data: {'mutations': mutations},
+        options: Options(headers: {'Idempotency-Key': idempotencyKey}),
       );
       return (response.data!['results'] as List<dynamic>)
           .cast<Map<String, dynamic>>();

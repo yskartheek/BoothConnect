@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
@@ -23,8 +22,6 @@ class SyncTriggers extends ConsumerStatefulWidget {
 
 class _SyncTriggersState extends ConsumerState<SyncTriggers> {
   late final AppLifecycleListener _lifecycle;
-  StreamSubscription<List<ConnectivityResult>>? _connectivity;
-  var _offline = false;
 
   bool get _signedIn => ref.read(authProvider) == AuthStatus.signedIn;
 
@@ -38,10 +35,10 @@ class _SyncTriggersState extends ConsumerState<SyncTriggers> {
   void initState() {
     super.initState();
     _lifecycle = AppLifecycleListener(onResume: _sync);
-    _connectivity = ref.read(connectivityChangesProvider).listen((results) {
-      final online = results.any((r) => r != ConnectivityResult.none);
-      if (online && _offline) _sync();
-      _offline = !online;
+    // Through onlineProvider, the connection stream's only listener: the
+    // phone's stream takes one, and the offline banner reads it too.
+    ref.listenManual(onlineProvider, (previous, next) {
+      if (next.value == true && previous?.value == false) _sync();
     });
     ref.listenManual(authProvider, (previous, next) {
       if (next == AuthStatus.signedIn && previous != AuthStatus.signedIn) {
@@ -53,7 +50,6 @@ class _SyncTriggersState extends ConsumerState<SyncTriggers> {
   @override
   void dispose() {
     _lifecycle.dispose();
-    unawaited(_connectivity?.cancel());
     super.dispose();
   }
 

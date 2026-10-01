@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
+import 'package:crypto/crypto.dart';
 import 'package:drift/drift.dart';
 
 import '../api/api_error.dart';
@@ -45,6 +46,12 @@ Duration backoff(int attempts, [Random? random]) {
   return Duration(milliseconds: (ceiling * (0.5 + jitter / 2)).round());
 }
 
+/// The request's `Idempotency-Key`: a hash of exactly what is sent. The
+/// same batch sent again (the answer was lost) gets the same key, and the
+/// server replays its answer; any other batch gets another key.
+String batchKey(List<Map<String, Object?>> batch) =>
+    'push-${sha256.convert(utf8.encode(jsonEncode(batch)))}';
+
 /// Uploads the changes queued in `pending_mutation` to
 /// `POST /v1/sync/push`, oldest first, in batches.
 ///
@@ -79,10 +86,11 @@ class PushRepository {
       if (due.isEmpty) break;
       final List<Map<String, dynamic>> results;
       try {
-        results = await _api.push([
+        final batch = [
           for (final m in due)
             {'key': m.key, 'type': m.type, 'payload': _toSend(m.payload)},
-        ]);
+        ];
+        results = await _api.push(batch, idempotencyKey: batchKey(batch));
       } on ApiError catch (e) {
         await _retryLater(due, now(), e.code);
         return PushResult(
@@ -121,7 +129,6 @@ class PushRepository {
           }
         }
       });
-      if (due.length < batchSize) break;
     }
     return PushResult(uploaded: uploaded, conflicts: conflicts, failed: failed);
   }
@@ -164,10 +171,23 @@ class PushRepository {
                   ..orderBy([(t) => OrderingTerm(expression: t.id)])
                   ..limit(batchSize))
                 .get();
+        // A change based on an earlier one in this batch waits for the next
+        // batch: by then its base_version is the server's id, not the
+        // phone's.
+        final batch = <PendingMutationRow>[];
+        final madeHere = <Object?>{};
+        for (final m in due) {
+          final payload = jsonDecode(m.payload) as Map<String, dynamic>;
+          if (madeHere.contains(payload['baseVersion'])) break;
+          if (payload['_fieldValueId'] != null) {
+            madeHere.add(payload['_fieldValueId']);
+          }
+          batch.add(m);
+        }
         await (_db.update(_db.pendingMutations)
-              ..where((t) => t.id.isIn(due.map((m) => m.id))))
+              ..where((t) => t.id.isIn(batch.map((m) => m.id))))
             .write(const PendingMutationsCompanion(status: Value('syncing')));
-        return due;
+        return batch;
       });
 
   Future<void> _retryLater(
@@ -200,6 +220,8 @@ class PushRepository {
         PendingMutationsCompanion(
           status: Value(status),
           attempts: Value(m.attempts + 1),
+          // Not retried by itself: Upload now, or choosing a value.
+          nextAttemptAt: const Value(null),
           lastError: Value(code),
         ),
       );

@@ -94,7 +94,9 @@ extension LocalWrites on AppDatabase {
 
     final queued = await customSelect(
       "SELECT id, payload FROM pending_mutation WHERE type = 'field.change' "
-      "AND status = 'pending' "
+      // Never sent: once sent, the server may have stored it under its key,
+      // and the same key can't carry another value.
+      "AND status = 'pending' AND attempts = 0 "
       r"AND json_extract(payload, '$.entityId') = ?1 "
       r"AND json_extract(payload, '$.fieldKey') = ?2 "
       'ORDER BY id DESC LIMIT 1',

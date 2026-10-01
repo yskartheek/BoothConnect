@@ -57,8 +57,9 @@ final syncApiProvider = Provider<SyncApi>(
   (ref) => SyncApi(ref.watch(dioProvider)),
 );
 
-/// The phone's connectivity: the current state, then each change. Tests
-/// override it.
+/// The phone's connectivity: the current state, then each change. A
+/// single-subscription stream: read it through [onlineProvider], never
+/// directly. Tests override it.
 final connectivityChangesProvider = Provider<Stream<List<ConnectivityResult>>>((
   ref,
 ) async* {
