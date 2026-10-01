@@ -617,6 +617,22 @@ void main() {
       expect(container.read(syncControllerProvider).uploading, isFalse);
     });
 
+    test('a pull finishing during an upload keeps "uploading"', () async {
+      await visit(db);
+      final api = _SlowApi();
+      final container = containerWith(api);
+      final sync = container.read(syncControllerProvider.notifier);
+      final push = sync.pushNow();
+      await Future<void>.delayed(const Duration(milliseconds: 50));
+      await sync.pullNow();
+      final state = container.read(syncControllerProvider);
+      expect(state.lastPullAt, isNotNull);
+      expect(state.uploading, isTrue);
+      api.release();
+      await push;
+      expect(container.read(syncControllerProvider).uploading, isFalse);
+    });
+
     test('sync uploads first, then downloads', () async {
       await visit(db);
       final api = FakeSyncApi();
