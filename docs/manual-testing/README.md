@@ -123,6 +123,7 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #64   | [Mobile household screen: address, members, Start visit](64-mobile-household.md)                  | Ready to test   |
 | #65   | [Mobile visit form: outcome, who you met, edit members, refusal](65-mobile-visit.md)              | Ready to test   |
 | #66   | [Mobile sync push: uploading the changes made on the phone](66-mobile-sync-push.md)               | Ready to test   |
+| #81   | [Milestone 1 review against plan §8 and the spec](81-milestone-1-review.md)                       | Ready to test   |
 | #67   | [Mobile Uploads screen: queue status, Choose value, retry](67-mobile-uploads.md)                  | Ready to test   |
 | #68   | [Mobile end-to-end test: offline visit, restart, reconnect, synced](68-mobile-e2e-offline.md)     | Ready to test   |
 | #114  | [Mobile member details: every editable field, caste behind consent](114-mobile-member-details.md) | Ready to test   |
