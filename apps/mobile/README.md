@@ -228,9 +228,10 @@ idempotency `key` (`newId()`, a v4 UUID) and the household id. Payloads follow
 - `changeField(...)`: a new current `field_values` row (the old one is no
   longer current; `supersedesId` points to it) and `field.change` with
   `baseVersion` = the value it replaced (null for a new detail). Changing the
-  same field again while its change is still `pending` updates that change
-  instead, keeping the original base; once it's being uploaded, a further
-  edit is a change of its own.
+  same field again while its change is still `pending` and has never been
+  sent (`attempts = 0`) updates that change instead, keeping the original
+  base. Once it has been sent, the server may hold it under its key, so a
+  further edit is a change of its own.
 
 Times in payloads are `isoMillis` (UTC, to the millisecond), so they compare
 as strings.
@@ -259,8 +260,11 @@ startedAt))`.
   back to `pending`, `attempts + 1`, `next_attempt_at` after
   `backoff(attempts)`. That's 2 s doubling, capped at 5 minutes, and a random
   50–100% of it.
-- **Idempotency:** the key never changes, so a batch resent after a lost
-  answer is stored once. Rows left `syncing` by an app that closed mid-upload
+- **Idempotency:** each change's key never changes, so a batch resent
+  after a lost answer is stored once. The request also carries an
+  `Idempotency-Key` header (the API requires one): `batchKey`, a SHA-256 of
+  exactly what is sent. Resending the same batch reuses it; any other batch
+  gets another. Rows left `syncing` by an app that closed mid-upload
   go back to `pending` at the next push.
 - **Chains:** a change based on another change in the same batch waits for
   the next batch. By then its `baseVersion` is the server's id.

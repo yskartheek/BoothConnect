@@ -8,7 +8,8 @@
   - when the phone is back online;
   - when the app comes back to the foreground;
   - after signing in.
-- **Oldest first**, in batches of up to 50. Each change keeps its idempotency key on every attempt, so a change sent twice (say, the answer was lost) is stored once.
+- **Oldest first**, in batches of up to 50. Each change keeps its idempotency key on every attempt, so a change sent twice (say, the answer was lost) is stored once. Each request also carries the `Idempotency-Key` header the API requires, made from exactly what it sends.
+- An edit to a detail whose earlier change has already been sent becomes a change of its own. Before that, it updates the waiting change.
 - **What happens to each change:**
   - stored → removed from the phone's queue; the household shows **Uploaded**;
   - someone else changed the same detail → kept, marked for the volunteer to choose (**Choose value**; the choosing screen is #67);

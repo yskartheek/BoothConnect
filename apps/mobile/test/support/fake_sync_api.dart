@@ -49,8 +49,9 @@ class FakeSyncApi implements SyncApi {
   /// Push failures to throw, one per call, before answering normally.
   final pushErrors = <ApiError>[];
 
-  /// Every batch sent, in order.
+  /// Every batch sent, in order, and its request's Idempotency-Key.
   final pushed = <List<Map<String, Object?>>>[];
+  final keys = <String>[];
 
   /// What the server stored, by key: a key sent again is a `duplicate`.
   final stored = <String, Map<String, dynamic>>{};
@@ -69,9 +70,11 @@ class FakeSyncApi implements SyncApi {
 
   @override
   Future<List<Map<String, dynamic>>> push(
-    List<Map<String, Object?>> mutations,
-  ) async {
+    List<Map<String, Object?>> mutations, {
+    required String idempotencyKey,
+  }) async {
     pushed.add(mutations);
+    keys.add(idempotencyKey);
     if (pushErrors.isNotEmpty) throw pushErrors.removeAt(0);
     return [
       for (final m in mutations)

@@ -40,9 +40,10 @@ class _LostAnswer extends FakeSyncApi {
 
   @override
   Future<List<Map<String, dynamic>>> push(
-    List<Map<String, Object?>> mutations,
-  ) async {
-    final results = await super.push(mutations);
+    List<Map<String, Object?>> mutations, {
+    required String idempotencyKey,
+  }) async {
+    final results = await super.push(mutations, idempotencyKey: idempotencyKey);
     if (lose-- > 0) throw offline;
     return results;
   }
@@ -55,10 +56,11 @@ class _SlowApi extends FakeSyncApi {
 
   @override
   Future<List<Map<String, dynamic>>> push(
-    List<Map<String, Object?>> mutations,
-  ) async {
+    List<Map<String, Object?>> mutations, {
+    required String idempotencyKey,
+  }) async {
     await gate.future;
-    return super.push(mutations);
+    return super.push(mutations, idempotencyKey: idempotencyKey);
   }
 }
 
@@ -196,6 +198,8 @@ void main() {
 
       final sent = api.pushed.single;
       expect([for (final m in sent) m['key']], keys);
+      // The request's key is made from exactly this batch.
+      expect(api.keys.single, batchKey(sent));
       expect(
         [for (final m in sent) m['type']],
         ['visit.create', 'field.change'],
@@ -336,6 +340,55 @@ void main() {
       expect(api.pushed, hasLength(1));
     });
 
+    test('each request has an Idempotency-Key made from what it sends', () {
+      final a = [
+        {
+          'key': 'k-1',
+          'type': 'visit.create',
+          'payload': {'x': 1},
+        },
+      ];
+      final b = [
+        {
+          'key': 'k-1',
+          'type': 'visit.create',
+          'payload': {'x': 2},
+        },
+      ];
+      expect(batchKey(a), batchKey([...a]));
+      expect(batchKey(a), isNot(batchKey(b)));
+      // The API's rule: 8–128 letters, digits, "-" or "_".
+      expect(batchKey(a), matches(RegExp(r'^push-[0-9a-f]{64}$')));
+    });
+
+    test('an edit after a change was sent is a change of its own', () async {
+      await change(db, 'Teacher');
+      api.pushErrors.add(offline);
+      await repository().pushDue(now: () => now);
+      // Sent once (the answer never came): the server may have it under
+      // its key, so the next edit doesn't change it.
+      await change(db, 'Head teacher', minute: 5);
+      final all = await queued(db);
+      expect(all, hasLength(2));
+      expect(
+        (jsonDecode(all.first.payload) as Map<String, dynamic>)['value'],
+        'Teacher',
+      );
+    });
+
+    test('a refused change waits for Upload now, with no retry time', () async {
+      await visit(db);
+      api.pushErrors.add(offline);
+      await repository().pushDue(now: () => now);
+      expect((await queued(db)).single.nextAttemptAt, isNotNull);
+      now = now.add(const Duration(minutes: 1));
+      api.answer = (m) => {'status': 'rejected', 'code': 'UNPROCESSABLE'};
+      await repository().pushDue(now: () => now);
+      final m = (await queued(db)).single;
+      expect((m.status, m.nextAttemptAt), ('failed', null));
+      expect(await repository().nextAttemptAt(), isNull);
+    });
+
     test('a refused change is kept with the reason, until retried', () async {
       await visit(db);
       api.answer = (m) => {'status': 'rejected', 'code': 'VALIDATION_FAILED'};
@@ -437,8 +490,10 @@ void main() {
       now = now.add(const Duration(minutes: 1));
       await repo.pushDue(now: () => now);
       expect(lost.pushed, hasLength(2));
-      // The same key both times: the server answered duplicate.
+      // The same keys both times, the request's and the change's: the
+      // server answered from its record.
       expect(lost.pushed.first.single['key'], lost.pushed.last.single['key']);
+      expect(lost.keys.first, lost.keys.last);
       expect(lost.stored, hasLength(1));
       expect(await queued(db), isEmpty);
       expect((await db.select(db.visits).getSingle()).serverId, isNotNull);
@@ -623,9 +678,10 @@ class _Partial extends FakeSyncApi {
 
   @override
   Future<List<Map<String, dynamic>>> push(
-    List<Map<String, Object?>> mutations,
-  ) async => [
-    for (final r in await super.push(mutations))
+    List<Map<String, Object?>> mutations, {
+    required String idempotencyKey,
+  }) async => [
+    for (final r in await super.push(mutations, idempotencyKey: idempotencyKey))
       if (r['key'] != skip) r,
   ];
 }
