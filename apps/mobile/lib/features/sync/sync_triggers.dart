@@ -1,16 +1,16 @@
 import 'dart:async';
 
-import 'package:connectivity_plus/connectivity_plus.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../auth/auth_controller.dart';
 import 'sync_controller.dart';
 
-/// Starts a sync pull when the volunteer signs in (or the app opens with a
-/// stored session), when the app comes back to the foreground, and when
-/// the phone is back online. Pull-to-refresh calls
-/// `SyncController.pullNow` itself.
+/// Syncs (uploads the changes waiting on the phone, then downloads) when
+/// the volunteer signs in (or the app opens with a stored session), when
+/// the app comes back to the foreground, and when the phone is back online.
+/// Pull-to-refresh calls `SyncController.pullNow` itself; a saved visit
+/// calls `pushNow`.
 class SyncTriggers extends ConsumerStatefulWidget {
   const SyncTriggers({super.key, required this.child});
 
@@ -22,29 +22,27 @@ class SyncTriggers extends ConsumerStatefulWidget {
 
 class _SyncTriggersState extends ConsumerState<SyncTriggers> {
   late final AppLifecycleListener _lifecycle;
-  StreamSubscription<List<ConnectivityResult>>? _connectivity;
-  var _offline = false;
 
   bool get _signedIn => ref.read(authProvider) == AuthStatus.signedIn;
 
-  void _pull() {
+  void _sync() {
     if (_signedIn) {
-      unawaited(ref.read(syncControllerProvider.notifier).pullNow());
+      unawaited(ref.read(syncControllerProvider.notifier).syncNow());
     }
   }
 
   @override
   void initState() {
     super.initState();
-    _lifecycle = AppLifecycleListener(onResume: _pull);
-    _connectivity = ref.read(connectivityChangesProvider).listen((results) {
-      final online = results.any((r) => r != ConnectivityResult.none);
-      if (online && _offline) _pull();
-      _offline = !online;
+    _lifecycle = AppLifecycleListener(onResume: _sync);
+    // Through onlineProvider, the connection stream's only listener: the
+    // phone's stream takes one, and the offline banner reads it too.
+    ref.listenManual(onlineProvider, (previous, next) {
+      if (next.value == true && previous?.value == false) _sync();
     });
     ref.listenManual(authProvider, (previous, next) {
       if (next == AuthStatus.signedIn && previous != AuthStatus.signedIn) {
-        _pull();
+        _sync();
       }
     }, fireImmediately: true);
   }
@@ -52,7 +50,6 @@ class _SyncTriggersState extends ConsumerState<SyncTriggers> {
   @override
   void dispose() {
     _lifecycle.dispose();
-    unawaited(_connectivity?.cancel());
     super.dispose();
   }
 

@@ -14,6 +14,7 @@ import '../../theme/tokens.g.dart';
 import '../../widgets/states.dart';
 import '../households/household_screen.dart';
 import '../shared/local_watch.dart';
+import '../sync/sync_controller.dart';
 
 /// Visit outcomes (API codes), the common ones first.
 const commonOutcomes = [
@@ -88,6 +89,10 @@ class _VisitScreenState extends ConsumerState<VisitScreen> {
       if (mounted) setState(() => _saving = false);
       messenger.showSnackBar(SnackBar(content: Text(l10n.visitSaveFailed)));
       return;
+    }
+    // Online: upload it now. Offline, it goes when the phone is back online.
+    if (ref.read(onlineProvider).value ?? false) {
+      unawaited(ref.read(syncControllerProvider.notifier).pushNow());
     }
     messenger.showSnackBar(SnackBar(content: Text(l10n.visitSaved)));
     if (mounted) _close();

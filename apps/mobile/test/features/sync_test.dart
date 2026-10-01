@@ -257,6 +257,34 @@ void main() {
     expect(sync.calls, hasLength(2));
   });
 
+  testWidgets('in the app, the offline banner and the sync both follow the '
+      'network', (tester) async {
+    // One connection stream, as on a phone: only one listener allowed.
+    final network = StreamController<List<ConnectivityResult>>();
+    addTearDown(network.close);
+    final sync = FakeSyncApi();
+    final c = await startApp(
+      tester,
+      api: FakeAuthApi(session: true),
+      syncApi: sync,
+      connectivity: network.stream,
+    );
+    await waitFor(tester, () => sync.calls.length == 1 && idle(c));
+
+    network.add([ConnectivityResult.none]);
+    await waitFor(
+      tester,
+      () => find.text("You're offline").evaluate().isNotEmpty,
+    );
+    expect(find.text("You're offline"), findsOneWidget);
+    expect(c.read(onlineProvider).value, isFalse);
+
+    network.add([ConnectivityResult.wifi]);
+    await waitFor(tester, () => sync.calls.length == 2 && idle(c));
+    expect(find.text("You're offline"), findsNothing);
+    expect(c.read(onlineProvider).value, isTrue);
+  });
+
   testWidgets('offline: the state says so and the data stays', (tester) async {
     final sync = FakeSyncApi([snapshot('c-1', 'h-1')]);
     final c = await startApp(

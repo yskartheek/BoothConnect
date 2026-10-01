@@ -122,3 +122,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #63   | [Mobile households list with search and status filter](63-mobile-households.md)                 | Ready to test   |
 | #64   | [Mobile household screen: address, members, Start visit](64-mobile-household.md)                | Ready to test   |
 | #65   | [Mobile visit form: outcome, who you met, edit members, refusal](65-mobile-visit.md)            | Ready to test   |
+| #66   | [Mobile sync push: uploading the changes made on the phone](66-mobile-sync-push.md)             | Ready to test   |

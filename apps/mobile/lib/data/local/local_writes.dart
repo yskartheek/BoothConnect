@@ -94,7 +94,9 @@ extension LocalWrites on AppDatabase {
 
     final queued = await customSelect(
       "SELECT id, payload FROM pending_mutation WHERE type = 'field.change' "
-      "AND status = 'pending' "
+      // Never sent: once sent, the server may have stored it under its key,
+      // and the same key can't carry another value.
+      "AND status = 'pending' AND attempts = 0 "
       r"AND json_extract(payload, '$.entityId') = ?1 "
       r"AND json_extract(payload, '$.fieldKey') = ?2 "
       'ORDER BY id DESC LIMIT 1',
@@ -127,9 +129,10 @@ extension LocalWrites on AppDatabase {
               t.isCurrent.equals(true),
         ))
         .write(const FieldValuesCompanion(isCurrent: Value(false)));
+    final localId = newId();
     await into(fieldValues).insert(
       FieldValuesCompanion.insert(
-        id: newId(),
+        id: localId,
         entityType: entityType,
         entityId: entityId,
         fieldKey: fieldKey,
@@ -148,6 +151,9 @@ extension LocalWrites on AppDatabase {
       'value': value,
       'baseVersion': base,
       'collectedAt': collectedAt,
+      // The phone's copy, given the server's id once uploaded. Keys starting
+      // with "_" stay on the phone.
+      '_fieldValueId': localId,
     });
   });
 
