@@ -67,8 +67,6 @@ void main() {
     for (final (path, title) in [
       ('/households/new', 'New household'),
       ('/household/h-1/address', 'Address'),
-      ('/household/h-1/members/new', 'Add member'),
-      ('/member/v-1', 'Member'),
     ]) {
       await go(tester, container, path);
       expect(find.widgetWithText(AppBar, title), findsOneWidget, reason: path);
@@ -79,15 +77,23 @@ void main() {
         );
         expect(screen.householdId, 'h-1');
       }
-      if (path == '/household/h-1/members/new') {
-        final screen = tester.widget<MemberScreen>(find.byType(MemberScreen));
-        expect((screen.householdId, screen.memberId), ('h-1', null));
-      }
-      if (path == '/member/v-1') {
-        final screen = tester.widget<MemberScreen>(find.byType(MemberScreen));
-        expect((screen.householdId, screen.memberId), (null, 'v-1'));
-      }
     }
+
+    // Member details: adding one, and one this phone doesn't have.
+    await go(tester, container, '/household/h-1/members/new');
+    await waitFor(
+      tester,
+      () => find.widgetWithText(AppBar, 'Add member').evaluate().isNotEmpty,
+    );
+    var member = tester.widget<MemberScreen>(find.byType(MemberScreen));
+    expect((member.householdId, member.memberId), ('h-1', null));
+    await go(tester, container, '/member/v-1');
+    await waitFor(
+      tester,
+      () => find.text('Member not found').evaluate().isNotEmpty,
+    );
+    member = tester.widget<MemberScreen>(find.byType(MemberScreen));
+    expect((member.householdId, member.memberId), (null, 'v-1'));
 
     // Uploads, with nothing waiting.
     await go(tester, container, '/sync');

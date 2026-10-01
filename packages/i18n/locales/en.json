@@ -331,6 +331,42 @@
   "@mobile.syncUnknownHousehold": {
     "description": "Stands in for an address the phone doesn't have."
   },
+  "mobile.memberSave": "Save",
+  "@mobile.memberSave": { "description": "Saves the member's details (header button)." },
+  "mobile.memberSaved": "Saved. It uploads when you're online.",
+  "@mobile.memberSaved": { "description": "Shown after saving a member's details." },
+  "mobile.memberSaveFailed": "Couldn't save. Try again.",
+  "@mobile.memberSaveFailed": { "description": "Shown when saving a member fails." },
+  "mobile.memberOfficialRef": "Official list: {epic} · Booth {booth}",
+  "@mobile.memberOfficialRef": {
+    "description": "Under the name: the member's entry in the electoral roll. {epic}: voter ID number; {booth}: booth number."
+  },
+  "mobile.memberOfficialRefNoBooth": "Official list: {epic}",
+  "@mobile.memberOfficialRefNoBooth": {
+    "description": "Under the name: the member's voter ID number."
+  },
+  "mobile.memberNameRequired": "Enter the name.",
+  "@mobile.memberNameRequired": { "description": "Validation: the name is empty." },
+  "mobile.memberAgeInvalid": "Enter an age from 0 to 130.",
+  "@mobile.memberAgeInvalid": {
+    "description": "Validation: the age is not a whole number from 0 to 130."
+  },
+  "mobile.memberMobileInvalid": "Enter a 10-digit mobile number, or + and the country code.",
+  "@mobile.memberMobileInvalid": { "description": "Validation: the mobile number isn't valid." },
+  "mobile.memberSensitive": "Sensitive",
+  "@mobile.memberSensitive": { "description": "Tag on the caste / community card." },
+  "mobile.memberCasteWaiting": "Recorded on this phone. After it uploads, only authorised staff can see it.",
+  "@mobile.memberCasteWaiting": {
+    "description": "Caste / community saved on the phone and waiting to upload."
+  },
+  "mobile.memberAdditionalInfoHint": "Don't record health, religion or party details here.",
+  "@mobile.memberAdditionalInfoHint": { "description": "Helper text under Additional info." },
+  "mobile.memberChoose": "Choose",
+  "@mobile.memberChoose": { "description": "Placeholder of a list to choose from." },
+  "mobile.memberNotFoundTitle": "Member not found",
+  "@mobile.memberNotFoundTitle": { "description": "The member is not on this phone." },
+  "mobile.memberNotFoundMessage": "They may have been removed from the roll. Go back to the household.",
+  "@mobile.memberNotFoundMessage": { "description": "Explains the member not found state." },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

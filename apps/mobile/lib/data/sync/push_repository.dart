@@ -201,6 +201,10 @@ class PushRepository {
           if (payload['_fieldValueId'] != null) {
             madeHere.add(payload['_fieldValueId']);
           }
+          // A member added on the phone: each of its details.
+          if (payload['_fieldValueIds'] case final Map<String, dynamic> ids) {
+            madeHere.addAll(ids.values);
+          }
           batch.add(m);
         }
         await (_db.update(_db.pendingMutations)
@@ -265,41 +269,63 @@ class PushRepository {
                 ..where((t) => t.clientId.equals(clientId)))
               .write(VisitsCompanion(serverId: Value(serverId)));
         }
+      case 'member.create':
+        // Each detail's server id, from the field it saved.
+        final localIds = payload['_fieldValueIds'];
+        final saved = result['fields'];
+        if (localIds is! Map<String, dynamic> || saved is! List<dynamic>) {
+          return;
+        }
+        for (final field in saved.whereType<Map<String, dynamic>>()) {
+          final localId = localIds[field['fieldKey']];
+          final serverId = field['fieldValueId'];
+          if (localId is String && serverId is String) {
+            await _adopt(localId, serverId, null);
+          }
+        }
       case 'field.change':
         final serverId = result['fieldValueId'];
         final localId = payload['_fieldValueId'];
-        if (serverId is! String || localId is! String || localId == serverId) {
-          return;
+        if (serverId is String && localId is String) {
+          await _adopt(localId, serverId, result['conflictWithId'] as String?);
         }
-        final pulled = await (_db.select(
-          _db.fieldValues,
-        )..where((t) => t.id.equals(serverId))).getSingleOrNull();
-        if (pulled != null) {
-          // A pull already brought the server's copy: drop the phone's.
-          await (_db.delete(
-            _db.fieldValues,
-          )..where((t) => t.id.equals(localId))).go();
-          return;
-        }
-        await (_db.update(
-          _db.fieldValues,
-        )..where((t) => t.id.equals(localId))).write(
-          FieldValuesCompanion(
-            id: Value(serverId),
-            conflictWithId: Value(result['conflictWithId'] as String?),
-          ),
-        );
-        // A later edit on the phone points at it by its new id, and so does
-        // its queued change (its base_version).
-        await (_db.update(_db.fieldValues)
-              ..where((t) => t.supersedesId.equals(localId)))
-            .write(FieldValuesCompanion(supersedesId: Value(serverId)));
-        await _db.customUpdate(
-          r"UPDATE pending_mutation SET payload = json_set(payload, '$.baseVersion', ?1) "
-          r"WHERE type = 'field.change' AND json_extract(payload, '$.baseVersion') = ?2",
-          variables: [Variable<String>(serverId), Variable<String>(localId)],
-          updates: {_db.pendingMutations},
-        );
     }
+  }
+
+  /// The phone's value [localId] takes the server's id [serverId] (or goes,
+  /// if a pull already brought the server's copy). A later edit on the phone
+  /// points at it by its new id, and so does its queued change.
+  Future<void> _adopt(
+    String localId,
+    String serverId,
+    String? conflictWithId,
+  ) async {
+    if (localId == serverId) return;
+    final pulled = await (_db.select(
+      _db.fieldValues,
+    )..where((t) => t.id.equals(serverId))).getSingleOrNull();
+    if (pulled != null) {
+      await (_db.delete(
+        _db.fieldValues,
+      )..where((t) => t.id.equals(localId))).go();
+      return;
+    }
+    await (_db.update(
+      _db.fieldValues,
+    )..where((t) => t.id.equals(localId))).write(
+      FieldValuesCompanion(
+        id: Value(serverId),
+        conflictWithId: Value(conflictWithId),
+      ),
+    );
+    await (_db.update(_db.fieldValues)
+          ..where((t) => t.supersedesId.equals(localId)))
+        .write(FieldValuesCompanion(supersedesId: Value(serverId)));
+    await _db.customUpdate(
+      r"UPDATE pending_mutation SET payload = json_set(payload, '$.baseVersion', ?1) "
+      r"WHERE type = 'field.change' AND json_extract(payload, '$.baseVersion') = ?2",
+      variables: [Variable<String>(serverId), Variable<String>(localId)],
+      updates: {_db.pendingMutations},
+    );
   }
 }
