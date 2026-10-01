@@ -16,7 +16,7 @@ async function bootstrap(): Promise<void> {
   configureApp(app);
 
   const config = app.get<ConfigService<Env, true>>(ConfigService);
-  if (config.get('NODE_ENV', { infer: true }) !== 'production' && setupApiDocs(app, API_PREFIX)) {
+  if (setupApiDocs(app, API_PREFIX, config.get('NODE_ENV', { infer: true }))) {
     app.get(Logger).log(`API docs at /${API_PREFIX}/docs`, 'Bootstrap');
   }
   const port = config.get('API_PORT', { infer: true });
