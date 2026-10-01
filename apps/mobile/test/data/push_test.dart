@@ -652,6 +652,29 @@ void main() {
       expect(container.read(syncControllerProvider).uploading, isFalse);
     });
 
+    test('back online, a change waiting for its next try goes now', () async {
+      await visit(db);
+      await visit(db);
+      final rows = await queued(db);
+      // One waiting an hour (long offline), one refused by the server.
+      await (db.update(
+        db.pendingMutations,
+      )..where((t) => t.id.equals(rows.first.id))).write(
+        PendingMutationsCompanion(
+          nextAttemptAt: Value(DateTime.now().add(const Duration(hours: 1))),
+        ),
+      );
+      await (db.update(db.pendingMutations)
+            ..where((t) => t.id.equals(rows.last.id)))
+          .write(const PendingMutationsCompanion(status: Value('failed')));
+      final api = FakeSyncApi();
+      final container = containerWith(api);
+      await container.read(syncControllerProvider.notifier).syncNow();
+      expect(api.pushed.single.single['key'], rows.first.key);
+      // The refused one waits for Upload now.
+      expect((await queued(db)).single.status, 'failed');
+    });
+
     test('sync uploads first, then downloads', () async {
       await visit(db);
       final api = FakeSyncApi();

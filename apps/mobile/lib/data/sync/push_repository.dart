@@ -145,6 +145,13 @@ class PushRepository {
         ),
       );
 
+  /// Every change waiting for its next try is due now (not those the
+  /// server refused): the phone is back online, so the wait is over.
+  Future<int> dueNow() =>
+      (_db.update(_db.pendingMutations)
+            ..where((t) => t.status.equals('pending')))
+          .write(const PendingMutationsCompanion(nextAttemptAt: Value(null)));
+
   /// Retry one change now (per-item retry).
   Future<void> retryOne(int id) =>
       (_db.update(_db.pendingMutations)..where(

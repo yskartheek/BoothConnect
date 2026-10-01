@@ -125,7 +125,14 @@ class SyncController extends Notifier<SyncState> {
 
   /// Uploads, then downloads: the pull then brings back what was uploaded.
   /// On sign-in, resume and when back online.
+  ///
+  /// Changes waiting for their next try go now: the backoff is for an
+  /// unreachable server while the phone seems online, not for a phone that
+  /// was offline and is back.
   Future<void> syncNow() async {
+    if (ref.read(authProvider) == AuthStatus.signedIn) {
+      await (await _pushRepository()).dueNow();
+    }
     await pushNow();
     await pullNow();
   }

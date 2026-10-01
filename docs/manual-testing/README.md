@@ -124,3 +124,4 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #65   | [Mobile visit form: outcome, who you met, edit members, refusal](65-mobile-visit.md)            | Ready to test   |
 | #66   | [Mobile sync push: uploading the changes made on the phone](66-mobile-sync-push.md)             | Ready to test   |
 | #67   | [Mobile Uploads screen: queue status, Choose value, retry](67-mobile-uploads.md)                | Ready to test   |
+| #68   | [Mobile end-to-end test: offline visit, restart, reconnect, synced](68-mobile-e2e-offline.md)   | Ready to test   |
