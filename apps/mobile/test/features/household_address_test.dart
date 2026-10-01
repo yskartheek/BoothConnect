@@ -951,6 +951,51 @@ void main() {
       expect(find.text('On phone'), findsOneWidget);
     });
 
+    testWidgets('only the address changed: only the address is sent', (
+      tester,
+    ) async {
+      final (_, db) = await open(tester, '/household/h-1/address');
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Landmark'),
+        'Near water tank',
+      );
+      await tester.tap(find.byTooltip('Save'));
+      await waitFor(
+        tester,
+        () => find.byType(HouseholdScreen).evaluate().isNotEmpty,
+      );
+      final payload = payloadOf((await settle(tester, queued(db))).single);
+      expect(payload['address'], {
+        'house_no': '12/4',
+        'street': 'Gandhi Road',
+        'landmark': 'Near water tank',
+      });
+      expect(payload.containsKey('location'), isFalse);
+    });
+
+    testWidgets('only a location taken: the address isn’t sent', (
+      tester,
+    ) async {
+      final (_, db) = await open(
+        tester,
+        '/household/h-1/address',
+        answers: [fix],
+      );
+      await tester.tap(find.text('The household agrees to store its location'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Use my current location'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Save'));
+      await waitFor(
+        tester,
+        () => find.byType(HouseholdScreen).evaluate().isNotEmpty,
+      );
+      final payload = payloadOf((await settle(tester, queued(db))).single);
+      expect(payload.containsKey('address'), isFalse);
+      expect(payload.containsKey('addressBaseVersion'), isFalse);
+      expect((payload['location'] as Map<String, dynamic>)['lng'], 78.48667);
+    });
+
     testWidgets('nothing changed: nothing queued', (tester) async {
       final (_, db) = await open(tester, '/household/h-1/address');
       await tester.tap(find.byTooltip('Save'));
