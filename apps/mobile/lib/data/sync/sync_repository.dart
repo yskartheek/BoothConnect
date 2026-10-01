@@ -120,6 +120,15 @@ class SyncRepository {
       )..where((t) => t.id.isIn(removed))).go();
     }
 
+    // Restricted details (caste / community) aren't kept on a volunteer's
+    // phone, even if the server sends them: only authorised staff see them.
+    await _db.customUpdate(
+      'DELETE FROM field_values WHERE field_key IN '
+      '(SELECT key FROM field_definitions WHERE is_restricted = 1)',
+      updates: {_db.fieldValues},
+      updateKind: UpdateKind.delete,
+    );
+
     await _setMeta(cursorKey, page['cursor'] as String);
     return rows;
   }

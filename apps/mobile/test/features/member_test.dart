@@ -276,6 +276,8 @@ void main() {
         );
         await pumpEventQueue();
         expect(seen.last!.value('name'), 'Synthetic Arjun Rao');
+        // An ordinary change waiting to upload isn't a restricted one.
+        expect(seen.last!.waitingRestricted, isEmpty);
         expect(await db.watchMemberDetail('v-9').first, isNull);
       },
     );
@@ -720,6 +722,7 @@ void main() {
         () =>
             find.textContaining('Recorded on this phone').evaluate().isNotEmpty,
       );
+      expect(find.textContaining('Recorded on this phone'), findsOneWidget);
       expect(find.text('Synthetic community'), findsNothing);
     });
 
@@ -738,6 +741,57 @@ void main() {
         ('field.change', 'age'),
       ]);
       expect(payloadOf(all.single)['value'], 50);
+    });
+
+    testWidgets('caste typed, then the agreement unticked: not saved', (
+      tester,
+    ) async {
+      final (_, db) = await open(tester, '/member/v-1');
+      final agree = find.text('Voter agrees to share this');
+      await tester.tap(agree);
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, 'Caste / community'),
+        'Synthetic community',
+      );
+      await tester.tap(agree);
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('Save'));
+      await waitFor(
+        tester,
+        () => find.byType(HouseholdScreen).evaluate().isNotEmpty,
+      );
+      expect(await settle(tester, queued(db)), isEmpty);
+    });
+
+    testWidgets('online, a saved change uploads at once', (tester) async {
+      tester.view.physicalSize = const Size(800, 2400);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      // Downloads fail (the booth stays as seeded); uploads work.
+      final api = FakeSyncApi(List.filled(20, offline, growable: true));
+      final container = await startApp(
+        tester,
+        api: FakeAuthApi(session: true),
+        syncApi: api,
+        connectivity: Stream.value([ConnectivityResult.wifi]),
+      );
+      final db = await settle(
+        tester,
+        container.read(appDatabaseProvider.future),
+      );
+      await settle(tester, seed(db));
+      await go(tester, container, '/member/v-1');
+      await waitFor(
+        tester,
+        () => find.widgetWithText(TextField, 'Name').evaluate().isNotEmpty,
+      );
+      await tester.enterText(find.widgetWithText(TextField, 'Age'), '50');
+      await tester.tap(find.byTooltip('Save'));
+      await waitFor(tester, () => api.pushed.isNotEmpty);
+      expect(api.pushed.single.single['type'], 'field.change');
+      await waitFor(tester, () => find.text('Uploaded').evaluate().isNotEmpty);
+      expect(await settle(tester, queued(db)), isEmpty);
     });
 
     testWidgets('adding a member creates them, on the phone and queued', (

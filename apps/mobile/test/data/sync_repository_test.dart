@@ -318,6 +318,45 @@ void main() {
     expect(await count(db.fieldValues), 0);
   });
 
+  test('restricted details are never kept on the phone', () async {
+    await SyncRepository(db, FakeSyncApi(snapshot())).pull();
+    final caste = {
+      ...fieldValue('fv-caste', 'v-1', 'Synthetic community'),
+      'fieldKey': 'caste_community',
+    };
+    await SyncRepository(
+      db,
+      FakeSyncApi([
+        syncPage(
+            cursor: 'c-2',
+            fieldDefinitions: [
+              {
+                ...definition,
+                'id': 'fd-caste',
+                'key': 'caste_community',
+                'isRestricted': true,
+                'requiresConsent': true,
+              },
+            ],
+            fieldValues: [caste],
+          )
+          ..['conflicts'] = [
+            {
+              'entityType': 'voter',
+              'entityId': 'v-1',
+              'fieldKey': 'caste_community',
+              'values': [
+                {...caste, 'id': 'fv-caste-2', 'conflictWithId': 'fv-caste'},
+                caste,
+              ],
+            },
+          ],
+      ]),
+    ).pull();
+    final keys = (await db.select(db.fieldValues).get()).map((v) => v.fieldKey);
+    expect(keys, ['occupation']);
+  });
+
   test('the owner is kept across pulls and snapshots', () async {
     final repository = SyncRepository(db, FakeSyncApi(snapshot()));
     expect(await repository.owner(), isNull);
