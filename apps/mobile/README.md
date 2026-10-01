@@ -284,6 +284,29 @@ pushes at once when online.
 everything reads it through `onlineProvider`: the offline banner, the sync
 triggers and the visit form.
 
+## Uploads screen (#67)
+
+`features/sync/sync_screen.dart` reads the phone's database:
+
+- `watchUploadQueue()`: `pending_mutation` rows that aren't conflicts, with
+  the household's address. They're shown as **Waiting to upload**
+  (`syncing` → Uploading now; `pending` → the next try or "Waiting for the
+  connection") and **Not uploaded** (`failed`, with `errorMessage(code)` and
+  **Retry** → `SyncController.retryUpload(id)`). **Upload now** →
+  `retryUploads()`.
+- `watchOpenConflicts()`: each current value with `conflict_with_id`, with
+  the value it conflicts with (even if no longer current), who set each and
+  when, and whose detail it is. **Keep selected value** →
+  `LocalWrites.resolveConflict`, which:
+  - makes the kept value current and the other not;
+  - clears both links;
+  - removes the phone's `conflict` change for that field;
+  - queues `conflict.resolve` (`conflictId` = the newer value).
+- The pull stores both values of every open conflict (`conflicts` on the
+  last page).
+- "Yours" compares `collected_by_id` with `sync_meta.owner`
+  (`watchOwner()`). Your own value is chosen first, else the newest.
+
 ## Screen states (#58)
 
 Every screen shows one of these while it has nothing else to show

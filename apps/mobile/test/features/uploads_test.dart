@@ -246,6 +246,37 @@ void main() {
               isCurrent: true,
             ),
           );
+      // An older correction, no longer current, though collected later.
+      await db
+          .into(db.fieldValues)
+          .insert(
+            FieldValuesCompanion.insert(
+              id: 'fv-name-old',
+              entityType: 'voter',
+              entityId: 'v-1',
+              fieldKey: 'name',
+              value: '"Synthetic Wrong"',
+              sourceType: 'volunteer_collected',
+              collectedAt: DateTime.utc(2026, 9, 20),
+              isCurrent: false,
+            ),
+          );
+      // History: a value that was in a conflict, no longer current.
+      await db
+          .into(db.fieldValues)
+          .insert(
+            FieldValuesCompanion.insert(
+              id: 'fv-history',
+              entityType: 'voter',
+              entityId: 'v-1',
+              fieldKey: 'occupation',
+              value: '"Synthetic"',
+              sourceType: 'volunteer_collected',
+              collectedAt: DateTime.utc(2026, 9, 2),
+              isCurrent: false,
+              conflictWithId: const Value('fv-name'),
+            ),
+          );
       await seedConflict(db);
       for (final (id, conflictWith) in [
         ('fv-h-old', null),
@@ -561,6 +592,34 @@ void main() {
       );
       expect(group.groupValue, 'fv-mine');
       expect(find.text('Keep selected value'), findsOneWidget);
+      // Something needs a choice: not "nothing is waiting".
+      expect(find.textContaining('Nothing is waiting'), findsNothing);
+    });
+
+    testWidgets('your own value is chosen first, even when older', (
+      tester,
+    ) async {
+      final older = OpenConflict(
+        entityType: conflict.entityType,
+        entityId: conflict.entityId,
+        fieldKey: conflict.fieldKey,
+        address: conflict.address,
+        memberName: conflict.memberName,
+        mine: conflict.other,
+        other: ConflictValue(
+          id: 'fv-yours-older',
+          value: '+919999900111',
+          collectedAt: DateTime(2026, 10, 1, 8),
+          collectedById: 'u-1',
+        ),
+      );
+      await show(tester, conflicts: [older]);
+      expect(
+        tester
+            .widget<RadioGroup<String>>(find.byType(RadioGroup<String>))
+            .groupValue,
+        'fv-yours-older',
+      );
     });
 
     testWidgets('someone unknown, and the newest when neither is yours', (
