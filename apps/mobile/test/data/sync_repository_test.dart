@@ -215,41 +215,73 @@ void main() {
     expect(await meta(SyncRepository.cursorKey), 'c-2');
   });
 
-  test(
-    'a new snapshot replaces the cache, keeping visits not yet uploaded',
-    () async {
-      await SyncRepository(db, FakeSyncApi(snapshot())).pull();
-      // A visit recorded on the phone, not pushed yet: no server id.
+  test('a new snapshot replaces the cache, keeping visits and households not '
+      'yet uploaded', () async {
+    await SyncRepository(db, FakeSyncApi(snapshot())).pull();
+    // A household added on the phone, not pushed yet.
+    await db
+        .into(db.households)
+        .insert(
+          HouseholdsCompanion.insert(
+            id: 'h-added',
+            partId: 'part-1',
+            pollingStationId: 'station-1',
+            displayAddress: '7, Synthetic Street',
+            houseKey: '7',
+            origin: 'volunteer_added',
+            status: 'active',
+          ),
+        );
+    for (final (type, id) in [
+      ('household.create', 'h-added'),
+      // Only a creation keeps its household.
+      ('household.update', 'h-2'),
+    ]) {
       await db
-          .into(db.visits)
+          .into(db.pendingMutations)
           .insert(
-            VisitsCompanion.insert(
-              clientId: 'client-local',
-              householdId: 'h-2',
-              volunteerId: 'u-1',
-              startedAt: DateTime.utc(2026, 9, 30),
-              outcome: 'no_one_available',
-              formVersion: '1',
-              memberIdsMet: const [],
+            PendingMutationsCompanion.insert(
+              key: 'k-$id',
+              type: type,
+              householdId: Value(id),
+              payload: '{"id":"$id"}',
+              createdAt: DateTime.utc(2026, 9, 30),
             ),
           );
+    }
+    // A visit recorded on the phone, not pushed yet: no server id.
+    await db
+        .into(db.visits)
+        .insert(
+          VisitsCompanion.insert(
+            clientId: 'client-local',
+            householdId: 'h-2',
+            volunteerId: 'u-1',
+            startedAt: DateTime.utc(2026, 9, 30),
+            outcome: 'no_one_available',
+            formVersion: '1',
+            memberIdsMet: const [],
+          ),
+        );
 
-      // The API starts over (e.g. the volunteer's booths changed).
-      await SyncRepository(
-        db,
-        FakeSyncApi([
-          syncPage(cursor: 'c-9', reset: true, households: [household('h-5')]),
-        ]),
-      ).pull();
+    // The API starts over (e.g. the volunteer's booths changed).
+    await SyncRepository(
+      db,
+      FakeSyncApi([
+        syncPage(cursor: 'c-9', reset: true, households: [household('h-5')]),
+      ]),
+    ).pull();
 
-      expect((await db.select(db.households).get()).map((h) => h.id), ['h-5']);
-      expect(await count(db.voters), 0);
-      expect(await count(db.fieldValues), 0);
-      expect((await db.select(db.visits).get()).map((v) => v.clientId), [
-        'client-local',
-      ]);
-    },
-  );
+    expect((await db.select(db.households).get()).map((h) => h.id).toSet(), {
+      'h-5',
+      'h-added',
+    });
+    expect(await count(db.voters), 0);
+    expect(await count(db.fieldValues), 0);
+    expect((await db.select(db.visits).get()).map((v) => v.clientId), [
+      'client-local',
+    ]);
+  });
 
   test('an interrupted snapshot goes on where it stopped', () async {
     final pages = snapshot();

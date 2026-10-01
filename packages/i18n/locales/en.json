@@ -17,10 +17,6 @@
   "@mobile.syncTitle": {
     "description": "Title of the sync center, and the home screen button that opens it."
   },
-  "mobile.screenComingSoon": "This screen is being built.",
-  "@mobile.screenComingSoon": {
-    "description": "Placeholder text on screens that aren't built yet."
-  },
   "mobile.notFoundTitle": "Page not found",
   "@mobile.notFoundTitle": { "description": "Shown for a link the app doesn't know." },
   "mobile.goHome": "Go to home",
@@ -367,6 +363,100 @@
   "@mobile.memberNotFoundTitle": { "description": "The member is not on this phone." },
   "mobile.memberNotFoundMessage": "They may have been removed from the roll. Go back to the household.",
   "@mobile.memberNotFoundMessage": { "description": "Explains the member not found state." },
+  "mobile.addressHouseNo": "House no.",
+  "@mobile.addressHouseNo": { "description": "Address form field." },
+  "mobile.addressStreet": "Street",
+  "@mobile.addressStreet": { "description": "Address form field." },
+  "mobile.addressArea": "Area / locality",
+  "@mobile.addressArea": { "description": "Address form field." },
+  "mobile.addressPinCode": "PIN code",
+  "@mobile.addressPinCode": {
+    "description": "Address form field: the 6-digit Indian postal code."
+  },
+  "mobile.addressLandmark": "Landmark",
+  "@mobile.addressLandmark": { "description": "Address form field, e.g. \"Near water tank\"." },
+  "mobile.addressBooth": "Booth",
+  "@mobile.addressBooth": {
+    "description": "Address form (new household, several booths): which booth the household is in."
+  },
+  "mobile.addressRequired": "Enter at least one part of the address.",
+  "@mobile.addressRequired": { "description": "Address form: every field is empty." },
+  "mobile.addressPinInvalid": "Enter a 6-digit PIN code.",
+  "@mobile.addressPinInvalid": { "description": "Address form: the PIN code isn't 6 digits." },
+  "mobile.addressHouseNoTaken": "A household with this house number is already on the list.",
+  "@mobile.addressHouseNoTaken": {
+    "description": "Address form (new household): the house number is already used in the part."
+  },
+  "mobile.addressSaved": "Saved. It uploads when you're online.",
+  "@mobile.addressSaved": {
+    "description": "Snackbar after saving a household's address or location."
+  },
+  "mobile.addressSaveFailed": "Couldn't save on this phone. Try again.",
+  "@mobile.addressSaveFailed": { "description": "Snackbar when saving the address fails." },
+  "mobile.householdAdded": "Household added. It uploads when you're online.",
+  "@mobile.householdAdded": { "description": "Snackbar after adding a household." },
+  "mobile.householdNewNoBooth": "Your booth's households have to be downloaded before you can add one. Pull down on Home to try again.",
+  "@mobile.householdNewNoBooth": {
+    "description": "New household screen: no booth's households on the phone yet."
+  },
+  "mobile.locationTitle": "Location",
+  "@mobile.locationTitle": { "description": "Heading of the location card on the address screen." },
+  "mobile.locationSaved": "Saved",
+  "@mobile.locationSaved": {
+    "description": "Location card chip: a location is saved for the household."
+  },
+  "mobile.locationNew": "Not saved yet",
+  "@mobile.locationNew": {
+    "description": "Location card chip: a reading was taken on this screen; Save keeps it."
+  },
+  "mobile.locationNone": "No location saved yet.",
+  "@mobile.locationNone": { "description": "Location card: the household has no location." },
+  "mobile.locationAccuracyCaptured": "Accurate to about {meters} m · captured {time}",
+  "@mobile.locationAccuracyCaptured": {
+    "description": "Location card. {meters}: a whole number of metres; {time}: date and time."
+  },
+  "mobile.locationCaptured": "Captured {time}",
+  "@mobile.locationCaptured": {
+    "description": "Location card, when the accuracy is unknown. {time}: date and time."
+  },
+  "mobile.locationConsentNotice": "Ask first. The location is stored with the household so volunteers can find the house again. Only the campaign team can see it.",
+  "@mobile.locationConsentNotice": {
+    "description": "Location card: the notice read out before taking the location."
+  },
+  "mobile.locationConsentAgree": "The household agrees to store its location",
+  "@mobile.locationConsentAgree": {
+    "description": "Location card: consent checkbox; the button works only once it's ticked."
+  },
+  "mobile.locationUseCurrent": "Use my current location",
+  "@mobile.locationUseCurrent": {
+    "description": "Location card button: takes one location reading."
+  },
+  "mobile.locationTaking": "Taking location…",
+  "@mobile.locationTaking": { "description": "Location card button while the reading is taken." },
+  "mobile.locationDenied": "Location permission was refused. Tap the button again to allow it, or save without a location.",
+  "@mobile.locationDenied": {
+    "description": "Location card: the volunteer refused the permission."
+  },
+  "mobile.locationDeniedForever": "Location is blocked for this app. Allow it in the phone's settings to use this button.",
+  "@mobile.locationDeniedForever": {
+    "description": "Location card: the permission is permanently refused."
+  },
+  "mobile.locationOpenSettings": "Open settings",
+  "@mobile.locationOpenSettings": {
+    "description": "Location card: opens the phone's settings for the app."
+  },
+  "mobile.locationOff": "Location is turned off on this phone. Turn it on and try again.",
+  "@mobile.locationOff": { "description": "Location card: location services are off." },
+  "mobile.locationUnavailable": "Couldn't get a location here. Try again, or save without one.",
+  "@mobile.locationUnavailable": { "description": "Location card: no reading in time." },
+  "mobile.locationFootnote": "Location is taken once, when you tap the button. The app never tracks you.",
+  "@mobile.locationFootnote": { "description": "Under the location card." },
+  "mobile.syncItemHouseholdNew": "New household · {address}",
+  "@mobile.syncItemHouseholdNew": { "description": "Uploads: a household added on the phone." },
+  "mobile.syncItemAddress": "Address · {address}",
+  "@mobile.syncItemAddress": {
+    "description": "Uploads: a household's address or location change."
+  },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

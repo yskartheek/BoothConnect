@@ -64,20 +64,24 @@ void main() {
 
   testWidgets('every route opens its screen', (tester) async {
     final container = await startApp(tester, api: FakeAuthApi(session: true));
-    for (final (path, title) in [
-      ('/households/new', 'New household'),
-      ('/household/h-1/address', 'Address'),
-    ]) {
-      await go(tester, container, path);
-      expect(find.widgetWithText(AppBar, title), findsOneWidget, reason: path);
-      expect(find.text('This screen is being built.'), findsOneWidget);
-      if (path == '/household/h-1/address') {
-        final screen = tester.widget<HouseholdAddressScreen>(
-          find.byType(HouseholdAddressScreen),
-        );
-        expect(screen.householdId, 'h-1');
-      }
-    }
+    // Add household: nothing of the booth is on this phone yet.
+    await go(tester, container, '/households/new');
+    await waitFor(
+      tester,
+      () => find.textContaining('have to be downloaded').evaluate().isNotEmpty,
+    );
+    expect(find.widgetWithText(AppBar, 'New household'), findsOneWidget);
+    // The address of one this phone doesn't have.
+    await go(tester, container, '/household/h-1/address');
+    await waitFor(
+      tester,
+      () => find.text('Household not found').evaluate().isNotEmpty,
+    );
+    expect(find.widgetWithText(AppBar, 'Address'), findsOneWidget);
+    final screen = tester.widget<HouseholdAddressScreen>(
+      find.byType(HouseholdAddressScreen),
+    );
+    expect(screen.householdId, 'h-1');
 
     // Member details: adding one, and one this phone doesn't have.
     await go(tester, container, '/household/h-1/members/new');

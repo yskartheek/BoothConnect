@@ -22,6 +22,17 @@ extension LocalReads on AppDatabase {
   Stream<HouseholdRow?> watchHousehold(String id) =>
       (select(households)..where((t) => t.id.equals(id))).watchSingleOrNull();
 
+  /// The booths (polling station ids) of the households on the phone, for
+  /// Add household.
+  Stream<List<String>> watchPollingStationIds() =>
+      customSelect(
+        'SELECT DISTINCT polling_station_id FROM households '
+        'ORDER BY polling_station_id',
+        readsFrom: {households},
+      ).watch().map(
+        (rows) => [for (final r in rows) r.read<String>('polling_station_id')],
+      );
+
   /// A household's active members, in roll order (section, then serial).
   Stream<List<VoterRow>> watchMembers(String householdId) =>
       (select(voters)
@@ -260,18 +271,21 @@ WHERE h.status != 'removed' AND (?1 IS NULL OR h.id = ?1)
 
 /// A booth the volunteer is assigned to.
 class BoothAssignment {
-  const BoothAssignment({required this.name, required this.code});
+  const BoothAssignment({this.id, required this.name, required this.code});
 
   factory BoothAssignment.fromJson(Map<String, dynamic> json) =>
       BoothAssignment(
+        id: json['id'] as String?,
         name: json['name'] as String,
         code: json['code'] as String,
       );
 
+  /// The booth's node id; missing in what an older version saved.
+  final String? id;
   final String name;
   final String code;
 
-  Map<String, String> toJson() => {'name': name, 'code': code};
+  Map<String, String> toJson() => {'id': ?id, 'name': name, 'code': code};
 }
 
 /// A household as the list shows it.

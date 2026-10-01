@@ -8,6 +8,7 @@ import 'token_store.dart';
 class Assignment {
   const Assignment({
     required this.role,
+    this.nodeId,
     required this.nodeType,
     required this.nodeName,
     required this.nodeCode,
@@ -17,6 +18,7 @@ class Assignment {
     final node = json['node'] as Map<String, dynamic>;
     return Assignment(
       role: json['role'] as String,
+      nodeId: node['id'] as String?,
       nodeType: node['type'] as String,
       nodeName: node['name'] as String,
       nodeCode: node['code'] as String,
@@ -24,6 +26,7 @@ class Assignment {
   }
 
   final String role;
+  final String? nodeId;
   final String nodeType;
   final String nodeName;
   final String nodeCode;

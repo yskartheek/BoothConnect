@@ -271,6 +271,184 @@ extension LocalWrites on AppDatabase {
     return id;
   });
 
+  /// Adds a household that isn't on the official list, in booth
+  /// [pollingStationId], and queues `household.create` with an id made on
+  /// the phone. Returns it.
+  ///
+  /// Throws [HouseNumberTaken] when a household in the same part already
+  /// has [address]'s house number: the server would refuse it.
+  Future<String> addHousehold({
+    required String pollingStationId,
+    required Map<String, String> address,
+    HouseholdLocation? location,
+    required DateTime at,
+  }) => transaction(() async {
+    final clean = cleanAddress(address);
+    final neighbour =
+        await (select(households)
+              ..where((t) => t.pollingStationId.equals(pollingStationId))
+              ..limit(1))
+            .getSingleOrNull();
+    if (neighbour == null) {
+      throw StateError(
+        'No household of booth $pollingStationId is on the phone',
+      );
+    }
+    final houseNo = clean['house_no'];
+    if (houseNo != null) {
+      final taken =
+          await (select(households)..where(
+                (t) =>
+                    t.partId.equals(neighbour.partId) &
+                    t.houseKey.equals(houseNo),
+              ))
+              .get();
+      if (taken.isNotEmpty) throw const HouseNumberTaken();
+    }
+    final id = newId();
+    await into(households).insert(
+      HouseholdsCompanion.insert(
+        id: id,
+        partId: neighbour.partId,
+        pollingStationId: pollingStationId,
+        displayAddress: displayAddress(clean),
+        // As the server makes it.
+        houseKey: houseNo ?? '~$id',
+        structuredAddress: Value(jsonEncode(clean)),
+        latitude: Value(location?.lat),
+        longitude: Value(location?.lng),
+        accuracyM: Value(location?.accuracyM),
+        locationCapturedAt: Value(location?.capturedAt),
+        origin: 'volunteer_added',
+        status: 'active',
+      ),
+    );
+    await _queue('household.create', id, at, {
+      'id': id,
+      'pollingStationId': pollingStationId,
+      'address': clean,
+      if (location != null) 'location': location.toPayload(),
+    });
+    return id;
+  });
+
+  /// Saves a household's [address] and/or a new [location] reading on the
+  /// phone and queues `household.update`, with the values the phone saw as
+  /// bases (as for [changeField]). A location goes with the household's
+  /// consent to store it.
+  ///
+  /// A household added on the phone and not sent yet has its queued
+  /// `household.create` updated instead.
+  Future<void> updateHousehold({
+    required String householdId,
+    Map<String, String>? address,
+    HouseholdLocation? location,
+    required DateTime at,
+  }) => transaction(() async {
+    if (address == null && location == null) return;
+    final clean = address == null ? null : cleanAddress(address);
+    await (update(households)..where((t) => t.id.equals(householdId))).write(
+      HouseholdsCompanion(
+        displayAddress: clean == null
+            ? const Value.absent()
+            : Value(displayAddress(clean)),
+        structuredAddress: clean == null
+            ? const Value.absent()
+            : Value(jsonEncode(clean)),
+        latitude: location == null ? const Value.absent() : Value(location.lat),
+        longitude: location == null
+            ? const Value.absent()
+            : Value(location.lng),
+        accuracyM: location == null
+            ? const Value.absent()
+            : Value(location.accuracyM),
+        locationCapturedAt: location == null
+            ? const Value.absent()
+            : Value(location.capturedAt),
+      ),
+    );
+
+    final created = await customSelect(
+      "SELECT id, payload FROM pending_mutation WHERE type = 'household.create' "
+      "AND status = 'pending' AND attempts = 0 "
+      r"AND json_extract(payload, '$.id') = ?1 LIMIT 1",
+      variables: [Variable<String>(householdId)],
+      readsFrom: {pendingMutations},
+    ).getSingleOrNull();
+    if (created != null) {
+      final payload =
+          jsonDecode(created.read<String>('payload')) as Map<String, dynamic>;
+      if (clean != null) payload['address'] = clean;
+      if (location != null) payload['location'] = location.toPayload();
+      await (update(
+        pendingMutations,
+      )..where((t) => t.id.equals(created.read<int>('id')))).write(
+        PendingMutationsCompanion(payload: Value(jsonEncode(payload))),
+      );
+      return;
+    }
+
+    final owner = await _owner();
+    final payload = <String, Object?>{'id': householdId};
+    final localIds = <String, String>{};
+    Future<void> value(String key, Object json, DateTime collectedAt) async {
+      final current =
+          await (select(fieldValues)
+                ..where(
+                  (t) =>
+                      t.entityId.equals(householdId) &
+                      t.fieldKey.equals(key) &
+                      t.isCurrent.equals(true),
+                )
+                ..orderBy([
+                  (t) => OrderingTerm(
+                    expression: t.collectedAt,
+                    mode: OrderingMode.desc,
+                  ),
+                ]))
+              .get();
+      await (update(fieldValues)..where(
+            (t) =>
+                t.entityId.equals(householdId) &
+                t.fieldKey.equals(key) &
+                t.isCurrent.equals(true),
+          ))
+          .write(const FieldValuesCompanion(isCurrent: Value(false)));
+      final localId = localIds[key] = newId();
+      await into(fieldValues).insert(
+        FieldValuesCompanion.insert(
+          id: localId,
+          entityType: 'household',
+          entityId: householdId,
+          fieldKey: key,
+          value: jsonEncode(json),
+          sourceType: 'volunteer_collected',
+          collectedById: Value(owner),
+          collectedAt: collectedAt,
+          supersedesId: Value(current.firstOrNull?.id),
+          isCurrent: true,
+        ),
+      );
+      payload[key == addressKey
+              ? 'addressBaseVersion'
+              : 'locationBaseVersion'] =
+          current.firstOrNull?.id;
+    }
+
+    if (clean != null) {
+      await value(addressKey, clean, at);
+      payload['address'] = clean;
+    }
+    if (location != null) {
+      final reading = location.toPayload()..remove('consent');
+      await value(locationKey, reading, location.capturedAt);
+      payload['location'] = location.toPayload();
+    }
+    // The phone's copies, given the server's ids once uploaded.
+    payload['_fieldValueIds'] = localIds;
+    await _queue('household.update', householdId, at, payload);
+  });
+
   /// Keeps [keepId], one of [conflict]'s two values, and queues
   /// `conflict.resolve`. The other value stays in the history (no longer
   /// current), and the change that ended in this conflict leaves the
@@ -302,6 +480,15 @@ extension LocalWrites on AppDatabase {
           updates: {pendingMutations},
           updateKind: UpdateKind.delete,
         );
+        // An address or location: the household change it came with.
+        await customUpdate(
+          "DELETE FROM pending_mutation WHERE status = 'conflict' "
+          "AND type = 'household.update' "
+          r"AND json_extract(payload, '$.id') = ?1",
+          variables: [Variable<String>(conflict.entityId)],
+          updates: {pendingMutations},
+          updateKind: UpdateKind.delete,
+        );
         await _queue(
           'conflict.resolve',
           conflict.householdId ?? conflict.entityId,
@@ -324,4 +511,56 @@ extension LocalWrites on AppDatabase {
       createdAt: at,
     ),
   );
+}
+
+/// A household's address, as the API's `address` field holds it.
+const addressKey = 'address';
+
+/// A household's location, taken with its consent.
+const locationKey = 'household_location';
+
+/// The address parts, trimmed; empty ones left out (as the server keeps
+/// them).
+Map<String, String> cleanAddress(Map<String, String> address) => {
+  for (final MapEntry(:key, :value) in address.entries)
+    if (value.trim().isNotEmpty) key: value.trim(),
+};
+
+/// "12/4, Gandhi Road, Nehru Nagar, 500038", as the server writes it.
+String displayAddress(Map<String, String> address) => [
+  for (final key in const ['house_no', 'street', 'area', 'pin_code'])
+    ?address[key],
+].join(', ');
+
+/// One reading from the phone, taken when the volunteer tapped the button,
+/// with the household's agreement to store it.
+class HouseholdLocation {
+  const HouseholdLocation({
+    required this.lat,
+    required this.lng,
+    this.accuracyM,
+    required this.capturedAt,
+    this.noticeVersion = consentNoticeVersion,
+  });
+
+  final double lat;
+  final double lng;
+  final double? accuracyM;
+  final DateTime capturedAt;
+
+  /// Of the notice read out before the household agreed.
+  final String noticeVersion;
+
+  Map<String, Object> toPayload() => {
+    'lat': lat,
+    'lng': lng,
+    'accuracyM': ?accuracyM,
+    'capturedAt': isoMillis(capturedAt),
+    'consent': {'noticeVersion': noticeVersion, 'method': 'in_person_verbal'},
+  };
+}
+
+/// Another household in the same part already has this house number.
+class HouseNumberTaken implements Exception {
+  const HouseNumberTaken();
 }
