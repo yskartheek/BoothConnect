@@ -54,6 +54,13 @@ class LocalStore {
     );
   }
 
+  /// Closes the database, keeping its file and key, as when the app is
+  /// closed. The next [open] opens it again.
+  Future<void> close() async {
+    await _db?.close();
+    _db = null;
+  }
+
   /// Closes the database and deletes its files and key: nothing the
   /// volunteer collected stays on the phone after sign-out.
   Future<void> wipe() async {

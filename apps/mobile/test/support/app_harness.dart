@@ -3,9 +3,11 @@ import 'dart:io';
 
 import 'package:boothconnect_mobile/app/app.dart';
 import 'package:boothconnect_mobile/app/router.dart';
+import 'package:boothconnect_mobile/data/api/api_client.dart';
 import 'package:boothconnect_mobile/data/api/providers.dart';
 import 'package:boothconnect_mobile/data/local/database_key.dart';
 import 'package:boothconnect_mobile/data/local/local_store.dart';
+import 'package:boothconnect_mobile/features/auth/auth_controller.dart';
 import 'package:boothconnect_mobile/features/auth/sign_in_screen.dart';
 import 'package:boothconnect_mobile/features/sync/sync_controller.dart';
 import 'package:boothconnect_mobile/theme/glass_system_settings.dart';
@@ -31,6 +33,9 @@ Future<ProviderContainer> startApp(
   Stream<List<ConnectivityResult>>? connectivity,
   bool glassPlatform = true,
   List<Override> overrides = const [],
+  String? apiBaseUrl,
+  Directory? directory,
+  MemorySecrets? secrets,
 }) async {
   if (glassPlatform) {
     final messenger = tester.binding.defaultBinaryMessenger;
@@ -42,36 +47,62 @@ Future<ProviderContainer> startApp(
       () => messenger.setMockStreamHandler(glassSettingsChannel, null),
     );
   }
-  final dir = Directory.systemTemp.createTempSync('bc_app_test');
-  final secrets = MemorySecrets();
+  // A directory and key of its own, wiped at the end; or the given ones,
+  // kept (to start the app again on the same data: a restart).
+  final owned = directory == null;
+  final dir = directory ?? Directory.systemTemp.createTempSync('bc_app_test');
+  final keys = secrets ?? MemorySecrets();
+  final store = LocalStore(
+    directory: () async => dir,
+    keys: DatabaseKeyStore(keys),
+    inBackground: false,
+    closeStreamsSynchronously: true,
+  );
   final container = ProviderContainer(
     overrides: [
-      secretStoreProvider.overrideWithValue(secrets),
-      authApiProvider.overrideWithValue(api ?? FakeAuthApi()),
-      syncApiProvider.overrideWithValue(syncApi ?? FakeSyncApi()),
+      secretStoreProvider.overrideWithValue(keys),
+      // A real API over HTTP (a test server), or fakes of the API classes.
+      if (apiBaseUrl != null)
+        dioProvider.overrideWith((ref) {
+          final dio = createApiDio(
+            baseUrl: apiBaseUrl,
+            tokens: ref.watch(tokenStoreProvider),
+            onSessionEnded: () =>
+                ref.read(authProvider.notifier).sessionEnded(),
+          );
+          ref.onDispose(dio.close);
+          return dio;
+        })
+      else ...[
+        authApiProvider.overrideWithValue(api ?? FakeAuthApi()),
+        syncApiProvider.overrideWithValue(syncApi ?? FakeSyncApi()),
+      ],
       connectivityChangesProvider.overrideWithValue(
         connectivity ?? const Stream.empty(),
       ),
-      localStoreProvider.overrideWithValue(
-        LocalStore(
-          directory: () async => dir,
-          keys: DatabaseKeyStore(secrets),
-          inBackground: false,
-          closeStreamsSynchronously: true,
-        ),
-      ),
+      localStoreProvider.overrideWithValue(store),
       ...overrides,
     ],
   );
-  addTearDown(() async {
+  var running = true;
+  Future<void> stop() async {
+    if (!running) return;
+    running = false;
     // Take the screens down first: that cancels their database watches.
     // Then close the database while the test's clock still runs; closed
     // after the test, Drift would wait on a fake clock nothing advances.
     await tester.pumpWidget(const SizedBox());
-    final store = container.read(localStoreProvider);
     container.dispose();
-    await settle(tester, store.wipe());
-    dir.deleteSync(recursive: true);
+    await settle(tester, store.close());
+  }
+
+  _stops[container] = stop;
+  addTearDown(() async {
+    await stop();
+    if (owned) {
+      await settle(tester, store.wipe());
+      dir.deleteSync(recursive: true);
+    }
   });
   await tester.pumpWidget(
     UncontrolledProviderScope(
@@ -82,6 +113,13 @@ Future<ProviderContainer> startApp(
   await tester.pumpAndSettle();
   return container;
 }
+
+final _stops = Expando<Future<void> Function()>();
+
+/// Closes the app as a phone would: the screens go and the database is
+/// closed; its file and key stay. Start it again with the same `directory`
+/// and `secrets`.
+Future<void> stopApp(ProviderContainer container) => _stops[container]!();
 
 String location(ProviderContainer container) => container
     .read(routerProvider)
@@ -107,7 +145,10 @@ Future<void> signInThroughScreen(
 }) async {
   await tester.enterText(find.byType(TextField), phone);
   await tester.tap(find.text('Send code'));
-  await tester.pumpAndSettle();
+  // The code step shows once the request is answered (real I/O against a
+  // test server).
+  final signIn = find.widgetWithText(FilledButton, 'Sign in');
+  await waitFor(tester, () => signIn.evaluate().isNotEmpty);
   await tester.enterText(find.byType(TextField), code);
   await tester.tap(find.widgetWithText(FilledButton, 'Sign in'));
   // Signing in touches the database (whose data it holds): wait for the
