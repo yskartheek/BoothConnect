@@ -186,11 +186,13 @@ String _when(BuildContext context, DateTime time) =>
     DateFormat.MMMd(_locale(context)).add_jm().format(time.toLocal());
 
 /// A value as the volunteer typed it: text and numbers as they are, an
-/// address as its parts.
+/// address as its parts, a location as its coordinates.
 String displayValue(Object? value) => switch (value) {
   null => '—',
   String() => value,
   num() || bool() => '$value',
+  {'lat': final num lat, 'lng': final num lng} =>
+    '${lat.toStringAsFixed(5)}, ${lng.toStringAsFixed(5)}',
   Map() => value.values.where((v) => v != null).join(', '),
   List() => value.join(', '),
   _ => '$value',
@@ -206,6 +208,8 @@ String _itemLabel(AppLocalizations l10n, UploadItem item) {
       fieldLabel(l10n, item.fieldKey ?? '') ?? item.fieldKey ?? '',
     ),
     'conflict.resolve' => l10n.syncItemResolve(address),
+    'household.create' => l10n.syncItemHouseholdNew(address),
+    'household.update' => l10n.syncItemAddress(address),
     _ => l10n.syncItemOther(address),
   };
 }

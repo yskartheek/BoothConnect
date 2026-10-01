@@ -113,7 +113,7 @@ class SyncController extends Notifier<SyncState> {
     await repository.setBooths([
       for (final a in me.assignments)
         if (a.role == 'volunteer')
-          BoothAssignment(name: a.nodeName, code: a.nodeCode),
+          BoothAssignment(id: a.nodeId, name: a.nodeName, code: a.nodeCode),
     ]);
   }
 

@@ -197,11 +197,12 @@ class PushRepository {
         final madeHere = <Object?>{};
         for (final m in due) {
           final payload = jsonDecode(m.payload) as Map<String, dynamic>;
-          if (madeHere.contains(payload['baseVersion'])) break;
+          if (_bases.any((b) => madeHere.contains(payload[b]))) break;
           if (payload['_fieldValueId'] != null) {
             madeHere.add(payload['_fieldValueId']);
           }
-          // A member added on the phone: each of its details.
+          // A member added on the phone (each of its details), or a
+          // household's address and location.
           if (payload['_fieldValueIds'] case final Map<String, dynamic> ids) {
             madeHere.addAll(ids.values);
           }
@@ -249,6 +250,15 @@ class PushRepository {
         ),
       );
 
+  /// The payload keys that name the value a change was based on: a field's
+  /// (`field.change`), and a household's address and location
+  /// (`household.update`).
+  static const _bases = [
+    'baseVersion',
+    'addressBaseVersion',
+    'locationBaseVersion',
+  ];
+
   /// Gives the phone's copy the server's ids, so the next pull updates it
   /// instead of adding a second copy.
   Future<void> _reconcile(
@@ -281,6 +291,30 @@ class PushRepository {
           final serverId = field['fieldValueId'];
           if (localId is String && serverId is String) {
             await _adopt(localId, serverId, null);
+          }
+        }
+      case 'household.update':
+        // The address and location, each from its own result.
+        final localIds = payload['_fieldValueIds'];
+        final results = result['results'];
+        if (localIds is! Map<String, dynamic> ||
+            results is! Map<String, dynamic>) {
+          return;
+        }
+        for (final (name, key) in const [
+          ('address', 'address'),
+          ('location', 'household_location'),
+        ]) {
+          final saved = results[name];
+          final localId = localIds[key];
+          if (saved is Map<String, dynamic> &&
+              saved['fieldValueId'] is String &&
+              localId is String) {
+            await _adopt(
+              localId,
+              saved['fieldValueId'] as String,
+              saved['conflictWithId'] as String?,
+            );
           }
         }
       case 'field.change':
@@ -321,11 +355,13 @@ class PushRepository {
     await (_db.update(_db.fieldValues)
           ..where((t) => t.supersedesId.equals(localId)))
         .write(FieldValuesCompanion(supersedesId: Value(serverId)));
-    await _db.customUpdate(
-      r"UPDATE pending_mutation SET payload = json_set(payload, '$.baseVersion', ?1) "
-      r"WHERE type = 'field.change' AND json_extract(payload, '$.baseVersion') = ?2",
-      variables: [Variable<String>(serverId), Variable<String>(localId)],
-      updates: {_db.pendingMutations},
-    );
+    for (final base in _bases) {
+      await _db.customUpdate(
+        "UPDATE pending_mutation SET payload = json_set(payload, '\$.$base', ?1) "
+        "WHERE json_extract(payload, '\$.$base') = ?2",
+        variables: [Variable<String>(serverId), Variable<String>(localId)],
+        updates: {_db.pendingMutations},
+      );
+    }
   }
 }

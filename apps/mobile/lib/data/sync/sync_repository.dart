@@ -134,12 +134,19 @@ class SyncRepository {
   }
 
   /// Drops the cached server data before a full snapshot. Visits recorded
-  /// on the phone and not yet uploaded (no server id) stay, as do the push
-  /// queue and the owner.
+  /// on the phone and not yet uploaded (no server id) stay, as do
+  /// households added on the phone and not yet uploaded, the push queue and
+  /// the owner.
   Future<int> _clearCache() async {
     var rows = 0;
     rows += await _db.delete(_db.fieldDefinitions).go();
-    rows += await _db.delete(_db.households).go();
+    rows += await _db.customUpdate(
+      'DELETE FROM households WHERE id NOT IN (SELECT household_id '
+      "FROM pending_mutation WHERE type = 'household.create' "
+      'AND household_id IS NOT NULL)',
+      updates: {_db.households},
+      updateKind: UpdateKind.delete,
+    );
     rows += await _db.delete(_db.voters).go();
     rows += await _db.delete(_db.fieldValues).go();
     rows += await (_db.delete(

@@ -12,6 +12,8 @@
 	<true/>
 	<key>CFBundleDevelopmentRegion</key>
 	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>BoothConnect uses your location only when you tap "Use my current location", to save where a household is (with the household's agreement) so volunteers can find the house again. It never tracks you.</string>
 	<key>CFBundleDisplayName</key>
 	<string>BoothConnect</string>
 	<key>CFBundleExecutable</key>
