@@ -1,4 +1,15 @@
-import { Body, Controller, Get, Patch, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Req,
+} from '@nestjs/common';
 import { ApiTags } from '@nestjs/swagger';
 import type { Request } from 'express';
 
@@ -10,6 +21,8 @@ import { Idempotent } from '../idempotency/idempotency.interceptor';
 import { ApiResult } from '../openapi/api-result';
 import { EditVoterDetailsDto } from './dto';
 import {
+  type VoterConsent,
+  type VoterConsents,
   type VoterDetailsEdited,
   type VoterSelf,
   VoterSelfService,
@@ -53,6 +66,30 @@ export class VoterSelfController {
     @Body() dto: EditVoterDetailsDto,
   ): Promise<VoterDetailsEdited> {
     return this.self.editDetails(scope, actorOf(user, req), dto.fields);
+  }
+
+  /** The consents the voter gave, newest first (#225). */
+  @ApiResult('VoterConsents')
+  @Get('consents')
+  consents(@CurrentScope() scope: Scope): Promise<VoterConsents> {
+    return this.self.consents(scope);
+  }
+
+  /**
+   * Withdraws one of the voter's consents (#225): the values it covers stop
+   * being used, and volunteers' phones delete them. Audited.
+   */
+  @ApiResult('VoterConsent')
+  @Post('consents/:id/withdraw')
+  @HttpCode(HttpStatus.OK)
+  @Idempotent()
+  withdrawConsent(
+    @CurrentScope() scope: Scope,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request & { id?: unknown },
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<VoterConsent> {
+    return this.self.withdrawConsent(scope, actorOf(user, req), id);
   }
 
   /** What happened to the voter's record, newest first. */

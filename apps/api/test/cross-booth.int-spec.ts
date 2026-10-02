@@ -72,6 +72,8 @@ const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'voter' 
   'GET /voter/me': 'voter',
   'PATCH /voter/me/details': 'voter',
   'GET /voter/me/updates': 'voter',
+  'GET /voter/me/consents': 'voter',
+  'POST /voter/me/consents/:id/withdraw': 'voter',
   'POST /auth/logout': 'self',
   'POST /auth/otp/request': 'public',
   'POST /auth/otp/verify': 'public',
@@ -425,7 +427,9 @@ describe('cross-booth authorization: volunteer A against booth B (real Postgres)
     expect(routes.length).toBeGreaterThan(0);
     for (const [route] of routes) {
       const [method, path] = route.split(' ') as [string, string];
-      const req = a.http[method.toLowerCase() as 'get' | 'patch'](`/v1${path}`)
+      const req = a.http[method.toLowerCase() as 'get' | 'patch' | 'post'](
+        `/v1${path.replace(':id', randomUUID())}`,
+      )
         .set('Idempotency-Key', key())
         .send({});
       expect([route, (await req).status]).toEqual([route, 403]);

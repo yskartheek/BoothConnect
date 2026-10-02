@@ -783,6 +783,21 @@
         ],
         "type": "object"
       },
+      "ConsentMethod": {
+        "enum": [
+          "in_person_verbal",
+          "in_person_signed",
+          "self_service"
+        ],
+        "type": "string"
+      },
+      "ConsentStatus": {
+        "enum": [
+          "granted",
+          "withdrawn"
+        ],
+        "type": "string"
+      },
       "CorrectRowDto": {
         "properties": {
           "reason": {
@@ -4988,6 +5003,76 @@
         ],
         "type": "string"
       },
+      "VoterConsent": {
+        "additionalProperties": false,
+        "description": "One of the voter's consents (#225).",
+        "properties": {
+          "capturedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "id": {
+            "type": "string"
+          },
+          "labelKey": {
+            "description": "The covered field's label key, for showing it; null if unknown.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "method": {
+            "$ref": "#/components/schemas/ConsentMethod"
+          },
+          "noticeVersion": {
+            "type": "string"
+          },
+          "purpose": {
+            "description": "The field key it covers, e.g. \"caste_community\".",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          },
+          "withdrawnAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "purpose",
+          "labelKey",
+          "noticeVersion",
+          "method",
+          "capturedAt",
+          "status",
+          "withdrawnAt"
+        ],
+        "type": "object"
+      },
+      "VoterConsents": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VoterConsent"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "VoterDetail": {
         "additionalProperties": false,
         "properties": {
@@ -8136,6 +8221,96 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/VoterSelf"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voter self-service"
+        ]
+      }
+    },
+    "/v1/voter/me/consents": {
+      "get": {
+        "operationId": "VoterSelf_consents",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoterConsents"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voter self-service"
+        ]
+      }
+    },
+    "/v1/voter/me/consents/{id}/withdraw": {
+      "post": {
+        "operationId": "VoterSelf_withdrawConsent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoterConsent"
                 }
               }
             },
