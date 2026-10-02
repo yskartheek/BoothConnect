@@ -1261,6 +1261,22 @@
         ],
         "type": "object"
       },
+      "EditVoterDetailsDto": {
+        "properties": {
+          "fields": {
+            "items": {
+              "$ref": "#/components/schemas/VoterDetailEditDto"
+            },
+            "maxItems": 10,
+            "minItems": 1,
+            "type": "array"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "type": "object"
+      },
       "ElectorCounts": {
         "additionalProperties": false,
         "properties": {
@@ -5053,6 +5069,167 @@
         ],
         "type": "object"
       },
+      "VoterDetailEditDto": {
+        "properties": {
+          "baseVersion": {
+            "description": "The value ID the app last showed for this detail; null if there was none.",
+            "format": "uuid",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "fieldKey": {
+            "description": "One of the details a voter may share (`shareable` in `GET /voter/me`).",
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "value": {
+            "description": "Checked against the field's type by the field-value service.",
+            "type": "object"
+          }
+        },
+        "required": [
+          "fieldKey",
+          "value",
+          "baseVersion"
+        ],
+        "type": "object"
+      },
+      "VoterDetailResult": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "entityId": {
+                "type": "string"
+              },
+              "fieldKey": {
+                "type": "string"
+              },
+              "fieldValueId": {
+                "type": "string"
+              },
+              "status": {
+                "const": "applied",
+                "type": "string"
+              },
+              "supersedesId": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "entityId",
+              "fieldKey",
+              "fieldValueId",
+              "status",
+              "supersedesId"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "conflictWithId": {
+                "type": "string"
+              },
+              "entityId": {
+                "type": "string"
+              },
+              "fieldKey": {
+                "type": "string"
+              },
+              "fieldValueId": {
+                "type": "string"
+              },
+              "status": {
+                "const": "conflict",
+                "type": "string"
+              }
+            },
+            "required": [
+              "conflictWithId",
+              "entityId",
+              "fieldKey",
+              "fieldValueId",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "$ref": "#/components/schemas/RejectionCode"
+              },
+              "fieldKey": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "const": "rejected",
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "fieldKey",
+              "message",
+              "status"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "const": "FORBIDDEN",
+                "type": "string"
+              },
+              "fieldKey": {
+                "type": "string"
+              },
+              "message": {
+                "type": "string"
+              },
+              "status": {
+                "const": "rejected",
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "fieldKey",
+              "message",
+              "status"
+            ],
+            "type": "object"
+          }
+        ],
+        "description": "A detail's result: as for any field write, or refused as not shareable."
+      },
+      "VoterDetailsEdited": {
+        "additionalProperties": false,
+        "properties": {
+          "fields": {
+            "description": "One result per detail, in request order.",
+            "items": {
+              "$ref": "#/components/schemas/VoterDetailResult"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "fields"
+        ],
+        "type": "object"
+      },
       "VoterField": {
         "additionalProperties": false,
         "properties": {
@@ -5105,6 +5282,293 @@
           "deleted"
         ],
         "type": "string"
+      },
+      "VoterSelf": {
+        "additionalProperties": false,
+        "properties": {
+          "booth": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "name"
+            ],
+            "type": "object"
+          },
+          "epicNumber": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "household": {
+            "additionalProperties": false,
+            "properties": {
+              "address": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "address"
+            ],
+            "type": "object"
+          },
+          "id": {
+            "type": "string"
+          },
+          "official": {
+            "additionalProperties": false,
+            "description": "As printed on the roll; never changed here.",
+            "properties": {
+              "age": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "gender": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "houseNumber": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "name": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "relationType": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "relativeName": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "name",
+              "relationType",
+              "relativeName",
+              "age",
+              "gender",
+              "houseNumber"
+            ],
+            "type": "object"
+          },
+          "part": {
+            "additionalProperties": false,
+            "properties": {
+              "code": {
+                "type": "string"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "code",
+              "name"
+            ],
+            "type": "object"
+          },
+          "program": {
+            "additionalProperties": false,
+            "properties": {
+              "name": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "type": "object"
+          },
+          "sectionNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "serialNo": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "shared": {
+            "description": "The details the voter may share, set or not, in the order above.",
+            "items": {
+              "$ref": "#/components/schemas/VoterSharedDetail"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "id",
+          "epicNumber",
+          "official",
+          "sectionNo",
+          "serialNo",
+          "part",
+          "booth",
+          "program",
+          "household",
+          "shared"
+        ],
+        "type": "object"
+      },
+      "VoterSharedDetail": {
+        "additionalProperties": false,
+        "properties": {
+          "collectedAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "fieldValueId": {
+            "description": "Send this as `baseVersion` when changing the detail; null when not shared yet.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "key": {
+            "type": "string"
+          },
+          "labelKey": {
+            "type": "string"
+          },
+          "value": {
+            "description": "Null when not shared yet."
+          }
+        },
+        "required": [
+          "key",
+          "labelKey",
+          "value",
+          "fieldValueId",
+          "collectedAt"
+        ],
+        "type": "object"
+      },
+      "VoterUpdate": {
+        "anyOf": [
+          {
+            "additionalProperties": false,
+            "properties": {
+              "at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "by": {
+                "enum": [
+                  "you",
+                  "volunteer",
+                  "admin"
+                ],
+                "type": "string"
+              },
+              "fieldKey": {
+                "type": "string"
+              },
+              "kind": {
+                "const": "detail",
+                "type": "string"
+              },
+              "labelKey": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "fieldKey",
+              "labelKey",
+              "by",
+              "at"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "kind": {
+                "const": "visit",
+                "type": "string"
+              },
+              "outcome": {
+                "$ref": "#/components/schemas/VisitOutcome"
+              }
+            },
+            "required": [
+              "kind",
+              "outcome",
+              "at"
+            ],
+            "type": "object"
+          },
+          {
+            "additionalProperties": false,
+            "properties": {
+              "at": {
+                "format": "date-time",
+                "type": "string"
+              },
+              "kind": {
+                "const": "joined",
+                "type": "string"
+              }
+            },
+            "required": [
+              "kind",
+              "at"
+            ],
+            "type": "object"
+          }
+        ]
+      },
+      "VoterUpdates": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/VoterUpdate"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
       },
       "VoterVisit": {
         "additionalProperties": false,
@@ -7659,6 +8123,134 @@
         "security": [],
         "tags": [
           "Auth"
+        ]
+      }
+    },
+    "/v1/voter/me": {
+      "get": {
+        "operationId": "VoterSelf_me",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoterSelf"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voter self-service"
+        ]
+      }
+    },
+    "/v1/voter/me/details": {
+      "patch": {
+        "operationId": "VoterSelf_editDetails",
+        "parameters": [
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EditVoterDetailsDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoterDetailsEdited"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voter self-service"
+        ]
+      }
+    },
+    "/v1/voter/me/updates": {
+      "get": {
+        "operationId": "VoterSelf_updates",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/VoterUpdates"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voter self-service"
         ]
       }
     },

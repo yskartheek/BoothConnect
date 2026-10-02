@@ -22,6 +22,7 @@ import { SyncModule } from './sync/sync.module';
 import { UsersModule } from './users/users.module';
 import { VisitsModule } from './visits/visits.module';
 import { VotersModule } from './voters/voters.module';
+import { VoterSelfModule } from './voter-self/voter-self.module';
 
 @Module({
   imports: [
@@ -47,6 +48,7 @@ import { VotersModule } from './voters/voters.module';
     FieldValuesModule,
     HouseholdsModule,
     VotersModule,
+    VoterSelfModule,
     VisitsModule,
     ConflictsModule,
     SyncModule,

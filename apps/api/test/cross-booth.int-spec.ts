@@ -29,7 +29,7 @@ const VOLUNTEER_B = '+919999900003';
  * their area; `admin`: admins only; `self`: the caller's own session;
  * `public`: no sign-in.
  */
-const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'public'> = {
+const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'voter' | 'public'> = {
   'GET /geographies': 'booth',
   'GET /geographies/:id': 'booth',
   'POST /geographies/imports': 'admin',
@@ -68,6 +68,10 @@ const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'public'
   'POST /imports/batches/:id/confirm': 'admin',
   'GET /audit-events': 'admin',
   'GET /me': 'self',
+  // A voter's session only (#224): the voter is the session's, never the request's.
+  'GET /voter/me': 'voter',
+  'PATCH /voter/me/details': 'voter',
+  'GET /voter/me/updates': 'voter',
   'POST /auth/logout': 'self',
   'POST /auth/otp/request': 'public',
   'POST /auth/otp/verify': 'public',
@@ -413,6 +417,18 @@ describe('cross-booth authorization: volunteer A against booth B (real Postgres)
         .set('Idempotency-Key', key())
         .send({});
       expect([`${method} ${path}`, (await req).status]).toEqual([`${method} ${path}`, 403]);
+    }
+  });
+
+  it('voter-only endpoints are 403 for a volunteer', async () => {
+    const routes = Object.entries(ROUTES).filter(([, kind]) => kind === 'voter');
+    expect(routes.length).toBeGreaterThan(0);
+    for (const [route] of routes) {
+      const [method, path] = route.split(' ') as [string, string];
+      const req = a.http[method.toLowerCase() as 'get' | 'patch'](`/v1${path}`)
+        .set('Idempotency-Key', key())
+        .send({});
+      expect([route, (await req).status]).toEqual([route, 403]);
     }
   });
 
