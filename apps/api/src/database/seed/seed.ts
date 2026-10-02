@@ -6,7 +6,7 @@ import { FAMILY_NAMES, FEMALE_NAMES, MALE_NAMES, OCCUPATIONS, STREETS } from './
 import { createRandom, seedId, sha256Hex } from './random';
 
 // Development seed data (plan §7, spec v1.1). Synthetic only: made-up state
-// code, fake phone numbers (+91 99999 000xx), fake EPICs (prefix DMO), fake
+// code, fake phone numbers (+91 99999 000xx and 001xx), fake EPICs (prefix DMO), fake
 // addresses. Idempotent: fixed IDs and "skip if it exists" inserts, so running
 // it again changes nothing.
 
@@ -14,6 +14,16 @@ export const SEED = {
   adminPhone: '+919999900001',
   volunteerAPhone: '+919999900002',
   volunteerBPhone: '+919999900003',
+} as const;
+
+/**
+ * The demo voter (#229): signs in to the voter app with their voter ID and the
+ * mobile number on their record, and has caste / community shared with
+ * consent, so Privacy has something to stop sharing. Synthetic.
+ */
+export const SEED_VOTER = {
+  epic: 'DMO1000001',
+  phone: '+919999900101',
 } as const;
 
 export interface SeedSummary {
@@ -407,7 +417,33 @@ export async function seedDatabase(prisma: SeedClient): Promise<SeedSummary> {
       value('age', addedMember, 19),
       value('gender', addedMember, 'female'),
       value('occupation', id('voter:part1:1'), random.pick(OCCUPATIONS)),
-      value('mobile_number', id('voter:part1:1'), '+919999900101'),
+      value('mobile_number', id('voter:part1:1'), SEED_VOTER.phone),
+    ],
+    skipDuplicates: true,
+  });
+
+  // --- The demo voter's caste / community, shared with consent (#229) -------
+  // The consent first, then the value it covers.
+  await prisma.consent.createMany({
+    data: [
+      {
+        id: id('consent:voter:part1:1:caste_community'),
+        subjectVoterId: id('voter:part1:1'),
+        purpose: 'caste_community',
+        noticeVersion: '2026.1',
+        capturedMethod: 'in_person_verbal' as const,
+        capturedById: volunteerA,
+        capturedAt: collectedAt,
+      },
+    ],
+    skipDuplicates: true,
+  });
+  await prisma.fieldValue.createMany({
+    data: [
+      {
+        ...value('caste_community', id('voter:part1:1'), 'Synthetic community'),
+        consentId: id('consent:voter:part1:1:caste_community'),
+      },
     ],
     skipDuplicates: true,
   });
@@ -456,7 +492,14 @@ export async function seedDatabase(prisma: SeedClient): Promise<SeedSummary> {
     prisma.fieldDefinition.count({ where: { programId } }),
     prisma.fieldValue.count({ where: { fieldDefinition: { programId } } }),
     prisma.consent.count({
-      where: { id: { in: located.map(({ h }) => id(`consent:location:${h}`)) } },
+      where: {
+        id: {
+          in: [
+            ...located.map(({ h }) => id(`consent:location:${h}`)),
+            id('consent:voter:part1:1:caste_community'),
+          ],
+        },
+      },
     }),
   ]);
   return {

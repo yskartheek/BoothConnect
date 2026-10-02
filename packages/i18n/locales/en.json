@@ -1460,8 +1460,10 @@
   "@web.voter.sourceDerived": { "description": "How a value was set." },
   "web.voter.sourceOfficial": "Roll",
   "@web.voter.sourceOfficial": { "description": "How a value was set." },
-  "web.voter.sourceSelf": "Voter",
-  "@web.voter.sourceSelf": { "description": "How a value was set: by the voter." },
+  "web.voter.sourceSelf": "Shared by the voter",
+  "@web.voter.sourceSelf": {
+    "description": "How a value was set: by the voter, in the voter app (voter_self_submitted)."
+  },
   "web.voter.sourceVolunteer": "Volunteer",
   "@web.voter.sourceVolunteer": { "description": "How a value was set." },
   "web.voter.unnamed": "(no name)",

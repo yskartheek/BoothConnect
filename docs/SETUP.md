@@ -8,7 +8,8 @@ noted.
 Budget about an hour for the first time, mostly downloads. At the end,
 [section 4](#4-demo-an-offline-visit-synced) walks through the demo: a
 volunteer records a visit offline on the phone, and it reaches the server
-when the phone is back online.
+when the phone is back online. [The voter side](#the-voter-side-same-app)
+shows a voter signing in to the same app to see and share their details.
 
 **Contents:** [1. Prerequisites](#1-prerequisites-one-time) ·
 [2. First run](#2-first-run) ·
@@ -139,6 +140,12 @@ pnpm --filter mobile start      # Flutter app; start the Android emulator first
 | **Demo Volunteer A** | `+919999900002` | polling station 1 (part 1, Demo Nagar)    | mobile app |
 | **Demo Volunteer B** | `+919999900003` | polling station 2 (part 2, Sample Colony) | mobile app |
 
+**Demo voter** (the voter side of the mobile app): voter ID `DMO1000001`
+with mobile number `+919999900101` on record, in household **H NO 1-3** of
+polling station 1. Their caste / community is shared with consent, so the
+app's Privacy tab has something to stop sharing. Like the staff phones, the
+number is made up; with `OTP_DEV_MODE=true` no SMS is ever sent.
+
 There are no passwords. You sign in with a phone number and a 6-digit code.
 With `OTP_DEV_MODE=true` (the default in `.env.example`), no SMS is sent.
 The code appears in the **API's window**:
@@ -195,6 +202,36 @@ phone is back online.
 
 The same flow runs automatically in the mobile test suite
 (`apps/mobile/test/e2e/offline_sync_test.dart`).
+
+### The voter side (same app)
+
+The app has a second door for voters: they sign in with their voter ID and
+the mobile number their booth volunteer recorded, see their entry on the
+roll, and choose what they share. It needs a connection; nothing of the
+voter's is kept on the phone.
+
+1. With the API and app running (steps 1–3 above), sign out if you're
+   signed in, and tap **Voter** on the sign-in screen.
+2. Type `DMO1000001` and `9999900101`, tap **Send code**, and type the code
+   from the API window.
+   **Expect:** "Namaste, …" and the voter's booth, part and serial number.
+3. **My details** → **Edit**: change **Occupation**, save (✓).
+   **Expect:** "Saved." and the new occupation.
+4. **Updates**.
+   **Expect:** "You updated your occupation" at the top, without the value.
+5. **Privacy**.
+   **Expect:** each shared detail with why, and **Caste / community**
+   under **Shared with your consent**. **Stop sharing** asks first, then
+   stops it.
+6. **The volunteer sees it:** sign out (bottom of **Privacy**), sign in as
+   Demo Volunteer A, open **Households** → **H NO 1-3** → the first member.
+   **Expect:** the new occupation. In the admin web (as Demo Admin), the
+   same voter's record says **Shared by the voter** next to it.
+
+The same journey runs in the tests: the app against a stand-in server
+(`apps/mobile/test/e2e/voter_journey_test.dart`) and the real API
+(`apps/api/test/voter-journey.int-spec.ts`). Codes can be requested 3 times
+per phone and per voter ID in 10 minutes.
 
 ## 5. Running each app
 

@@ -452,6 +452,17 @@ It runs with `flutter test`, so it's in CI.
 - **Back online, waiting changes go at once:** `syncNow()` makes every
   `pending` change due (`PushRepository.dueNow()`). The backoff is only for a
   server that can't be reached while the phone seems online.
+- **The voter journey** (#229, `test/e2e/voter_journey_test.dart`): on one
+  phone, a voter signs in (`FakeApiServer.voterEpic`, `voterPhone`), edits
+  their occupation and sees it in Updates; then the booth volunteer signs in
+  and their download has the value as `voter_self_submitted`. The stand-in
+  server's voter endpoints keep a stale base a conflict and each side's
+  endpoints closed to the other. The real API's half of the journey is
+  `apps/api/test/voter-journey.int-spec.ts`.
+- With real HTTP, tap a tab with `pump()`, then `waitFor(...)`, not
+  `pumpAndSettle()`: a loading spinner keeps `pumpAndSettle` running the
+  test's clock until the HTTP client times out, before the real reply
+  arrives. End with `stopApp` and a minute's `pump`, so no timer is left.
 
 ## Screen states (#58)
 
