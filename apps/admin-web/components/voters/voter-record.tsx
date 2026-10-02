@@ -9,6 +9,7 @@ import { ApiRequestError, apiClient, unwrap } from '@/lib/api';
 import { isMessageKey, type MessageKey, t } from '@/lib/i18n';
 
 import { ErrorState, errorMessage, LoadingState } from '../states';
+import { VoterConsents } from './voter-consents';
 
 type Voter = Schemas['VoterDetail'];
 type Field = Voter['fields'][number];
@@ -54,8 +55,9 @@ export function provenance(value: Value): string {
 
 /**
  * One voter (#75): the roll's official values next to the current ones, who
- * changed each and when, the history of each field, open conflicts, and
- * (for admins) corrections. Opening it is audited by the API.
+ * changed each and when, the history of each field, open conflicts, the
+ * voter's consents (#213), and (for admins) corrections. Opening it is
+ * audited by the API.
  */
 export function VoterRecord({ voterId }: { voterId: string }) {
   const voter = useQuery({
@@ -160,6 +162,8 @@ function Record({ voter }: { voter: Voter }) {
           </table>
         </div>
       </section>
+
+      <VoterConsents voterId={voter.id} />
 
       <section className="glass section" aria-labelledby={`${id}-visits`}>
         <h2 id={`${id}-visits`}>{t('voter.visitsTitle')}</h2>

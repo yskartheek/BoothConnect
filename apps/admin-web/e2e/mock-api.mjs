@@ -574,7 +574,26 @@ function resetVoters() {
       collectedBy: { id: 'u-other', name: 'Other Volunteer' },
     }),
   ];
-  voterData = { voters: [one, voter(2, 'Synthetic Person 2', 61, 'male')] };
+  voterData = {
+    voters: [one, voter(2, 'Synthetic Person 2', 61, 'male')],
+    // voter-1's consents (#213): caste / community, given to a volunteer.
+    consents: {
+      'voter-1': [
+        {
+          id: 'consent-1',
+          purpose: 'caste_community',
+          labelKey: 'field.caste_community',
+          noticeVersion: '2026.1',
+          method: 'in_person_verbal',
+          capturedAt: at(5),
+          status: 'granted',
+          withdrawnAt: null,
+          capturedBy: { id: 'u-vol', name: 'Test Volunteer' },
+          withdrawnBy: null,
+        },
+      ],
+    },
+  };
 }
 resetVoters();
 const memberOf = (v) => {
@@ -629,6 +648,24 @@ function voterRequest(req, res, url, body) {
       members: voterData.voters.map(memberOf),
       lastVisit: null,
     });
+  }
+  const consents = /^\/v1\/voters\/([^/]+)\/consents$/.exec(url.pathname);
+  if (consents && req.method === 'GET') {
+    if (!voterData.voters.some((v) => v.id === consents[1])) return error(res, 404, 'NOT_FOUND');
+    return send(res, 200, { items: voterData.consents[consents[1]] ?? [] });
+  }
+  const withdraw = /^\/v1\/voters\/([^/]+)\/consents\/([^/]+)\/withdraw$/.exec(url.pathname);
+  if (withdraw && req.method === 'POST') {
+    const consent = (voterData.consents[withdraw[1]] ?? []).find((c) => c.id === withdraw[2]);
+    if (!consent) return error(res, 404, 'NOT_FOUND');
+    if (consent.status === 'granted') {
+      Object.assign(consent, {
+        status: 'withdrawn',
+        withdrawnAt: new Date().toISOString(),
+        withdrawnBy: { id: 'u-admin', name: 'Test Admin' },
+      });
+    }
+    return send(res, 200, consent);
   }
   const one = /^\/v1\/voters\/([^/]+)$/.exec(url.pathname);
   if (!one) return false;

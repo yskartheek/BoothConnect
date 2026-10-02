@@ -1470,6 +1470,54 @@
   "@web.voter.unnamed": { "description": "A voter without a name." },
   "web.voter.visitCorrected": "corrected later",
   "@web.voter.visitCorrected": { "description": "Note on a corrected visit." },
+  "web.voter.consentsTitle": "Consents",
+  "@web.voter.consentsTitle": {
+    "description": "Voter record: heading of the voter's consents (#213)."
+  },
+  "web.voter.consentsNone": "No consents recorded for this voter.",
+  "@web.voter.consentsNone": { "description": "Voter record: no consents." },
+  "web.voter.consentStatusGranted": "Given",
+  "@web.voter.consentStatusGranted": { "description": "Consent status badge: granted." },
+  "web.voter.consentStatusWithdrawn": "Withdrawn",
+  "@web.voter.consentStatusWithdrawn": { "description": "Consent status badge: withdrawn." },
+  "web.voter.consentGivenLine": "Given {date} · {method} · recorded by {name}",
+  "@web.voter.consentGivenLine": {
+    "description": "Consent: when and how it was given, and who recorded it."
+  },
+  "web.voter.consentWithdrawnLine": "Withdrawn {date} by {name}",
+  "@web.voter.consentWithdrawnLine": {
+    "description": "Consent: when it was withdrawn and by whom."
+  },
+  "web.voter.consentMethod.in_person_verbal": "in person, verbally",
+  "@web.voter.consentMethod.in_person_verbal": {
+    "description": "How consent was given (API: in_person_verbal)."
+  },
+  "web.voter.consentMethod.in_person_signed": "in person, signed",
+  "@web.voter.consentMethod.in_person_signed": {
+    "description": "How consent was given (API: in_person_signed)."
+  },
+  "web.voter.consentMethod.self_service": "in the voter app",
+  "@web.voter.consentMethod.self_service": {
+    "description": "How consent was given (API: self_service)."
+  },
+  "web.voter.consentSomeone": "someone",
+  "@web.voter.consentSomeone": {
+    "description": "Consent: the person who recorded or withdrew it, when unknown."
+  },
+  "web.voter.consentWithdraw": "Withdraw",
+  "@web.voter.consentWithdraw": {
+    "description": "Button: withdraw a consent, after a confirmation."
+  },
+  "web.voter.consentWithdrawLabel": "Withdraw consent for {field}",
+  "@web.voter.consentWithdrawLabel": {
+    "description": "Accessible name of the Withdraw button. {field}: the field's name."
+  },
+  "web.voter.consentWithdrawTitle": "Withdraw this consent?",
+  "@web.voter.consentWithdrawTitle": { "description": "Confirmation title." },
+  "web.voter.consentWithdrawMessage": "Only at the voter's request. {field} stops being shown at once and is removed from volunteers' phones. Recording it again needs a new consent.",
+  "@web.voter.consentWithdrawMessage": {
+    "description": "Confirmation text. {field}: the field's name."
+  },
   "web.voter.visitsTitle": "Visits that met this voter",
   "@web.voter.visitsTitle": { "description": "Heading." },
   "web.voter.field.name": "Name",

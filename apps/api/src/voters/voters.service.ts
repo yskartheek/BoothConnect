@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
 import { AuditService } from '../audit/audit.service';
+import {
+  ConsentsService,
+  type StaffConsent,
+  type StaffConsents,
+} from '../consents/consents.service';
 
 import type { Scope } from '../authz/scope.service';
 import type { Actor } from '../common/actor';
@@ -80,7 +85,39 @@ export class VotersService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly audit: AuditService,
+    private readonly consentsService: ConsentsService,
   ) {}
+
+  /**
+   * The voter's consents (#213), newest first, with who recorded and who
+   * withdrew each. A voter outside the caller's booths is 404.
+   */
+  async consents(scope: Scope, id: string): Promise<StaffConsents> {
+    const voter = foundInScope(
+      await this.prisma.voter.findFirst({ where: { id, ...inScope(scope) } }),
+      'Voter',
+    );
+    return { items: await this.consentsService.list(voter.id) };
+  }
+
+  /**
+   * Withdraws one of the voter's consents at their request, recorded by
+   * their volunteer or an admin (#213): the covered values stop being shown
+   * and synced at once. Audited as `consent.withdraw`, by the caller's role.
+   */
+  async withdrawConsent(
+    scope: Scope,
+    actor: Actor,
+    id: string,
+    consentId: string,
+  ): Promise<StaffConsent> {
+    const voter = foundInScope(
+      await this.prisma.voter.findFirst({ where: { id, ...inScope(scope) } }),
+      'Voter',
+    );
+    const by = scope.roles.includes('admin') ? 'admin' : 'volunteer';
+    return this.consentsService.withdraw(voter.id, consentId, actor, by);
+  }
 
   /**
    * One voter's record. Opening it is audited (`voter.view`, ids only), as

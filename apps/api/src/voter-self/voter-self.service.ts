@@ -1,6 +1,11 @@
 import { Injectable } from '@nestjs/common';
 
 import { AuditService } from '../audit/audit.service';
+import {
+  ConsentsService,
+  type VoterConsent,
+  type VoterConsents,
+} from '../consents/consents.service';
 import { notFound } from '../authz/scoped-query';
 import type { Scope } from '../authz/scope.service';
 import type { Actor } from '../common/actor';
@@ -11,12 +16,7 @@ import {
   FieldValuesService,
   voterLineage,
 } from '../field-values/field-values.service';
-import type {
-  ConsentMethod,
-  ConsentStatus,
-  Prisma,
-  VisitOutcome,
-} from '../generated/prisma/client';
+import type { Prisma, VisitOutcome } from '../generated/prisma/client';
 
 /**
  * The details a voter may share and change themselves (#224). Name, age and
@@ -72,23 +72,7 @@ export interface VoterUpdates {
   items: VoterUpdate[];
 }
 
-/** One of the voter's consents (#225). */
-export interface VoterConsent {
-  id: string;
-  /** The field key it covers, e.g. "caste_community". */
-  purpose: string;
-  /** The covered field's label key, for showing it; null if unknown. */
-  labelKey: string | null;
-  noticeVersion: string;
-  method: ConsentMethod;
-  capturedAt: Date;
-  status: ConsentStatus;
-  withdrawnAt: Date | null;
-}
-
-export interface VoterConsents {
-  items: VoterConsent[];
-}
+export type { VoterConsent, VoterConsents } from '../consents/consents.service';
 
 /** A detail's result: as for any field write, or refused as not shareable. */
 export type VoterDetailResult = (
@@ -110,6 +94,7 @@ export class VoterSelfService {
     private readonly prisma: PrismaService,
     private readonly fieldValues: FieldValuesService,
     private readonly audit: AuditService,
+    private readonly consentsService: ConsentsService,
   ) {}
 
   async me(scope: Scope, actor: Actor): Promise<VoterSelf> {
@@ -286,86 +271,19 @@ export class VoterSelfService {
    */
   async consents(scope: Scope): Promise<VoterConsents> {
     const voterId = await this.currentRecord(scope);
-    const voter = await this.prisma.voter.findUniqueOrThrow({ where: { id: voterId } });
-    const rows = await this.prisma.consent.findMany({
-      where: { subjectVoterId: { in: await voterLineage(this.prisma, voterId) } },
-      orderBy: [{ capturedAt: 'desc' }, { id: 'desc' }],
-    });
-    const labels = await this.prisma.fieldDefinition.findMany({
-      where: { programId: voter.programId, key: { in: rows.map((r) => r.purpose) } },
-      select: { key: true, labelKey: true },
-    });
-    return { items: rows.map((row) => this.consentView(row, labels)) };
+    const items = await this.consentsService.list(voterId);
+    return { items: items.map((c) => ConsentsService.forVoter(c)) };
   }
 
   /**
-   * Withdraws one of the voter's consents: the values it covers stop being
-   * shown and synced at once, and volunteers' phones delete them on their
-   * next pull. Withdrawing again changes nothing. Another person's consent
-   * is 404.
+   * Withdraws one of the voter's consents (see ConsentsService.withdraw).
+   * Another person's consent is 404.
    */
   async withdrawConsent(scope: Scope, actor: Actor, consentId: string): Promise<VoterConsent> {
     const voterId = await this.currentRecord(scope);
-    const lineage = await voterLineage(this.prisma, voterId);
-    return this.prisma.$transaction(async (tx) => {
-      const consent = await tx.consent.findFirst({
-        where: { id: consentId, subjectVoterId: { in: lineage } },
-      });
-      if (!consent) throw notFound('Consent');
-      // Only while still granted: of two withdrawals at once, one changes it
-      // and the other finds it withdrawn (the database refuses a second
-      // withdrawal of the same record).
-      const { count } = await tx.consent.updateMany({
-        where: { id: consent.id, status: 'granted' },
-        data: { status: 'withdrawn', withdrawnAt: new Date(), withdrawnById: actor.userId },
-      });
-      const updated = await tx.consent.findUniqueOrThrow({ where: { id: consent.id } });
-      if (count === 1) {
-        await this.audit.record(
-          {
-            action: 'consent.withdraw',
-            resourceType: 'consent',
-            resourceId: consent.id,
-            result: 'success',
-            actorId: actor.userId,
-            sessionId: actor.sessionId ?? null,
-            requestId: actor.requestId ?? null,
-            metadata: { purpose: consent.purpose, by: 'voter' },
-          },
-          tx,
-        );
-      }
-      const voter = await tx.voter.findUniqueOrThrow({ where: { id: voterId } });
-      const labels = await tx.fieldDefinition.findMany({
-        where: { programId: voter.programId, key: consent.purpose },
-        select: { key: true, labelKey: true },
-      });
-      return this.consentView(updated, labels);
-    });
-  }
-
-  private consentView(
-    row: {
-      id: string;
-      purpose: string;
-      noticeVersion: string;
-      capturedMethod: ConsentMethod;
-      capturedAt: Date;
-      status: ConsentStatus;
-      withdrawnAt: Date | null;
-    },
-    labels: { key: string; labelKey: string }[],
-  ): VoterConsent {
-    return {
-      id: row.id,
-      purpose: row.purpose,
-      labelKey: labels.find((l) => l.key === row.purpose)?.labelKey ?? null,
-      noticeVersion: row.noticeVersion,
-      method: row.capturedMethod,
-      capturedAt: row.capturedAt,
-      status: row.status,
-      withdrawnAt: row.withdrawnAt,
-    };
+    return ConsentsService.forVoter(
+      await this.consentsService.withdraw(voterId, consentId, actor, 'voter'),
+    );
   }
 
   /** The detail definitions a voter may share, in VOTER_SHAREABLE order. */

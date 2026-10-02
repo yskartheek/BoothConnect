@@ -102,6 +102,36 @@ const VOTER = {
   ],
 };
 
+// The voter's consents (#213): one given, one withdrawn.
+const CONSENTS = {
+  items: [
+    {
+      id: 'c2',
+      purpose: 'caste_community',
+      labelKey: 'field.caste_community',
+      noticeVersion: '2026.1',
+      method: 'in_person_verbal',
+      capturedAt: '2026-02-01T05:00:00.000Z',
+      status: 'granted',
+      withdrawnAt: null,
+      capturedBy: { id: 'u-vol', name: 'Test Volunteer' },
+      withdrawnBy: null,
+    },
+    {
+      id: 'c1',
+      purpose: 'caste_community',
+      labelKey: 'field.caste_community',
+      noticeVersion: '2026.1',
+      method: 'self_service',
+      capturedAt: '2026-01-10T05:00:00.000Z',
+      status: 'withdrawn',
+      withdrawnAt: '2026-01-20T05:00:00.000Z',
+      capturedBy: null,
+      withdrawnBy: { id: 'u-admin', name: 'Test Admin' },
+    },
+  ],
+};
+
 function setUp(route?: (request: Request, url: URL) => [number, unknown] | undefined) {
   const calls: { method: string; url: URL; body?: unknown; key: string | null }[] = [];
   vi.stubGlobal(
@@ -115,7 +145,9 @@ function setUp(route?: (request: Request, url: URL) => [number, unknown] | undef
         ...(text ? { body: JSON.parse(text) } : {}),
         key: request.headers.get('Idempotency-Key'),
       });
-      const [status, body] = route?.(request, url) ?? [200, VOTER];
+      const [status, body] =
+        route?.(request, url) ??
+        (url.pathname.endsWith('/consents') ? [200, CONSENTS] : [200, VOTER]);
       return Response.json(body, { status });
     }),
   );
@@ -287,6 +319,92 @@ describe('VoterRecord', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       "This voter can't be found in your area.",
     );
+  });
+});
+
+describe('VoterConsents', () => {
+  const consentsList = () => screen.findByRole('heading', { name: 'Consents' });
+
+  it('lists each consent: what, when, how, by whom, and whether withdrawn', async () => {
+    const calls = setUp();
+    renderRecord();
+    await consentsList();
+    expect(
+      await screen.findByText(
+        'Given 1 Feb 2026 · in person, verbally · recorded by Test Volunteer',
+      ),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Given 10 Jan 2026 · in the voter app · recorded by someone'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Withdrawn 20 Jan 2026 by Test Admin')).toBeInTheDocument();
+    // Only the one still given can be withdrawn.
+    expect(screen.getAllByRole('button', { name: /^Withdraw consent for/ })).toHaveLength(1);
+    expect(
+      calls.some((c) => c.method === 'GET' && c.url.pathname === '/api/v1/voters/v1/consents'),
+    ).toBe(true);
+  });
+
+  it('withdraws after a confirmation, with an idempotency key, then reloads', async () => {
+    const calls = setUp((request) =>
+      request.method === 'POST'
+        ? [
+            200,
+            { ...CONSENTS.items[0], status: 'withdrawn', withdrawnAt: '2026-10-02T05:00:00.000Z' },
+          ]
+        : undefined,
+    );
+    renderRecord();
+    const button = await screen.findByRole('button', {
+      name: 'Withdraw consent for Caste/community',
+    });
+
+    // Cancel sends nothing.
+    fireEvent.click(button);
+    const dialog = await screen.findByRole('alertdialog', { name: 'Withdraw this consent?' });
+    expect(dialog).toHaveTextContent(
+      "Only at the voter's request. Caste/community stops being shown at once and is removed from volunteers' phones.",
+    );
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    expect(calls.filter((c) => c.method === 'POST')).toEqual([]);
+
+    fireEvent.click(button);
+    const again = await screen.findByRole('alertdialog');
+    const gets = calls.filter((c) => c.method === 'GET').length;
+    fireEvent.click(within(again).getByRole('button', { name: 'Withdraw' }));
+    await waitFor(() => expect(screen.queryByRole('alertdialog')).toBeNull());
+    const post = calls.find((c) => c.method === 'POST')!;
+    expect(post.url.pathname).toBe('/api/v1/voters/v1/consents/c2/withdraw');
+    expect(post.key).toMatch(/^[0-9a-f-]{36}$/);
+    // The consents and the record are fetched again.
+    await waitFor(() =>
+      expect(calls.filter((c) => c.method === 'GET').length).toBeGreaterThanOrEqual(gets + 2),
+    );
+  });
+
+  it('a refusal stays in the dialog', async () => {
+    setUp((request) =>
+      request.method === 'POST'
+        ? [404, { code: 'NOT_FOUND', message: 'Consent not found', requestId: 'r-1' }]
+        : undefined,
+    );
+    renderRecord();
+    fireEvent.click(
+      await screen.findByRole('button', { name: 'Withdraw consent for Caste/community' }),
+    );
+    const dialog = await screen.findByRole('alertdialog');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Withdraw' }));
+    expect(await within(dialog).findByRole('alert')).toBeInTheDocument();
+    expect(screen.getByRole('alertdialog')).toBeInTheDocument();
+  });
+
+  it('says when there are none', async () => {
+    setUp((_request, url) =>
+      url.pathname.endsWith('/consents') ? [200, { items: [] }] : undefined,
+    );
+    renderRecord();
+    expect(await screen.findByText('No consents recorded for this voter.')).toBeInTheDocument();
   });
 });
 

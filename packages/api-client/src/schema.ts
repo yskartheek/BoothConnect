@@ -708,6 +708,38 @@ export interface paths {
         patch: operations["Voters_edit"];
         trace?: never;
     };
+    "/v1/voters/{id}/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["Voters_consents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/voters/{id}/consents/{consentId}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["Voters_withdrawConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1752,6 +1784,31 @@ export interface components {
             /** @description null clears it: the station then takes no one, and its voters go back to the main station. */
             coverage: components["schemas"]["CoverageDto"] | null;
         };
+        /** @description A consent as staff see it (#213): also who recorded and who withdrew it. */
+        StaffConsent: {
+            /** Format: date-time */
+            capturedAt: string;
+            capturedBy: {
+                id: string;
+                name: string;
+            } | null;
+            id: string;
+            /** @description The covered field's label key, for showing it; null if unknown. */
+            labelKey: string | null;
+            method: components["schemas"]["ConsentMethod"];
+            noticeVersion: string;
+            /** @description The field key it covers, e.g. "caste_community". */
+            purpose: string;
+            status: components["schemas"]["ConsentStatus"];
+            withdrawnAt: string | null;
+            withdrawnBy: {
+                id: string;
+                name: string;
+            } | null;
+        };
+        StaffConsents: {
+            items: components["schemas"]["StaffConsent"][];
+        };
         StartUploadsDto: {
             files: components["schemas"]["UploadRequestDto"][];
         };
@@ -2014,7 +2071,7 @@ export interface components {
         };
         /** @enum {string} */
         VisitOutcome: "completed" | "partially_completed" | "no_one_available" | "refused" | "address_not_found" | "household_moved" | "voter_deceased" | "duplicate_or_incorrect_listing" | "follow_up_requested" | "unsafe_or_inaccessible";
-        /** @description One of the voter's consents (#225). */
+        /** @description One of a voter's consents (#225). */
         VoterConsent: {
             /** Format: date-time */
             capturedAt: string;
@@ -3852,6 +3909,70 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MemberEdited"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Voters_consents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffConsents"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    Voters_withdrawConsent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+                consentId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StaffConsent"];
                 };
             };
             /** @description Error */

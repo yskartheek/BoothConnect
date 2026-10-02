@@ -348,6 +348,29 @@ members) and `fields`, every **enabled** field the caller may see, set or not.
 - Every opening is audited as `voter.view` (the voter's id and whether
   history was asked for; no values). A 404 isn't.
 
+### A voter's consents (#213)
+
+- `GET /v1/voters/:id/consents` (volunteers and admins): the voter's
+  consents across their earlier records, newest first: purpose and its
+  field's `labelKey`, notice version, method, when, status, and who
+  recorded and who withdrew each (`capturedBy`, `withdrawnBy`).
+- `POST /v1/voters/:id/consents/:consentId/withdraw` (volunteers and
+  admins, `Idempotency-Key`): records a withdrawal the voter asked for. The
+  values it covers stop being returned and synced at once, and phones
+  delete them on their next pull. Audited as `consent.withdraw` with
+  `{ purpose, by }` (`volunteer` or `admin`; `voter` when the voter does it
+  in their app). Withdrawing again returns it unchanged; another voter's
+  consent, or a voter outside the scope, is 404.
+- Both the voter's app (`/v1/voter/me/consents…`, #225) and staff use
+  `ConsentsService` (`src/consents/`); the voter's view leaves out staff
+  names.
+- After a withdrawal the hidden value is no one's base: a new value with a
+  new consent replaces it (`applied`, superseding it) rather than
+  conflicting with it. The withdrawn consent can't cover new values
+  (`CONSENT_REQUIRED`).
+- Erasure isn't built yet: values and consents are append-only. The
+  proposed procedure waits on the retention decision (ADR-0010, spec §22).
+
 ### Editing members and choosing between conflicting values
 
 - `PATCH /v1/voters/:id` (volunteers and admins, `Idempotency-Key`,

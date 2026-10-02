@@ -193,12 +193,16 @@ export class FieldValuesService {
         isCurrent: true,
       },
       orderBy: [{ collectedAt: 'desc' }, { id: 'desc' }],
-      select: { id: true },
+      select: { id: true, consent: { select: { status: true } } },
     });
+    // A value whose consent was withdrawn is hidden everywhere (#225): the
+    // phone deleted it, so it can't be anyone's base. A new value (with a new
+    // consent) replaces it instead of conflicting with it (#213).
+    const visible = current.filter((v) => !v.consent || v.consent.status === 'granted');
     const clean =
-      current.length === 0
-        ? change.baseVersion === null || change.staleBase
-        : !change.staleBase && current.length === 1 && current[0]?.id === change.baseVersion;
+      visible.length === 0
+        ? visible.length < current.length || change.baseVersion === null || change.staleBase
+        : !change.staleBase && visible.length === 1 && visible[0]?.id === change.baseVersion;
 
     const data = {
       entityType: change.entityType,
@@ -213,7 +217,7 @@ export class FieldValuesService {
     } satisfies Prisma.FieldValueUncheckedCreateInput;
 
     if (clean) {
-      const supersedesId = current[0]?.id ?? null;
+      const supersedesId = (visible[0] ?? current[0])?.id ?? null;
       const row = await tx.fieldValue.create({ data: { ...data, supersedesId } });
       await projectOntoHousehold(tx, change.entityType, change.entityId, definition.type, {
         value: change.value,
@@ -223,7 +227,7 @@ export class FieldValuesService {
     }
     // Stale base (or an unresolved conflict): keep both; the newest current
     // value is the one it conflicts with.
-    const conflictWithId = current[0]!.id;
+    const conflictWithId = visible[0]!.id;
     const row = await tx.fieldValue.create({ data: { ...data, conflictWithId } });
     return { status: 'conflict', entityId: change.entityId, fieldValueId: row.id, conflictWithId };
   }

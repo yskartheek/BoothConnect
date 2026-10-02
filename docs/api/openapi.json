@@ -3918,6 +3918,124 @@
         ],
         "type": "object"
       },
+      "StaffConsent": {
+        "additionalProperties": false,
+        "description": "A consent as staff see it (#213): also who recorded and who withdrew it.",
+        "properties": {
+          "capturedAt": {
+            "format": "date-time",
+            "type": "string"
+          },
+          "capturedBy": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "id": {
+            "type": "string"
+          },
+          "labelKey": {
+            "description": "The covered field's label key, for showing it; null if unknown.",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "method": {
+            "$ref": "#/components/schemas/ConsentMethod"
+          },
+          "noticeVersion": {
+            "type": "string"
+          },
+          "purpose": {
+            "description": "The field key it covers, e.g. \"caste_community\".",
+            "type": "string"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ConsentStatus"
+          },
+          "withdrawnAt": {
+            "anyOf": [
+              {
+                "format": "date-time",
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "withdrawnBy": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "name": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id",
+                  "name"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "capturedAt",
+          "capturedBy",
+          "id",
+          "labelKey",
+          "method",
+          "noticeVersion",
+          "purpose",
+          "status",
+          "withdrawnAt",
+          "withdrawnBy"
+        ],
+        "type": "object"
+      },
+      "StaffConsents": {
+        "additionalProperties": false,
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/StaffConsent"
+            },
+            "type": "array"
+          }
+        },
+        "required": [
+          "items"
+        ],
+        "type": "object"
+      },
       "StartUploadsDto": {
         "properties": {
           "files": {
@@ -5005,7 +5123,7 @@
       },
       "VoterConsent": {
         "additionalProperties": false,
-        "description": "One of the voter's consents (#225).",
+        "description": "One of a voter's consents (#225).",
         "properties": {
           "capturedAt": {
             "format": "date-time",
@@ -8519,6 +8637,113 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MemberEdited"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voters"
+        ]
+      }
+    },
+    "/v1/voters/{id}/consents": {
+      "get": {
+        "operationId": "Voters_consents",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffConsents"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [
+          {
+            "bearer": []
+          }
+        ],
+        "tags": [
+          "Voters"
+        ]
+      }
+    },
+    "/v1/voters/{id}/consents/{consentId}/withdraw": {
+      "post": {
+        "operationId": "Voters_withdrawConsent",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "path",
+            "name": "consentId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "description": "A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change.",
+            "in": "header",
+            "name": "Idempotency-Key",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StaffConsent"
                 }
               }
             },

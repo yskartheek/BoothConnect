@@ -49,6 +49,8 @@ const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'voter' 
   'POST /households/:id/members': 'booth',
   'GET /voters/:id': 'booth',
   'PATCH /voters/:id': 'booth',
+  'GET /voters/:id/consents': 'booth',
+  'POST /voters/:id/consents/:consentId/withdraw': 'booth',
   'POST /visits': 'booth',
   'POST /conflicts/:id/resolve': 'booth',
   'GET /sync/pull': 'booth',
@@ -93,6 +95,8 @@ describe('cross-booth authorization: volunteer A against booth B (real Postgres)
   /** Booth B's records. */
   let householdB: string;
   let voterB: string;
+  /** A consent of booth B's voter (#213). */
+  let consentB: string;
   let visitB: string;
   let conflict: readonly [string, string];
 
@@ -132,6 +136,16 @@ describe('cross-booth authorization: volunteer A against booth B (real Postgres)
     });
     householdB = household.id;
     voterB = household.voters[0]!.id;
+    consentB = (
+      await t.prisma.consent.create({
+        data: {
+          subjectVoterId: voterB,
+          purpose: 'caste_community',
+          noticeVersion: '2026.1',
+          capturedMethod: 'in_person_verbal',
+        },
+      })
+    ).id;
 
     // Booth B's own volunteer records a visit and makes a conflict there.
     visitB = (
@@ -181,6 +195,7 @@ describe('cross-booth authorization: volunteer A against booth B (real Postgres)
       expectNotFound(await a.http.get(`/v1/households/${householdB}`));
       expectNotFound(await a.http.get(`/v1/voters/${voterB}`));
       expectNotFound(await a.http.get(`/v1/voters/${voterB}?history=true`));
+      expectNotFound(await a.http.get(`/v1/voters/${voterB}/consents`));
     });
   });
 
@@ -284,6 +299,15 @@ describe('cross-booth authorization: volunteer A against booth B (real Postgres)
           .patch(`/v1/voters/${voterB}`)
           .set('Idempotency-Key', key())
           .send({ fields: [{ fieldKey: 'occupation', value: 'Changed', baseVersion: null }] }),
+      );
+      // A consent of booth B's voter can't be withdrawn from booth A (#213).
+      expectNotFound(
+        await a.http
+          .post(`/v1/voters/${voterB}/consents/${consentB}/withdraw`)
+          .set('Idempotency-Key', key()),
+      );
+      expect((await t.prisma.consent.findUniqueOrThrow({ where: { id: consentB } })).status).toBe(
+        'granted',
       );
       expectNotFound(
         await a.http.post('/v1/visits').set('Idempotency-Key', key()).send({

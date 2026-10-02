@@ -70,6 +70,23 @@ test('find a voter, see official vs current values, the history and a conflict, 
   await expect(table.getByText('age must be between 18 and 120')).toBeVisible();
 });
 
+test('withdraw a consent at the voter’s request (#213)', async ({ page }) => {
+  await signInAsAdmin(page, '/voters?voter=voter-1');
+  const consents = page.getByRole('region', { name: 'Consents' });
+  await expect(consents).toContainText('Caste/community');
+  await expect(consents).toContainText('in person, verbally · recorded by Test Volunteer');
+
+  await consents.getByRole('button', { name: 'Withdraw consent for Caste/community' }).click();
+  const dialog = page.getByRole('alertdialog', { name: 'Withdraw this consent?' });
+  await expect(dialog).toContainText("Only at the voter's request.");
+  await expectAccessible(page);
+  await dialog.getByRole('button', { name: 'Withdraw' }).click();
+  await expect(dialog).toBeHidden();
+  await expect(consents).toContainText('Withdrawn');
+  await expect(consents).toContainText('by Test Admin');
+  await expect(consents.getByRole('button', { name: /^Withdraw consent/ })).toHaveCount(0);
+});
+
 test('an unknown voter says so', async ({ page }) => {
   await signInAsAdmin(page, '/voters?voter=voter-missing');
   await expect(page.getByText("This voter can't be found in your area.")).toBeVisible();
