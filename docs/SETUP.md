@@ -5,7 +5,21 @@ This gets you from a fresh Windows machine to a running API
 **Windows PowerShell**; they work the same in Git Bash, macOS and Linux unless
 noted.
 
-Budget about an hour for the first time, mostly downloads.
+Budget about an hour for the first time, mostly downloads. At the end,
+[section 4](#4-demo-an-offline-visit-synced) walks through the demo: a
+volunteer records a visit offline on the phone, and it reaches the server
+when the phone is back online.
+
+**Contents:** [1. Prerequisites](#1-prerequisites-one-time) ·
+[2. First run](#2-first-run) ·
+[3. Seed data and signing in](#3-seed-data-and-signing-in) ·
+[4. Demo](#4-demo-an-offline-visit-synced) ·
+[5. Running each app](#5-running-each-app) · [6. Tests](#6-tests) ·
+[7. Everyday commands](#7-everyday-commands) ·
+[8. Local services](#8-local-services) ·
+[9. Troubleshooting](#9-troubleshooting) ·
+[10. Roll parser](#10-roll-parser-python-optional) ·
+[11. Where to go next](#11-where-to-go-next)
 
 ## 1. Prerequisites (one time)
 
@@ -54,9 +68,10 @@ Budget about an hour for the first time, mostly downloads.
    needed here.
 
 **Only working on the API or web?** You can skip Flutter and Android Studio.
-Use the filtered commands in step 3, because `pnpm lint` and `pnpm test` at the
-root include the mobile app. The same goes for the Python roll-parser: it needs
-uv and Tesseract ([section 6](#6-roll-parser-python-optional)).
+Use the filtered commands in [section 6](#6-tests), because `pnpm lint` and
+`pnpm test` at the root include the mobile app. The same goes for the Python
+roll-parser: it needs uv and Tesseract
+([section 10](#10-roll-parser-python-optional)).
 
 ## 2. First run
 
@@ -104,9 +119,145 @@ pnpm --filter admin-web dev     # admin web on http://localhost:3000
 pnpm --filter mobile start      # Flutter app; start the Android emulator first
 ```
 
-`pnpm dev` at the root starts the API and the admin web together.
+`pnpm dev` at the root starts the API and the admin web together. More in
+[section 5](#5-running-each-app).
 
-## 3. Everyday commands
+## 3. Seed data and signing in
+
+`db:seed` loads synthetic demo data only (made-up names, no real voter data):
+
+- one state (`S99`) → PC `1` → AC `101` → two parts, **Demo Nagar** (part 1)
+  and **Sample Colony** (part 2), with polling stations `1` (and its
+  auxiliary station `1A`, for section 2) and `2`;
+- 20 households and 60 voters per part;
+- the field definitions: caste/community is behind consent; religion and
+  political affiliation are present but turned off.
+
+| Who                  | Phone           | Can see                                   | Uses       |
+| -------------------- | --------------- | ----------------------------------------- | ---------- |
+| **Demo Admin**       | `+919999900001` | everything in the state                   | admin web  |
+| **Demo Volunteer A** | `+919999900002` | polling station 1 (part 1, Demo Nagar)    | mobile app |
+| **Demo Volunteer B** | `+919999900003` | polling station 2 (part 2, Sample Colony) | mobile app |
+
+There are no passwords. You sign in with a phone number and a 6-digit code.
+With `OTP_DEV_MODE=true` (the default in `.env.example`), no SMS is sent.
+The code appears in the **API's window**:
+
+```text
+WARN (12345): Development sign-in code for +919999900002: 123456
+```
+
+A code lasts 5 minutes. A phone can ask for 3 codes in 10 minutes: after
+that, wait or use another seed user. The admin web shows a two-step
+verification page after the code; it's a placeholder, so continue.
+
+## 4. Demo: an offline visit, synced
+
+This is the whole stack working together: a volunteer records a visit with
+no connection, closes the app, and the visit reaches the server once the
+phone is back online.
+
+1. **API:** with `pnpm infra:up` done and the database seeded (section 2):
+   ```powershell
+   pnpm --filter api dev
+   ```
+   Wait for `API listening on http://localhost:4000/v1`.
+2. **Emulator:** in Android Studio, **Device Manager → ▶** on your virtual
+   device. Wait for its home screen.
+3. **App:** in a second PowerShell window, from the repo folder:
+   ```powershell
+   pnpm --filter mobile start
+   ```
+   The first build takes several minutes. The app opens on the emulator and
+   talks to the API on your computer at `http://10.0.2.2:4000` (the
+   emulator's address for your computer).
+4. **Sign in** as Demo Volunteer A: type `9999900002` (the app adds `+91`),
+   tap **Send code**, and type the code from the API window.
+   **Expect:** Home, with "Demo Primary School, Room 1, booth 1" and how
+   many of its households are visited.
+5. **Go offline:** on the emulator, swipe down from the top and turn on
+   **Airplane mode**.
+   **Expect:** "You're offline" at the top of the app.
+6. **Record a visit:** **Households** → any household → **Start visit** →
+   **No one home** → **Save visit**.
+   **Expect:** "Visit saved. It uploads when you're online."; the household
+   shows **On phone**, and Home shows "Waiting to upload: 1".
+7. **Restart the app:** open the emulator's recent apps (the square
+   button), swipe BoothConnect away, then open it again from the app
+   drawer.
+   **Expect:** still signed in, and still "Waiting to upload: 1".
+8. **Back online:** turn **Airplane mode** off.
+   **Expect:** within a few seconds the household shows **Uploaded**, and
+   **Uploads** says "Online · everything uploaded".
+9. **On the server:** start the admin web (`pnpm --filter admin-web dev`),
+   sign in at http://localhost:3000 as Demo Admin, and open **Audit**.
+   **Expect:** a `visit.create` event by Demo Volunteer A.
+
+The same flow runs automatically in the mobile test suite
+(`apps/mobile/test/e2e/offline_sync_test.dart`).
+
+## 5. Running each app
+
+| App                | Command                                       | Notes                                                                                                                                                                     |
+| ------------------ | --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Docker services    | `pnpm infra:up`                               | Postgres, Redis and MinIO. Needed by everything else.                                                                                                                     |
+| Database           | `pnpm --filter api db:deploy`, then `db:seed` | After pulling new migrations, run `db:deploy` again. `db:studio` opens Prisma Studio to browse the data.                                                                  |
+| API (development)  | `pnpm --filter api dev`                       | Reloads on change. Swagger UI at http://localhost:4000/v1/docs. The API guide is [`docs/api/README.md`](api/README.md).                                                   |
+| API (built)        | `pnpm --filter api build`, then `start`       | What a server runs. With `NODE_ENV=production`, Swagger UI is off and production settings are required.                                                                   |
+| Roll-parser worker | `pnpm --filter roll-parser worker`            | Reads the roll PDFs uploaded in the admin web. Without it, uploaded files stay "Extracting". Setup in [section 10](#10-roll-parser-python-optional), or run it in Docker. |
+| Admin web          | `pnpm --filter admin-web dev`                 | http://localhost:3000. Talks to the API at `API_URL` (default `http://localhost:4000`).                                                                                   |
+| Mobile, emulator   | `pnpm --filter mobile start`                  | Start the emulator first. Uses `http://10.0.2.2:4000`.                                                                                                                    |
+| Mobile, real phone | see below                                     | USB debugging on, phone plugged in.                                                                                                                                       |
+
+**On a real Android phone,** the phone can't reach `10.0.2.2`. Either
+forward the port over USB, so the phone's `localhost:4000` is your
+computer's:
+
+```powershell
+adb reverse tcp:4000 tcp:4000
+flutter run --dart-define=API_BASE_URL=http://localhost:4000   # in apps/mobile
+```
+
+or use your computer's Wi-Fi address (`ipconfig` → IPv4 Address), with the
+phone on the same network and port 4000 allowed through Windows Firewall:
+
+```powershell
+flutter run --dart-define=API_BASE_URL=http://192.168.1.20:4000   # your address
+```
+
+Development builds allow plain `http`; release builds need `https`.
+
+**Other admin tasks:**
+
+- `pnpm --filter api admin:grant --phone +919876543210 --name "Your Name" --node S99`
+  makes someone an admin (after `pnpm --filter api build`).
+- `pnpm --filter api stats:rebuild` recomputes every area's analytics (after
+  a build).
+
+## 6. Tests
+
+CI runs all of these on every pull request (`.github/workflows/ci.yml`).
+
+| Suite                          | Command                                                                                       | Needs                                                                                                    |
+| ------------------------------ | --------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------- |
+| Everything (lint, types, unit) | `pnpm lint`, `pnpm typecheck`, `pnpm test`                                                    | Flutter and the roll-parser setup, or filter them out                                                    |
+| Formatting                     | `pnpm format:check` (fix: `pnpm format`)                                                      | —                                                                                                        |
+| API unit + e2e                 | `pnpm --filter api test`                                                                      | nothing (no Docker)                                                                                      |
+| API integration                | `pnpm --filter api test:int`                                                                  | `pnpm infra:up`. Uses its own databases, never your dev data.                                            |
+| API spec up to date            | `pnpm --filter api openapi:check`                                                             | —                                                                                                        |
+| Admin web unit                 | `pnpm --filter admin-web test`                                                                | —                                                                                                        |
+| Admin web in the browser       | `pnpm test:e2e`                                                                               | Playwright's browser, once: `pnpm --filter admin-web exec playwright install chromium`. Uses a mock API. |
+| Mobile                         | `pnpm --filter mobile lint`, then `pnpm --filter mobile test`                                 | Flutter. Includes the offline → sync end-to-end test.                                                    |
+| Roll parser                    | `pnpm --filter roll-parser test` (and `test:int`)                                             | uv and Tesseract, or Docker (section 10)                                                                 |
+| Shared packages                | `pnpm --filter @boothconnect/i18n test`, `…/design-tokens`, `…/api-client`, `…/eslint-config` | —                                                                                                        |
+
+Not working on mobile or the roll parser? Leave them out:
+
+```powershell
+pnpm turbo run lint typecheck test --filter=!@boothconnect/mobile --filter=!@boothconnect/roll-parser
+```
+
+## 7. Everyday commands
 
 | Command                             | What it does                                                           |
 | ----------------------------------- | ---------------------------------------------------------------------- |
@@ -129,7 +280,7 @@ pushing; CI runs the same checks (see `.github/workflows/ci.yml`).
 Before the first `pnpm test:e2e`, download Playwright's browser once:
 `pnpm --filter admin-web exec playwright install chromium`.
 
-## 4. Local services
+## 8. Local services
 
 | Service       | Address                    | Credentials (development only)                     |
 | ------------- | -------------------------- | -------------------------------------------------- |
@@ -143,7 +294,7 @@ Before the first `pnpm test:e2e`, download Playwright's browser once:
 All of these come from `.env`; every variable is explained in
 `infra/env/.env.example`.
 
-## 5. Troubleshooting
+## 9. Troubleshooting
 
 - **`port is already allocated` / `address already in use`:** another program
   uses the port, often a local PostgreSQL on 5432. Change `POSTGRES_PORT` in
@@ -167,7 +318,58 @@ All of these come from `.env`; every variable is explained in
 - **Flutter build fails in the `sqlite3` hook:** the first build downloads the
   SQLCipher library from GitHub; check your network or proxy.
 
-## 6. Roll parser (Python, optional)
+**WSL 2 and Docker Desktop**
+
+- **Docker Desktop says WSL 2 is missing or too old:** in an Administrator
+  PowerShell, `wsl --install` (first time) or `wsl --update`, then restart
+  Windows.
+- **"Virtualization must be enabled":** turn on virtualization (Intel VT-x
+  or AMD-V / SVM) in the BIOS or UEFI settings.
+- **Docker uses too much memory:** limit WSL 2 in `%UserProfile%\.wslconfig`:
+  ```ini
+  [wsl2]
+  memory=4GB
+  ```
+  then `wsl --shutdown` and start Docker Desktop again.
+- **Clone inside WSL, or on Windows?** Either works, but not both mixed.
+  Run `pnpm install` on the same side you run the apps from:
+  `node_modules` built on one side doesn't work on the other.
+
+**Ports**
+
+- **A port is free but still "already in use" or "access is denied":**
+  Windows reserves some port ranges for Hyper-V. See them with
+  `netsh interface ipv4 show excludedportrange protocol=tcp`, and move the
+  service to a port outside those ranges in `.env`.
+- **What is using a port:** `Get-NetTCPConnection -LocalPort 5432 | Select-Object OwningProcess`,
+  then `Get-Process -Id <that number>`.
+
+**Android emulator and the API**
+
+- **The app can't reach the API** ("Can't reach the server"):
+  - Is the API running, and does http://localhost:4000/v1/health work in
+    a browser on your computer?
+  - The emulator reaches your computer at `10.0.2.2`, not `localhost`.
+    In the emulator's Chrome, open http://10.0.2.2:4000/v1/health: it
+    should show `"status":"ok"`.
+  - Changed `API_PORT`? Run the app with
+    `--dart-define=API_BASE_URL=http://10.0.2.2:<port>`.
+  - Windows Firewall asked about Node.js? Allow it on **private** networks.
+- **A real phone can't reach the API:** use `adb reverse` or your Wi-Fi
+  address ([section 5](#5-running-each-app)). `10.0.2.2` only works in the
+  emulator.
+- **`flutter run` says no devices:** start the emulator first, or check
+  the phone with `adb devices` (accept the "Allow USB debugging?" prompt on
+  the phone).
+- **The emulator is very slow:** in Android Studio's Device Manager, use an
+  x86_64 system image, and check that Windows **Hypervisor Platform** is on
+  (Windows Features).
+- **No code in the API window:** check `OTP_DEV_MODE=true` in `.env` and
+  restart the API. After 3 requests in 10 minutes the app says "Too many
+  attempts. Wait a moment and try again.": wait, or sign in as another seed
+  user.
+
+## 10. Roll parser (Python, optional)
 
 `apps/roll-parser` reads electoral-roll PDFs. You only need this if you work
 on it, or want the root `pnpm lint` / `pnpm test` to cover it. There are two
@@ -228,7 +430,7 @@ Without Docker: `pnpm --filter roll-parser worker` (after `pnpm infra:up`).
   and you don't work on it:** leave it out with
   `pnpm turbo run lint test --filter=!@boothconnect/roll-parser`.
 
-## 7. Where to go next
+## 11. Where to go next
 
 - `docs/IMPLEMENTATION_PLAN.md`: what's being built, and in what order
 - `docs/adr/`: architecture decisions, starting with
