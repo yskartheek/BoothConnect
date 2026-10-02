@@ -56,4 +56,46 @@ class FakeVoterApi implements VoterApi {
     if (failWith != null) throw failWith!;
     return self;
   }
+
+  /// Every save, in order.
+  final saves = <List<DetailEdit>>[];
+
+  /// The result for a detail; by default `applied`, and the value becomes
+  /// the current one.
+  String Function(DetailEdit edit) statusOf = (_) => 'applied';
+
+  @override
+  Future<List<DetailResult>> editDetails(List<DetailEdit> edits) async {
+    if (failWith != null) throw failWith!;
+    saves.add(edits);
+    final results = [
+      for (final e in edits) DetailResult(key: e.key, status: statusOf(e)),
+    ];
+    self = VoterSelf(
+      id: self.id,
+      epicNumber: self.epicNumber,
+      official: self.official,
+      sectionNo: self.sectionNo,
+      serialNo: self.serialNo,
+      partCode: self.partCode,
+      partName: self.partName,
+      boothCode: self.boothCode,
+      boothName: self.boothName,
+      programName: self.programName,
+      householdAddress: self.householdAddress,
+      shared: [
+        for (final d in self.shared)
+          switch (edits.where((e) => e.key == d.key).firstOrNull) {
+            final DetailEdit e when statusOf(e) == 'applied' => SharedDetail(
+              key: d.key,
+              labelKey: d.labelKey,
+              value: e.value,
+              fieldValueId: 'fv-${d.key}-${saves.length}',
+            ),
+            _ => d,
+          },
+      ],
+    );
+    return results;
+  }
 }

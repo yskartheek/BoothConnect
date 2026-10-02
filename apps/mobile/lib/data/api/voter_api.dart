@@ -1,5 +1,6 @@
 import 'package:dio/dio.dart';
 
+import '../local/ids.dart';
 import 'api_error.dart';
 
 /// The signed-in voter's own record (`GET /v1/voter/me`, #224). Online only:
@@ -117,6 +118,41 @@ class SharedDetail {
   bool get isSet => value != null && '$value'.trim().isNotEmpty;
 }
 
+/// A change to one shared detail: [baseVersion] is the value the app showed.
+class DetailEdit {
+  const DetailEdit({
+    required this.key,
+    required this.value,
+    required this.baseVersion,
+  });
+
+  final String key;
+  final Object value;
+  final String? baseVersion;
+
+  Map<String, Object?> toJson() => {
+    'fieldKey': key,
+    'value': value,
+    'baseVersion': baseVersion,
+  };
+}
+
+/// What happened to one detail: `applied`, `conflict` (someone changed it
+/// meanwhile) or `rejected` (with the API's [code]).
+class DetailResult {
+  const DetailResult({required this.key, required this.status, this.code});
+
+  factory DetailResult.fromJson(Map<String, dynamic> json) => DetailResult(
+    key: json['fieldKey'] as String,
+    status: json['status'] as String,
+    code: json['code'] as String?,
+  );
+
+  final String key;
+  final String status;
+  final String? code;
+}
+
 /// The voter self-service API (#224, #225). Failures are [ApiError]s.
 class VoterApi {
   VoterApi(this._dio);
@@ -128,6 +164,24 @@ class VoterApi {
       () => _dio.get<Map<String, dynamic>>('/v1/voter/me'),
     );
     return VoterSelf.fromJson(response.data!);
+  }
+
+  /// Changes shared details (`PATCH /v1/voter/me/details`). Each gets its
+  /// own result. Online only, so one idempotency key per save.
+  Future<List<DetailResult>> editDetails(List<DetailEdit> edits) async {
+    final response = await _call(
+      () => _dio.patch<Map<String, dynamic>>(
+        '/v1/voter/me/details',
+        data: {
+          'fields': [for (final e in edits) e.toJson()],
+        },
+        options: Options(headers: {'Idempotency-Key': newId()}),
+      ),
+    );
+    return [
+      for (final f in response.data!['fields'] as List<dynamic>)
+        DetailResult.fromJson(f as Map<String, dynamic>),
+    ];
   }
 
   static Future<Response<T>> _call<T>(

@@ -509,6 +509,54 @@
   },
   "mobile.voterLoadFailed": "Couldn't load your details. Try again.",
   "@mobile.voterLoadFailed": { "description": "Voter screens: loading failed." },
+  "mobile.voterTabHome": "Home",
+  "@mobile.voterTabHome": { "description": "Voter tab: Home." },
+  "mobile.voterTabDetails": "My details",
+  "@mobile.voterTabDetails": { "description": "Voter tab and screen title: the voter's details." },
+  "mobile.voterOfficialTitle": "From the electoral roll",
+  "@mobile.voterOfficialTitle": { "description": "My details: heading of the roll's entry." },
+  "mobile.voterOfficialChip": "Official",
+  "@mobile.voterOfficialChip": { "description": "My details: chip marking the roll's entry." },
+  "mobile.voterAgeGender": "Age · gender",
+  "@mobile.voterAgeGender": { "description": "My details: label of the age and gender row." },
+  "mobile.voterPartSerial": "Part · serial",
+  "@mobile.voterPartSerial": {
+    "description": "My details: label of the part and serial number row."
+  },
+  "mobile.voterForm8": "Something wrong here? Official corrections are made with the Election Commission (Form 8).",
+  "@mobile.voterForm8": {
+    "description": "My details: under the roll's entry, which the app can't change."
+  },
+  "mobile.voterSharedTitle": "Details you share",
+  "@mobile.voterSharedTitle": {
+    "description": "My details: heading of the details the voter shares."
+  },
+  "mobile.voterNotAdded": "Not added",
+  "@mobile.voterNotAdded": { "description": "My details: a shared detail with no value." },
+  "mobile.voterSharedNote": "Shared with your booth team only.",
+  "@mobile.voterSharedNote": { "description": "My details and edit: who sees shared details." },
+  "mobile.voterEditTitle": "Edit my details",
+  "@mobile.voterEditTitle": { "description": "Title of the voter's edit screen." },
+  "mobile.voterMobileHelp": "Changing it changes the number you sign in with.",
+  "@mobile.voterMobileHelp": { "description": "Voter edit: help under the mobile number." },
+  "mobile.voterSaved": "Saved.",
+  "@mobile.voterSaved": { "description": "Snackbar after the voter saves their details." },
+  "mobile.voterSaveFailed": "Couldn't save. Try again.",
+  "@mobile.voterSaveFailed": { "description": "Snackbar when saving the voter's details fails." },
+  "mobile.voterConflict": "Someone else changed your {detail} just now. Check it and try again.",
+  "@mobile.voterConflict": {
+    "description": "Snackbar: a conflict. {detail}: the detail's name, lower case in English, e.g. occupation."
+  },
+  "mobile.voterCheckDetails": "Check your details",
+  "@mobile.voterCheckDetails": {
+    "description": "Voter Home: prompt when shared details are missing."
+  },
+  "mobile.voterNotAddedYet": "{details} not added yet",
+  "@mobile.voterNotAddedYet": {
+    "description": "Voter Home prompt. {details}: the missing details, comma-separated."
+  },
+  "mobile.voterAdd": "Add",
+  "@mobile.voterAdd": { "description": "Voter Home prompt button: opens the edit screen." },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

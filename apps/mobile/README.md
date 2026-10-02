@@ -397,6 +397,24 @@ One app for volunteers and voters (epic #222):
 - **Home** (`features/voter/voter_home_screen.dart`): "Namaste, <name>",
   the booth and part, the serial number, the program; "This app is not run
   by the Election Commission."; pull to refresh; offline and error states.
+- **Tabs** (#227, `voter_shell.dart`): **Home** (`/voter`) and **My
+  details** (`/voter/details`) under a `ShellRoute`; the edit form
+  (`/voter/details/edit`) is pushed over them.
+- **My details** (`voter_details_screen.dart`): **From the electoral roll**
+  (marked **Official**: name, age · gender, EPIC, part · serial, booth),
+  which the app can't change, with the Form 8 note; then **Details you
+  share** (mobile number, occupation, additional info; unset ones say
+  "Not added").
+- **Edit my details** (`voter_details_edit_screen.dart`): sends only the
+  details that changed, each with the version it started from
+  (`VoterApi.editDetails`, `PATCH /v1/voter/me/details`, a new
+  idempotency key per save). The mobile number is checked and sent as +91…;
+  an emptied detail keeps its value. Results: all applied → "Saved.";
+  a conflict → "Someone else changed your <detail> just now…"; rejected →
+  "Couldn't save."; offline → stays on the form with what was typed. The
+  details are read again after every save.
+- **Home** shows **Check your details** while a shared detail is missing,
+  with **Add** opening the form.
 
 ## End-to-end test (#68)
 

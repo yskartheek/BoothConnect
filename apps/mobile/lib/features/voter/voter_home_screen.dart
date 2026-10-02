@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../../app/router.dart';
 import '../../data/api/api_error.dart';
 import '../../data/api/providers.dart';
 import '../../data/api/voter_api.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../l10n/shared_labels.g.dart';
 import '../../theme/glass_surface.dart';
 import '../../theme/tokens.g.dart';
 import '../../widgets/states.dart';
@@ -65,6 +68,8 @@ class _Home extends StatelessWidget {
     final l10n = AppLocalizations.of(context);
     final text = Theme.of(context).textTheme;
     final name = self.official.name;
+    // Details the voter could share but hasn't yet.
+    final missing = self.shared.where((d) => !d.isSet).toList();
     return ListView(
       // Pull to refresh works even when the content is short.
       physics: const AlwaysScrollableScrollPhysics(),
@@ -78,6 +83,27 @@ class _Home extends StatelessWidget {
           ),
         ),
         const SizedBox(height: BcSpacing.md),
+        if (missing.isNotEmpty) ...[
+          Card(
+            margin: EdgeInsets.zero,
+            child: ListTile(
+              leading: const Icon(Icons.edit_note),
+              title: Text(l10n.voterCheckDetails),
+              subtitle: Text(
+                l10n.voterNotAddedYet(
+                  missing
+                      .map((d) => fieldLabel(l10n, d.key) ?? d.key)
+                      .join(', '),
+                ),
+              ),
+              trailing: TextButton(
+                onPressed: () => context.push(Routes.voterDetailsEdit),
+                child: Text(l10n.voterAdd),
+              ),
+            ),
+          ),
+          const SizedBox(height: BcSpacing.md),
+        ],
         GlassSurface(
           padding: const EdgeInsets.all(BcSpacing.md),
           child: Column(
