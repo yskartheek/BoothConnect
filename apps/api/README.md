@@ -39,6 +39,17 @@ kept, otherwise a UUID is generated. The ID is returned in the
 `X-Request-Id` response header and attached to every log line of that
 request. `Authorization` and `Cookie` headers are redacted.
 
+**No personal data in request logs (#210).** A search can hold a voter's
+name, house number or phone, so the logged URL, `query` and `Referer` keep
+only the values of parameters in `LOGGABLE_QUERY_PARAMS`
+(`src/config/logger.ts`): IDs, codes, dates, numbers and flags such as
+`boothId`, `since`, `limit` and `status`. Every other value, `q` above all,
+is logged as `[redacted]`, and fragments are dropped. A new query parameter
+is redacted until it's added to that list; add it only if its values can
+never be personal data. Path parameters are IDs, so paths are logged as
+they are: don't put personal data in a path. `test/request-log.e2e-spec.ts`
+checks the real configuration.
+
 ## Errors and validation
 
 Every error response has the same shape, whatever went wrong:
