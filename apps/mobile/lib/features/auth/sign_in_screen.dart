@@ -18,6 +18,9 @@ enum _Step { phone, code, denied }
 
 /// Sign-in with a code sent by SMS: phone number, then the code. Someone
 /// without a volunteer assignment sees the denied state.
+///
+/// One app for volunteers and voters (#226): a voter chooses **Voter** and
+/// gives their voter ID (EPIC) and the mobile number on their record.
 class SignInScreen extends ConsumerStatefulWidget {
   const SignInScreen({super.key, this.showDevHint = kDebugMode});
 
@@ -31,7 +34,12 @@ class SignInScreen extends ConsumerStatefulWidget {
 class _SignInScreenState extends ConsumerState<SignInScreen> {
   final _phone = TextEditingController();
   final _code = TextEditingController();
+  final _epic = TextEditingController();
   var _step = _Step.phone;
+
+  /// Signing in as a voter (#226).
+  var _voter = false;
+  String? _epicError;
   var _busy = false;
   String? _sentTo;
   String? _fieldError;
@@ -41,6 +49,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
   void dispose() {
     _phone.dispose();
     _code.dispose();
+    _epic.dispose();
     super.dispose();
   }
 
@@ -62,15 +71,29 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
   }
 
+  /// The voter ID as the API takes it: no spaces, upper case.
+  static String? _normaliseEpic(String input) {
+    final s = input.replaceAll(RegExp(r'\s'), '').toUpperCase();
+    return RegExp(r'^[A-Z0-9]{5,20}$').hasMatch(s) ? s : null;
+  }
+
   Future<void> _sendCode() async {
     final phone = normalizePhone(_phone.text);
-    if (phone == null) {
-      setState(() => _fieldError = context.l10n.signInPhoneInvalid);
-      return;
-    }
-    setState(() => _fieldError = null);
+    final epic = _voter ? _normaliseEpic(_epic.text) : null;
+    setState(() {
+      _fieldError = phone == null ? context.l10n.signInPhoneInvalid : null;
+      _epicError = _voter && epic == null
+          ? context.l10n.voterEpicInvalid
+          : null;
+    });
+    if (phone == null || (_voter && epic == null)) return;
     await _run(() async {
-      await ref.read(authApiProvider).requestOtp(phone);
+      final api = ref.read(authApiProvider);
+      if (_voter) {
+        await api.requestVoterOtp(epic!, phone);
+      } else {
+        await api.requestOtp(phone);
+      }
       if (!mounted) return;
       setState(() {
         _sentTo = phone;
@@ -88,9 +111,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
     }
     setState(() => _fieldError = null);
     await _run(() async {
-      final result = await ref
-          .read(authProvider.notifier)
-          .signIn(_sentTo!, code);
+      final auth = ref.read(authProvider.notifier);
+      final result = _voter
+          ? await auth.signInVoter(_normaliseEpic(_epic.text)!, _sentTo!, code)
+          : await auth.signIn(_sentTo!, code);
       // Signed in: the router moves on by itself.
       if (result == SignInResult.noAssignment && mounted) {
         setState(() => _step = _Step.denied);
@@ -143,6 +167,45 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       children: [
         _heading(),
         const SizedBox(height: BcSpacing.md),
+        // Volunteers and voters use the same app (#226).
+        Semantics(
+          label: l10n.signInAsLabel,
+          child: SegmentedButton<bool>(
+            segments: [
+              ButtonSegment(value: false, label: Text(l10n.signInAsVolunteer)),
+              ButtonSegment(value: true, label: Text(l10n.signInAsVoter)),
+            ],
+            selected: {_voter},
+            showSelectedIcon: false,
+            onSelectionChanged: _busy
+                ? null
+                : (s) => setState(() {
+                    _voter = s.single;
+                    _error = null;
+                    _fieldError = null;
+                    _epicError = null;
+                  }),
+          ),
+        ),
+        const SizedBox(height: BcSpacing.md),
+        if (_voter) ...[
+          Text(l10n.voterSignInIntro),
+          const SizedBox(height: BcSpacing.sm),
+          TextField(
+            controller: _epic,
+            enabled: !_busy,
+            textCapitalization: TextCapitalization.characters,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: l10n.voterEpicLabel,
+              helperText: l10n.voterEpicHelp,
+              helperMaxLines: 3,
+              errorText: _epicError,
+              errorMaxLines: 3,
+            ),
+          ),
+          const SizedBox(height: BcSpacing.sm),
+        ],
         TextField(
           controller: _phone,
           enabled: !_busy,
@@ -152,7 +215,7 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           onSubmitted: (_) => _sendCode(),
           decoration: InputDecoration(
             labelText: l10n.signInPhoneLabel,
-            helperText: l10n.signInPhoneHelp,
+            helperText: _voter ? l10n.voterPhoneHelp : l10n.signInPhoneHelp,
             helperMaxLines: 3,
             errorText: _fieldError,
             errorMaxLines: 3,
@@ -164,9 +227,21 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
           busy: _busy,
           onPressed: _sendCode,
         ),
+        if (_voter) ..._voterNotes(),
         ..._errorAndHint(),
       ],
     );
+  }
+
+  /// Who sees what, and that this isn't the Election Commission's app.
+  List<Widget> _voterNotes() {
+    final muted = TextStyle(color: AppTokens.of(context).textMuted);
+    return [
+      const SizedBox(height: BcSpacing.md),
+      Text(context.l10n.voterPrivacyLine, style: muted),
+      const SizedBox(height: BcSpacing.xs),
+      Text(context.l10n.voterNotOfficial, style: muted),
+    ];
   }
 
   Widget _codeStep() {
@@ -176,7 +251,10 @@ class _SignInScreenState extends ConsumerState<SignInScreen> {
       children: [
         _heading(),
         const SizedBox(height: BcSpacing.sm),
-        Text(l10n.signInCodeSent(_sentTo!)),
+        // A voter isn't told whether the details matched (#223).
+        Text(
+          _voter ? l10n.voterCodeSent(_sentTo!) : l10n.signInCodeSent(_sentTo!),
+        ),
         const SizedBox(height: BcSpacing.md),
         TextField(
           controller: _code,

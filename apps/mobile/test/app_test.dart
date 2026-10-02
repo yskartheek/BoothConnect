@@ -263,5 +263,33 @@ void main() {
         expect(authRedirect(AuthStatus.signedIn, uri), '/', reason: from);
       }
     });
+
+    test('a volunteer never sees the voter side (#226)', () {
+      expect(authRedirect(AuthStatus.signedIn, u('/voter')), '/');
+      expect(authRedirect(AuthStatus.signedIn, u('/voter/details')), '/');
+      expect(
+        authRedirect(AuthStatus.signedIn, u('/sign-in?from=%2Fvoter')),
+        '/',
+      );
+      // Only pages under /voter are the voter's.
+      expect(authRedirect(AuthStatus.signedIn, u('/voters')), isNull);
+    });
+
+    test('a voter sees only the voter side (#226)', () {
+      expect(authRedirect(AuthStatus.voter, u('/voter')), isNull);
+      expect(authRedirect(AuthStatus.voter, u('/voter/details')), isNull);
+      for (final path in ['/', '/households', '/household/h-1', '/sync']) {
+        expect(authRedirect(AuthStatus.voter, u(path)), '/voter', reason: path);
+      }
+      expect(authRedirect(AuthStatus.voter, u('/sign-in')), '/voter');
+      expect(
+        authRedirect(AuthStatus.voter, u('/starting?from=%2Fvoter%2Fdetails')),
+        '/voter/details',
+      );
+      expect(
+        authRedirect(AuthStatus.voter, u('/sign-in?from=%2Fsync')),
+        '/voter',
+      );
+    });
   });
 }

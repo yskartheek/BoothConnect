@@ -375,6 +375,29 @@ one (`/household/:id/members/new`, `MemberScreen.add`):
 - Platform strings: Android `ACCESS_FINE_LOCATION` and
   `ACCESS_COARSE_LOCATION`, iOS `NSLocationWhenInUseUsageDescription`.
 
+## Voters in the same app (#226)
+
+One app for volunteers and voters (epic #222):
+
+- **Sign-in:** the screen starts with **Booth volunteer / Voter**. A voter
+  gives their voter ID (EPIC, spaces and case ignored) and the mobile number
+  on their record, then the code (`AuthApi.requestVoterOtp`,
+  `verifyVoterOtp`; API #223). The code step never says whether the details
+  matched.
+- **Whose session:** the token store keeps `bc_session_kind` (`volunteer`
+  or `voter`) with the tokens, so a restart reopens the right side. A
+  session from before this change is a volunteer's.
+- **`AuthStatus.voter`:** the router keeps a voter on `/voter…` pages and a
+  volunteer off them (`authRedirect`, `Routes.isVoterPage`).
+- **Online only:** the voter side reads the API each time
+  (`VoterApi`, `voterSelfProvider`) and keeps nothing on the phone but the
+  tokens. It never opens the local database. Sync and the database only
+  follow `AuthStatus.signedIn`. A voter's sign-out leaves the database alone:
+  a volunteer's unsent changes on a shared phone stay.
+- **Home** (`features/voter/voter_home_screen.dart`): "Namaste, <name>",
+  the booth and part, the serial number, the program; "This app is not run
+  by the Election Commission."; pull to refresh; offline and error states.
+
 ## End-to-end test (#68)
 
 `test/e2e/offline_sync_test.dart` runs the whole app against

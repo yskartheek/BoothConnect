@@ -20,6 +20,9 @@ class TokenStore {
   static const refreshName = 'bc_refresh_token';
   static const deviceIdName = 'bc_device_id';
 
+  /// Whose session the tokens are: `volunteer` or `voter` (#226).
+  static const kindName = 'bc_session_kind';
+
   final SecretStore _secrets;
   final Random _random;
   Tokens? _cached;
@@ -43,9 +46,16 @@ class TokenStore {
     _loaded = true;
   }
 
+  /// Whose session is stored (`volunteer` or `voter`); null if none was
+  /// recorded (a session from before #226 is a volunteer's).
+  Future<String?> kind() => _secrets.read(kindName);
+
+  Future<void> saveKind(String kind) => _secrets.write(kindName, kind);
+
   Future<void> clear() async {
     await _secrets.delete(accessName);
     await _secrets.delete(refreshName);
+    await _secrets.delete(kindName);
     _cached = null;
     _loaded = true;
   }

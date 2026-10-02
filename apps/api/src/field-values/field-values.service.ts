@@ -354,6 +354,12 @@ export class FieldValuesService {
     id: string,
   ): Promise<{ programId: string } | null> {
     if (entityType === 'voter') {
+      // A voter's session (#223) reaches only its own record, or a newer
+      // record that replaced it.
+      if (scope.voterId) {
+        if (!(await voterLineage(tx, id)).includes(scope.voterId)) return null;
+        return tx.voter.findUnique({ where: { id }, select: { programId: true } });
+      }
       return tx.voter.findFirst({ where: { id, ...inScope(scope) }, select: { programId: true } });
     }
     const household = await tx.household.findFirst({

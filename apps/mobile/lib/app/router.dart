@@ -12,6 +12,7 @@ import '../features/households/new_household_screen.dart';
 import '../features/members/member_screen.dart';
 import '../features/sync/sync_screen.dart';
 import '../features/visit/visit_screen.dart';
+import '../features/voter/voter_home_screen.dart';
 import '../widgets/states.dart';
 import 'not_found_screen.dart';
 
@@ -30,13 +31,21 @@ abstract final class Routes {
   static String member(String id) => '/member/${Uri.encodeComponent(id)}';
   static String visit(String householdId) =>
       '/visit/${Uri.encodeComponent(householdId)}';
+
+  /// The voter side of the app (#226): only for a voter's session.
+  static const voter = '/voter';
+
+  static bool isVoterPage(String path) =>
+      path == voter || path.startsWith('$voter/');
 }
 
 /// Where the router sends [uri] for someone who is [status], or null to stay.
 ///
 /// Starting: wait on `/starting`. Signed out: sign-in. Both remember the page
 /// that was asked for in `from`. Signed in: from starting or sign-in, on to
-/// `from` (a path in this app only), or home.
+/// `from` (a path in this app only), or home. Each side's pages are closed
+/// to the other: a volunteer never sees `/voter…`, and a voter sees nothing
+/// else (#226).
 String? authRedirect(AuthStatus status, Uri uri) {
   final waiting = uri.path == Routes.starting || uri.path == Routes.signIn;
   final target = waiting
@@ -51,7 +60,18 @@ String? authRedirect(AuthStatus status, Uri uri) {
       uri.path == Routes.starting ? null : withFrom(Routes.starting),
     AuthStatus.signedOut =>
       uri.path == Routes.signIn ? null : withFrom(Routes.signIn),
-    AuthStatus.signedIn => waiting ? target : null,
+    AuthStatus.signedIn =>
+      Routes.isVoterPage(Uri.parse(target).path)
+          ? Routes.home
+          : waiting
+          ? target
+          : null,
+    AuthStatus.voter =>
+      !Routes.isVoterPage(Uri.parse(target).path)
+          ? Routes.voter
+          : waiting
+          ? target
+          : null,
   };
 }
 
@@ -124,6 +144,10 @@ final routerProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: Routes.sync,
         builder: (context, state) => const SyncScreen(),
+      ),
+      GoRoute(
+        path: Routes.voter,
+        builder: (context, state) => const VoterHomeScreen(),
       ),
     ],
   );

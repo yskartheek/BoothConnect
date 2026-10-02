@@ -34,11 +34,17 @@ class Assignment {
 
 /// The signed-in user (`GET /v1/me`).
 class Me {
-  const Me({required this.id, required this.name, required this.assignments});
+  const Me({
+    required this.id,
+    required this.name,
+    required this.assignments,
+    this.voterId,
+  });
 
   factory Me.fromJson(Map<String, dynamic> json) => Me(
     id: json['id'] as String,
     name: json['name'] as String,
+    voterId: (json['voter'] as Map<String, dynamic>?)?['id'] as String?,
     assignments: [
       for (final a in json['assignments'] as List<dynamic>)
         Assignment.fromJson(a as Map<String, dynamic>),
@@ -48,6 +54,11 @@ class Me {
   final String id;
   final String name;
   final List<Assignment> assignments;
+
+  /// Set for a voter's session (#223): the voter record it acts for.
+  final String? voterId;
+
+  bool get isVoter => voterId != null;
 
   /// The app is for volunteers: someone with no volunteer assignment can't
   /// use it.
@@ -63,6 +74,9 @@ class AuthApi {
 
   /// Whether tokens from an earlier sign-in are stored.
   Future<bool> hasSession() async => await _tokens.read() != null;
+
+  /// Whether the stored session is a voter's (#226).
+  Future<bool> isVoterSession() async => await _tokens.kind() == 'voter';
 
   /// Asks the API to text a code to [phone] (international format).
   Future<void> requestOtp(String phone) => _call(
@@ -83,13 +97,46 @@ class AuthApi {
         options: Options(extra: noAuth),
       ),
     );
-    final body = response.data!;
+    await _keep(response.data!, 'volunteer');
+  }
+
+  /// A voter asks for a code (#223): their voter ID (EPIC) and the mobile
+  /// number on their record. The API answers the same whether or not they
+  /// match.
+  Future<void> requestVoterOtp(String epic, String phone) => _call(
+    () => _dio.post<void>(
+      '/v1/voter-auth/otp/request',
+      data: {'epic': epic, 'phone': phone},
+      options: Options(extra: noAuth),
+    ),
+  );
+
+  /// Exchanges a voter's code for tokens, and keeps them as a voter's.
+  Future<void> verifyVoterOtp(String epic, String phone, String code) async {
+    final deviceId = await _tokens.deviceId();
+    final response = await _call(
+      () => _dio.post<Map<String, dynamic>>(
+        '/v1/voter-auth/otp/verify',
+        data: {
+          'epic': epic,
+          'phone': phone,
+          'code': code,
+          'deviceId': deviceId,
+        },
+        options: Options(extra: noAuth),
+      ),
+    );
+    await _keep(response.data!, 'voter');
+  }
+
+  Future<void> _keep(Map<String, dynamic> body, String kind) async {
     await _tokens.save(
       Tokens(
         access: body['accessToken'] as String,
         refresh: body['refreshToken'] as String,
       ),
     );
+    await _tokens.saveKind(kind);
   }
 
   Future<Me> me() async {

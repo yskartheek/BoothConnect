@@ -612,6 +612,86 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/voter/me": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VoterSelf_me"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/voter/me/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VoterSelf_consents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/voter/me/consents/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoterSelf_withdrawConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/voter/me/details": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch: operations["VoterSelf_editDetails"];
+        trace?: never;
+    };
+    "/v1/voter/me/updates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VoterSelf_updates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/voters/{id}": {
         parameters: {
             query?: never;
@@ -839,6 +919,10 @@ export interface components {
              */
             voterId?: string;
         };
+        /** @enum {string} */
+        ConsentMethod: "in_person_verbal" | "in_person_signed" | "self_service";
+        /** @enum {string} */
+        ConsentStatus: "granted" | "withdrawn";
         CorrectRowDto: {
             /** @description Why the row is rejected; shown to other reviewers. */
             reason?: string;
@@ -1013,6 +1097,9 @@ export interface components {
         };
         EditMemberDto: {
             fields: components["schemas"]["MemberEditDto"][];
+        };
+        EditVoterDetailsDto: {
+            fields: components["schemas"]["VoterDetailEditDto"][];
         };
         ElectorCounts: {
             female: number;
@@ -1927,6 +2014,23 @@ export interface components {
         };
         /** @enum {string} */
         VisitOutcome: "completed" | "partially_completed" | "no_one_available" | "refused" | "address_not_found" | "household_moved" | "voter_deceased" | "duplicate_or_incorrect_listing" | "follow_up_requested" | "unsafe_or_inaccessible";
+        /** @description One of the voter's consents (#225). */
+        VoterConsent: {
+            /** Format: date-time */
+            capturedAt: string;
+            id: string;
+            /** @description The covered field's label key, for showing it; null if unknown. */
+            labelKey: string | null;
+            method: components["schemas"]["ConsentMethod"];
+            noticeVersion: string;
+            /** @description The field key it covers, e.g. "caste_community". */
+            purpose: string;
+            status: components["schemas"]["ConsentStatus"];
+            withdrawnAt: string | null;
+        };
+        VoterConsents: {
+            items: components["schemas"]["VoterConsent"][];
+        };
         VoterDetail: {
             epicNumber: string | null;
             /** @description Every enabled field the caller may see, set or not. */
@@ -1946,6 +2050,50 @@ export interface components {
             /** @description Visits that met this voter, on this record or an earlier one; newest first. */
             visitsMet: components["schemas"]["VoterVisit"][];
         };
+        VoterDetailEditDto: {
+            /**
+             * Format: uuid
+             * @description The value ID the app last showed for this detail; null if there was none.
+             */
+            baseVersion: string | null;
+            /** @description One of the details a voter may share (`shareable` in `GET /voter/me`). */
+            fieldKey: string;
+            /** @description Checked against the field's type by the field-value service. */
+            value: Record<string, never>;
+        };
+        /** @description A detail's result: as for any field write, or refused as not shareable. */
+        VoterDetailResult: {
+            entityId: string;
+            fieldKey: string;
+            fieldValueId: string;
+            /** @constant */
+            status: "applied";
+            supersedesId: string | null;
+        } | {
+            conflictWithId: string;
+            entityId: string;
+            fieldKey: string;
+            fieldValueId: string;
+            /** @constant */
+            status: "conflict";
+        } | {
+            code: components["schemas"]["RejectionCode"];
+            fieldKey: string;
+            message: string;
+            /** @constant */
+            status: "rejected";
+        } | {
+            /** @constant */
+            code: "FORBIDDEN";
+            fieldKey: string;
+            message: string;
+            /** @constant */
+            status: "rejected";
+        };
+        VoterDetailsEdited: {
+            /** @description One result per detail, in request order. */
+            fields: components["schemas"]["VoterDetailResult"][];
+        };
         VoterField: {
             /** @description Usually one; two while an offline conflict waits for a choice. Empty: never set. */
             current: components["schemas"]["FieldValueView"][];
@@ -1960,6 +2108,70 @@ export interface components {
         };
         /** @enum {string} */
         VoterRecordStatus: "active" | "superseded" | "deleted";
+        VoterSelf: {
+            booth: {
+                code: string;
+                name: string;
+            };
+            epicNumber: string | null;
+            household: {
+                address: string;
+            };
+            id: string;
+            /** @description As printed on the roll; never changed here. */
+            official: {
+                age: number | null;
+                gender: string | null;
+                houseNumber: string | null;
+                name: string | null;
+                relationType: string | null;
+                relativeName: string | null;
+            };
+            part: {
+                code: string;
+                name: string;
+            };
+            program: {
+                name: string;
+            };
+            sectionNo: number | null;
+            serialNo: number | null;
+            /** @description The details the voter may share, set or not, in the order above. */
+            shared: components["schemas"]["VoterSharedDetail"][];
+        };
+        VoterSharedDetail: {
+            collectedAt: string | null;
+            /** @description Send this as `baseVersion` when changing the detail; null when not shared yet. */
+            fieldValueId: string | null;
+            key: string;
+            labelKey: string;
+            /** @description Null when not shared yet. */
+            value: unknown;
+        };
+        VoterUpdate: {
+            /** Format: date-time */
+            at: string;
+            /** @enum {string} */
+            by: "you" | "volunteer" | "admin";
+            fieldKey: string;
+            /** @constant */
+            kind: "detail";
+            labelKey: string;
+        } | {
+            /** Format: date-time */
+            at: string;
+            /** @constant */
+            kind: "visit";
+            outcome: components["schemas"]["VisitOutcome"];
+        } | {
+            /** Format: date-time */
+            at: string;
+            /** @constant */
+            kind: "joined";
+        };
+        VoterUpdates: {
+            items: components["schemas"]["VoterUpdate"][];
+        };
         VoterVisit: {
             /** @description The later visit that corrects this one, if any. */
             correctedById: string | null;
@@ -3418,6 +3630,158 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TokenPair"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterSelf_me: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterSelf"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterSelf_consents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterConsents"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterSelf_withdrawConsent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterConsent"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterSelf_editDetails: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EditVoterDetailsDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterDetailsEdited"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterSelf_updates: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterUpdates"];
                 };
             };
             /** @description Error */

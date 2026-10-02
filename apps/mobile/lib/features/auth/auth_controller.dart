@@ -10,18 +10,25 @@ enum AuthStatus {
   /// Checking for a stored session at launch.
   starting,
   signedOut,
+
+  /// A volunteer is signed in.
   signedIn,
+
+  /// A voter is signed in (#226): the voter side of the app, online only.
+  /// It never opens the phone's database.
+  voter,
 }
 
 /// What [AuthController.signIn] ended with.
 enum SignInResult {
   signedIn,
 
-  /// Signed in, but with no volunteer assignment: the session is ended again.
+  /// Signed in, but with no volunteer assignment (or, for a voter, not as
+  /// a voter): the session is ended again.
   noAssignment,
 }
 
-/// Whether a volunteer is signed in. The router follows it.
+/// Who is signed in: a volunteer, a voter, or no one. The router follows it.
 class AuthController extends Notifier<AuthStatus> {
   @override
   AuthStatus build() {
@@ -32,9 +39,15 @@ class AuthController extends Notifier<AuthStatus> {
   /// A stored session counts as signed in, even offline: the app works from
   /// its local data, and the API says when the session is over.
   Future<void> _restore() async {
-    final stored = await ref.read(authApiProvider).hasSession();
+    final api = ref.read(authApiProvider);
+    final stored = await api.hasSession();
+    final voter = stored && await api.isVoterSession();
     if (state == AuthStatus.starting) {
-      state = stored ? AuthStatus.signedIn : AuthStatus.signedOut;
+      state = !stored
+          ? AuthStatus.signedOut
+          : voter
+          ? AuthStatus.voter
+          : AuthStatus.signedIn;
     }
   }
 
@@ -54,6 +67,24 @@ class AuthController extends Notifier<AuthStatus> {
     return SignInResult.signedIn;
   }
 
+  /// A voter signs in (#226) with their voter ID (EPIC), the mobile number on
+  /// their record and the code. Throws `ApiError` (wrong code, offline, …).
+  Future<SignInResult> signInVoter(
+    String epic,
+    String phone,
+    String code,
+  ) async {
+    final api = ref.read(authApiProvider);
+    await api.verifyVoterOtp(epic, phone, code);
+    final me = await api.me();
+    if (!me.isVoter) {
+      await api.logout();
+      return SignInResult.noAssignment;
+    }
+    state = AuthStatus.voter;
+    return SignInResult.signedIn;
+  }
+
   /// The API refused the refresh token: sign in again. The local data stays,
   /// since it may hold changes not yet uploaded.
   void sessionEnded() => state = AuthStatus.signedOut;
@@ -61,7 +92,13 @@ class AuthController extends Notifier<AuthStatus> {
   /// Signs out: ends the session and wipes the phone's database and its key,
   /// so the next volunteer on this phone starts empty.
   Future<void> signOut() async {
+    final wasVoter = state == AuthStatus.voter;
     await ref.read(authApiProvider).logout();
+    // A voter's side keeps nothing on the phone but the tokens.
+    if (wasVoter) {
+      state = AuthStatus.signedOut;
+      return;
+    }
     // Signed out first: screens stop reading and no new pull starts. Then
     // a pull still running finishes before the wipe, so nothing reopens
     // the database (with a new key) behind it.

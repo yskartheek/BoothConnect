@@ -457,6 +457,58 @@
   "@mobile.syncItemAddress": {
     "description": "Uploads: a household's address or location change."
   },
+  "mobile.signInAsLabel": "Sign in as",
+  "@mobile.signInAsLabel": {
+    "description": "Sign-in screen: label of the choice between volunteer and voter."
+  },
+  "mobile.signInAsVolunteer": "Booth volunteer",
+  "@mobile.signInAsVolunteer": { "description": "Sign-in choice: a booth volunteer." },
+  "mobile.signInAsVoter": "Voter",
+  "@mobile.signInAsVoter": { "description": "Sign-in choice: a voter checking their own details." },
+  "mobile.voterSignInIntro": "Check your booth and keep your contact details up to date.",
+  "@mobile.voterSignInIntro": { "description": "Voter sign-in: what the voter side is for." },
+  "mobile.voterEpicLabel": "Voter ID (EPIC) number",
+  "@mobile.voterEpicLabel": { "description": "Voter sign-in field." },
+  "mobile.voterEpicHelp": "Printed on your voter ID card",
+  "@mobile.voterEpicHelp": { "description": "Voter sign-in field help." },
+  "mobile.voterEpicInvalid": "Enter your voter ID number as printed on your card.",
+  "@mobile.voterEpicInvalid": { "description": "Voter sign-in: the voter ID isn't valid." },
+  "mobile.voterPhoneHelp": "The mobile number your booth volunteer has for you",
+  "@mobile.voterPhoneHelp": { "description": "Voter sign-in: help under the mobile number field." },
+  "mobile.voterCodeSent": "If these details match your record, we sent a code to {phone}.",
+  "@mobile.voterCodeSent": {
+    "description": "Voter sign-in, code step. Never says whether the details matched. {phone}: the number typed."
+  },
+  "mobile.voterPrivacyLine": "We only show details to the person they belong to.",
+  "@mobile.voterPrivacyLine": { "description": "Voter sign-in: privacy note." },
+  "mobile.voterNotOfficial": "This app is not run by the Election Commission.",
+  "@mobile.voterNotOfficial": {
+    "description": "Voter screens: the app isn't official (store review guidelines)."
+  },
+  "mobile.voterGreeting": "Namaste, {name}",
+  "@mobile.voterGreeting": {
+    "description": "Voter Home greeting. {name}: the voter's name from the roll."
+  },
+  "mobile.voterGreetingNoName": "Namaste",
+  "@mobile.voterGreetingNoName": {
+    "description": "Voter Home greeting when the roll has no name."
+  },
+  "mobile.voterBoothTitle": "Your booth",
+  "@mobile.voterBoothTitle": { "description": "Voter Home: heading of the booth card." },
+  "mobile.voterPartLine": "Part {code} · {name}",
+  "@mobile.voterPartLine": {
+    "description": "Voter Home: the roll part. {code}: its number; {name}: its name."
+  },
+  "mobile.voterSerialLine": "Serial {serial} on the roll",
+  "@mobile.voterSerialLine": {
+    "description": "Voter Home: the voter's serial number in the roll."
+  },
+  "mobile.voterOffline": "Connect to the internet to see your details.",
+  "@mobile.voterOffline": {
+    "description": "Voter screens: offline (the voter side is online only)."
+  },
+  "mobile.voterLoadFailed": "Couldn't load your details. Try again.",
+  "@mobile.voterLoadFailed": { "description": "Voter screens: loading failed." },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },
