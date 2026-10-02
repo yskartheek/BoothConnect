@@ -1,5 +1,5 @@
 import type { PrismaService } from '../src/database/prisma.service';
-import { SEED, seedDatabase } from '../src/database/seed/seed';
+import { SEED, SEED_VOTER, seedDatabase } from '../src/database/seed/seed';
 import { connectDatabase, inRollback } from './support/database';
 
 // Needs a migrated database: `pnpm infra:up`, then `pnpm --filter api db:deploy`.
@@ -25,8 +25,8 @@ describe('development seed (real Postgres)', () => {
       households: 40,
       voters: 121, // 120 from the roll + 1 added by a volunteer
       fieldDefinitions: 11,
-      fieldValues: 5,
-      consents: 3,
+      fieldValues: 6,
+      consents: 4, // 3 household locations, the demo voter's caste / community
     });
     expect(second).toEqual(first);
   });
@@ -74,6 +74,29 @@ describe('development seed (real Postgres)', () => {
       expect(
         await tx.household.count({ where: { locationConsentId: { not: null } } }),
       ).toBeGreaterThanOrEqual(3);
+    });
+  });
+
+  it('has a demo voter who can sign in, with a detail shared by consent', async () => {
+    await inRollback(prisma, async (tx) => {
+      await seedDatabase(tx);
+      const voter = await tx.voter.findFirstOrThrow({
+        where: { sourceVoterId: SEED_VOTER.epic },
+      });
+      const values = await tx.fieldValue.findMany({
+        where: { entityId: voter.id, isCurrent: true },
+        include: { fieldDefinition: true, consent: true },
+      });
+      const byKey = Object.fromEntries(values.map((v) => [v.fieldDefinition.key, v]));
+      // Voter sign-in matches the EPIC and the mobile number on record.
+      expect(byKey.mobile_number?.value).toBe(SEED_VOTER.phone);
+      expect(byKey.caste_community?.consent).toMatchObject({
+        subjectVoterId: voter.id,
+        purpose: 'caste_community',
+        status: 'granted',
+      });
+      // The phone isn't a staff member's.
+      expect(await tx.appUser.count({ where: { phone: SEED_VOTER.phone } })).toBe(0);
     });
   });
 });

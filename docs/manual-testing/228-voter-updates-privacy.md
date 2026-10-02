@@ -38,6 +38,6 @@
 
 ## Known issues and notes
 
-- The development seed has no consent for the demo voter, so step 2 adds one. #229 adds one to the seed.
+- Before #229 the development seed had no consent for the demo voter, so step 2 adds one. Since #229 the seed has one: with a fresh seed, step 2 can be skipped.
 - "Who has seen my details?" says who can see them. A list of each view comes later.
 - If a consent is withdrawn, the volunteer has to ask again to record that detail. A withdrawn consent can't be reused.

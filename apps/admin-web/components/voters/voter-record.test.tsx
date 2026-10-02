@@ -80,6 +80,14 @@ const VOTER = {
       }),
     ]),
     field('occupation', 'text', [value('o1', 'Farmer', { carriedFromId: 'o0' })]),
+    // Shared by the voter in the voter app (#224).
+    field('additional_info', 'text', [
+      value('a1', 'Synthetic note', {
+        sourceType: 'voter_self_submitted',
+        collectedBy: { id: 'u-voter', name: 'Synthetic Person 7' },
+        collectedAt: '2026-10-02T05:00:00.000Z',
+      }),
+    ]),
     field('caste_community', 'text', [], { isRestricted: true, requiresConsent: true }),
   ],
   visitsMet: [
@@ -148,6 +156,9 @@ describe('VoterRecord', () => {
     // Fields the roll doesn't print.
     expect(rowOf('Occupation')).toHaveTextContent(
       /Not on the rollFarmer Volunteer · Test Volunteer · 1 Feb 2026 \(carried over from the previous roll\)/,
+    );
+    expect(rowOf('Additional information')).toHaveTextContent(
+      /Not on the rollSynthetic note Shared by the voter · Synthetic Person 7 · 2 Oct 2026/,
     );
     expect(rowOf('Caste/community')).toHaveTextContent(/RestrictedNot on the rollNot set/);
     // The roll's own details.

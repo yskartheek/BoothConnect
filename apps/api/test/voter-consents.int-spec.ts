@@ -36,33 +36,14 @@ describe('voter consents (real Postgres)', () => {
     ).id;
     volunteer = await loginAs(t, '+919999900002');
 
-    // Caste / community, recorded by the volunteer with the voter's consent.
-    const caste = await t.prisma.fieldDefinition.findFirstOrThrow({
-      where: { key: 'caste_community' },
+    // Caste / community, recorded by the volunteer with the voter's consent:
+    // the development seed's (#229).
+    consentId = seedId('consent:voter:part1:1:caste_community');
+    valueId = seedId(`value:${VOTER}:caste_community`);
+    expect(await t.prisma.fieldValue.findUniqueOrThrow({ where: { id: valueId } })).toMatchObject({
+      consentId,
+      isCurrent: true,
     });
-    const consent = await t.prisma.consent.create({
-      data: {
-        subjectVoterId: VOTER,
-        purpose: 'caste_community',
-        noticeVersion: '2026.1',
-        capturedMethod: 'in_person_verbal',
-        capturedById: volunteer.userId,
-      },
-    });
-    consentId = consent.id;
-    valueId = (
-      await t.prisma.fieldValue.create({
-        data: {
-          entityType: 'voter',
-          entityId: VOTER,
-          fieldDefinitionId: caste.id,
-          value: 'Synthetic community',
-          sourceType: 'volunteer_collected',
-          collectedById: volunteer.userId,
-          consentId: consent.id,
-        },
-      })
-    ).id;
     otherConsentId = (
       await t.prisma.consent.create({
         data: {

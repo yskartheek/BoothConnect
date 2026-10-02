@@ -136,4 +136,5 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #226  | [One app for volunteers and voters: voter sign-in and Home](226-voter-app-entry.md)               | Ready to test   |
 | #227  | [Voter app: My details, and editing what the voter shares](227-voter-details.md)                  | Ready to test   |
 | #228  | [Voter app: Updates and Privacy (stop sharing a consent)](228-voter-updates-privacy.md)           | Ready to test   |
+| #229  | [Voter prototype end to end: demo voter, admin label, docs](229-voter-prototype.md)               | Ready to test   |
 | #79   | [SETUP.md: run commands for every app, the offline-sync demo](79-setup.md)                        | Ready to test   |
