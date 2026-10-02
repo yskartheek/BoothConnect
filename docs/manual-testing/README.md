@@ -133,4 +133,5 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #223  | [Voter sign-in (EPIC + mobile on record) and the voter's scope](223-voter-sign-in.md)             | Ready to test   |
 | #224  | [The voter's own record: details, shared-detail edits, updates](224-voter-own-record.md)          | Ready to test   |
 | #225  | [Voter consents: list and withdraw](225-voter-consents.md)                                        | Ready to test   |
+| #226  | [One app for volunteers and voters: voter sign-in and Home](226-voter-app-entry.md)               | Ready to test   |
 | #79   | [SETUP.md: run commands for every app, the offline-sync demo](79-setup.md)                        | Ready to test   |

@@ -6,6 +6,7 @@ import 'package:boothconnect_mobile/data/api/api_client.dart';
 import 'package:boothconnect_mobile/data/api/api_error.dart';
 import 'package:boothconnect_mobile/data/api/auth_api.dart';
 import 'package:boothconnect_mobile/data/api/token_store.dart';
+import 'package:boothconnect_mobile/data/api/voter_api.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_test/flutter_test.dart';
 
@@ -319,6 +320,121 @@ void main() {
       expect((await api.me()).isVolunteer, isFalse);
       server.handle = (r) async => (200, me([]));
       expect((await api.me()).isVolunteer, isFalse);
+    });
+
+    test(
+      'a voter signs in with EPIC and phone; the session is a voter’s (#226)',
+      () async {
+        server.handle = (r) async => switch (r.path) {
+          '/v1/voter-auth/otp/verify' => (200, tokenPair('v')),
+          _ => (202, null),
+        };
+        await api.requestVoterOtp('SYN1000001', '+919999900101');
+        expect(server.to('/v1/voter-auth/otp/request').single.data, {
+          'epic': 'SYN1000001',
+          'phone': '+919999900101',
+        });
+        // No token goes with the sign-in calls.
+        expect(
+          server
+              .to('/v1/voter-auth/otp/request')
+              .single
+              .headers['authorization'],
+          isNull,
+        );
+        expect(await api.isVoterSession(), isFalse);
+
+        await api.verifyVoterOtp('SYN1000001', '+919999900101', '123456');
+        final body =
+            server.to('/v1/voter-auth/otp/verify').single.data
+                as Map<String, dynamic>;
+        expect(body['epic'], 'SYN1000001');
+        expect(body['code'], '123456');
+        expect(body['deviceId'], matches(RegExp(r'^[0-9a-f]{32}$')));
+        expect((await tokens.read())!.access, 'access-v');
+        expect(await api.isVoterSession(), isTrue);
+
+        // A volunteer's sign-in afterwards: a volunteer's session again.
+        server.handle = (r) async => (200, tokenPair('2'));
+        await api.verifyOtp('+919876543210', '123456');
+        expect(await api.isVoterSession(), isFalse);
+
+        // Signing out forgets whose session it was.
+        await api.verifyVoterOtp('SYN1000001', '+919999900101', '123456');
+        server.handle = (r) async => (204, null);
+        await api.logout();
+        expect(await api.isVoterSession(), isFalse);
+        expect(secrets.values.containsKey(TokenStore.kindName), isFalse);
+      },
+    );
+
+    test('/v1/me for a voter, and the voter’s record', () async {
+      server.handle = (r) async => switch (r.path) {
+        '/v1/me' => (
+          200,
+          {
+            'id': 'u-2',
+            'name': 'Synthetic Voter',
+            'phone': '+919999900101',
+            'email': null,
+            'preferredLanguage': 'en',
+            'mfaState': 'not_enrolled',
+            'assignments': <Object>[],
+            'voter': {'id': 'v-1'},
+          },
+        ),
+        '/v1/voter/me' => (
+          200,
+          {
+            'id': 'v-1',
+            'epicNumber': 'SYN1000001',
+            'official': {
+              'name': 'Synthetic Lakshmi',
+              'relationType': 'husband',
+              'relativeName': 'Synthetic Ravi',
+              'age': 46,
+              'gender': 'female',
+              'houseNumber': '1-3',
+            },
+            'sectionNo': 1,
+            'serialNo': 217,
+            'part': {'code': '408', 'name': 'Demo Nagar'},
+            'booth': {'code': '142', 'name': 'Demo Primary School'},
+            'program': {'name': 'Demo General Election 2026'},
+            'household': {'address': 'H NO 1-3'},
+            'shared': [
+              {
+                'key': 'mobile_number',
+                'labelKey': 'field.mobile_number',
+                'value': '+919999900101',
+                'fieldValueId': 'fv-1',
+                'collectedAt': '2026-09-01T00:00:00.000Z',
+              },
+              {
+                'key': 'occupation',
+                'labelKey': 'field.occupation',
+                'value': null,
+                'fieldValueId': null,
+                'collectedAt': null,
+              },
+            ],
+          },
+        ),
+        _ => (404, apiError('NOT_FOUND')),
+      };
+      final me = await api.me();
+      expect((me.isVoter, me.voterId, me.isVolunteer), (true, 'v-1', false));
+
+      final self = await VoterApi(dio).me();
+      expect(self.official.name, 'Synthetic Lakshmi');
+      expect(self.official.age, 46);
+      expect(
+        (self.boothCode, self.partName, self.serialNo),
+        ('142', 'Demo Nagar', 217),
+      );
+      expect(self.detail('mobile_number')!.isSet, isTrue);
+      expect(self.detail('occupation')!.isSet, isFalse);
+      expect(self.detail('occupation')!.fieldValueId, isNull);
     });
 
     test('logout forgets the tokens, even offline', () async {

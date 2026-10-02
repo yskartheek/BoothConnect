@@ -7,6 +7,7 @@ import 'api_client.dart';
 import 'api_config.dart';
 import 'auth_api.dart';
 import 'token_store.dart';
+import 'voter_api.dart';
 
 final tokenStoreProvider = Provider<TokenStore>(
   (ref) => TokenStore(ref.watch(secretStoreProvider)),
@@ -24,4 +25,8 @@ final dioProvider = Provider<Dio>((ref) {
 
 final authApiProvider = Provider<AuthApi>(
   (ref) => AuthApi(ref.watch(dioProvider), ref.watch(tokenStoreProvider)),
+);
+
+final voterApiProvider = Provider<VoterApi>(
+  (ref) => VoterApi(ref.watch(dioProvider)),
 );
