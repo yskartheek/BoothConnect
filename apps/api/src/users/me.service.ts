@@ -27,7 +27,10 @@ export interface Me {
   email: string | null;
   preferredLanguage: string;
   mfaState: MfaState;
+  /** Empty for a voter's session, whatever the user's staff roles. */
   assignments: AssignmentView[];
+  /** Set for a voter's session (#223): the voter record it acts for. */
+  voter: { id: string } | null;
 }
 
 const nodeSummary = { id: true, type: true, code: true, name: true } as const;
@@ -36,7 +39,7 @@ const nodeSummary = { id: true, type: true, code: true, name: true } as const;
 export class MeService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async get(userId: string): Promise<Me> {
+  async get(userId: string, voterId?: string): Promise<Me> {
     const now = new Date();
     const user = await this.prisma.appUser.findUniqueOrThrow({
       where: { id: userId },
@@ -77,12 +80,15 @@ export class MeService {
     });
 
     const { roleAssignments, ...profile } = user;
+    // A voter's session acts as the voter only (ScopeService).
+    if (voterId) return { ...profile, assignments: [], voter: { id: voterId } };
     return {
       ...profile,
       assignments: roleAssignments.map(({ geographyNode, ...assignment }) => {
         const { ancestors, ...node } = geographyNode;
         return { ...assignment, node, path: ancestors.map((row) => row.ancestor) };
       }),
+      voter: null,
     };
   }
 }

@@ -20,6 +20,8 @@ export const Public = () =>
 export interface AuthUser {
   userId: string;
   sessionId: string;
+  /** Set for a voter's session: the voter record it acts for (#223). */
+  voterId?: string;
 }
 
 export type AuthenticatedRequest = { user?: AuthUser };

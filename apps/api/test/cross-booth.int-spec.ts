@@ -72,6 +72,8 @@ const ROUTES: Record<string, 'booth' | 'analytics' | 'admin' | 'self' | 'public'
   'POST /auth/otp/request': 'public',
   'POST /auth/otp/verify': 'public',
   'POST /auth/refresh': 'public',
+  'POST /voter-auth/otp/request': 'public',
+  'POST /voter-auth/otp/verify': 'public',
   'GET /health': 'public',
 };
 

@@ -226,11 +226,16 @@ model Session {
   revokedAt   DateTime? @map("revoked_at") @db.Timestamptz
   lastUsedAt  DateTime? @map("last_used_at") @db.Timestamptz
   createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz
+  /// Set for a voter's session (#223): it acts for this voter record only,
+  /// with no staff role or booth, whoever else the phone's user is.
+  voterId     String?   @map("voter_id") @db.Uuid
 
   user        AppUser      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  voter       Voter?       @relation(fields: [voterId], references: [id], onDelete: Restrict)
   auditEvents AuditEvent[]
 
   @@index([userId])
+  @@index([voterId])
   @@map("session")
 }
 
@@ -624,6 +629,7 @@ model Voter {
   pollingStation GeographyNode   @relation("VoterStation", fields: [pollingStationId], references: [id], onDelete: Restrict)
   sourceVersion  SourceVersion?  @relation(fields: [sourceVersionId], references: [id], onDelete: Restrict)
   importFile     ImportFile?     @relation(fields: [importFileId], references: [id], onDelete: Restrict)
+  sessions       Session[]
   previousVoter  Voter?          @relation("VoterRevisions", fields: [previousVoterId], references: [id], onDelete: Restrict)
   nextVoter      Voter?          @relation("VoterRevisions")
   visitsMet      VisitMember[]

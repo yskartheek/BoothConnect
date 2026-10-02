@@ -580,6 +580,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/voter-auth/otp/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoterAuth_requestOtp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/voter-auth/otp/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoterAuth_verifyOtp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/voters/{id}": {
         parameters: {
             query?: never;
@@ -1353,6 +1385,7 @@ export interface components {
             type: components["schemas"]["MasterLevel"] | "part" | "polling_station";
         };
         Me: {
+            /** @description Empty for a voter's session, whatever the user's staff roles. */
             assignments: components["schemas"]["AssignmentView"][];
             email: string | null;
             id: string;
@@ -1360,6 +1393,10 @@ export interface components {
             name: string;
             phone: string;
             preferredLanguage: string;
+            /** @description Set for a voter's session (#223): the voter record it acts for. */
+            voter: {
+                id: string;
+            } | null;
         };
         MemberCreated: {
             duplicate: boolean;
@@ -1504,6 +1541,10 @@ export interface components {
         /** @enum {string} */
         RejectionCode: "NOT_FOUND" | "FIELD_UNKNOWN" | "FIELD_DISABLED" | "CONSENT_REQUIRED" | "INVALID_VALUE" | "BASE_VERSION_INVALID";
         RequestOtpDto: {
+            phone: string;
+        };
+        RequestVoterOtpDto: {
+            epic: string;
             phone: string;
         };
         ResolveConflictDto: {
@@ -1853,6 +1894,13 @@ export interface components {
             code: string;
             /** @description A stable identifier of the app installation; one session per device. */
             deviceId: string;
+            phone: string;
+        };
+        VerifyVoterOtpDto: {
+            code: string;
+            /** @description A stable identifier of the app installation. */
+            deviceId: string;
+            epic: string;
             phone: string;
         };
         VisitCreated: {
@@ -3307,6 +3355,69 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VisitCreated"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterAuth_requestOtp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestVoterOtpDto"];
+            };
+        };
+        responses: {
+            /** @description No content */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterAuth_verifyOtp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["VerifyVoterOtpDto"];
+            };
+        };
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TokenPair"];
                 };
             };
             /** @description Error */

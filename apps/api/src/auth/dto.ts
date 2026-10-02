@@ -35,3 +35,26 @@ export class RefreshDto {
   @Length(1, 256)
   refreshToken!: string;
 }
+
+/** A voter's voter ID card number (EPIC), as printed: letters and digits. */
+const EPIC = /^\s*[A-Za-z0-9][A-Za-z0-9 ]{4,23}\s*$/;
+const EPIC_MESSAGE = 'epic must be the voter ID number, e.g. ABC1234567';
+
+/** A voter's sign-in (#223): their EPIC and the mobile number on their record. */
+export class RequestVoterOtpDto {
+  @Matches(EPIC, { message: EPIC_MESSAGE })
+  epic!: string;
+
+  @Matches(E164, { message: E164_MESSAGE })
+  phone!: string;
+}
+
+export class VerifyVoterOtpDto extends RequestVoterOtpDto {
+  @Matches(/^\d{6}$/, { message: 'code must be 6 digits' })
+  code!: string;
+
+  /** A stable identifier of the app installation. */
+  @IsString()
+  @Length(1, 128)
+  deviceId!: string;
+}

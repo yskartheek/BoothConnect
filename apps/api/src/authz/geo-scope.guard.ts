@@ -27,7 +27,7 @@ export class GeoScopeGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<AuthenticatedRequest & ScopedRequest>();
     // JwtAuthGuard runs first and has already refused unauthenticated calls.
     if (!req.user) return false;
-    req.scope = await this.scopes.resolve(req.user.userId);
+    req.scope = await this.scopes.resolve(req.user.userId, new Date(), req.user.voterId);
 
     const required = this.reflector.getAllAndOverride<Role[] | undefined>(ROLES, targets);
     if (required?.length && !required.some((role) => req.scope?.roles.includes(role))) {
