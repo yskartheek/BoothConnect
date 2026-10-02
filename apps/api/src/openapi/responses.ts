@@ -38,6 +38,7 @@ export type { RoleAssignmentView, UserCreated, UserSummary } from '../users/user
 export type { VisitCreated } from '../visits/visits.service';
 export type { MemberEdited } from '../voters/voter-writes.service';
 export type { VoterDetail } from '../voters/voters.service';
+export type { VoterDetailsEdited, VoterSelf, VoterUpdates } from '../voter-self/voter-self.service';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-object-type -- a named Page<T> for the spec
 export interface GeographyNodePage extends Page<GeographyNodeView> {}

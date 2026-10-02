@@ -151,6 +151,20 @@ that voter record only:
 - this holds even when the same phone belongs to a volunteer or an admin:
   their own sign-in keeps their staff rights.
 
+### The voter's own record
+
+With a voter's session (and only then; staff get 403), under `/voter/me`.
+The voter is always the session's, so no request names a voter:
+
+| Call                                        | What it does                                                                                                                                                                                                                                                                                                                            |
+| ------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /voter/me`                             | The official roll data (`official`: name, relation, age, gender, house number), EPIC, section and serial, part, booth, program, household address, and `shared`: mobile number, occupation and additional info, each with its `fieldValueId` (or null). Audited (`voter.self_view`).                                                    |
+| `PATCH /voter/me/details` + Idempotency-Key | `{fields: [{fieldKey, value, baseVersion}]}`. Each shared detail becomes the current value at once, as `voter_self_submitted`, or a `conflict` if it changed since `baseVersion`. Official details and restricted fields are `rejected` with `FORBIDDEN`. One result per detail. Audited (`voter.self_update`, keys and outcomes only). |
+| `GET /voter/me/updates`                     | Newest first: changes to the voter's details (which detail and by whom: `you`, `volunteer` or `admin`; never the values, never restricted details), visits to their household (outcome; a corrected visit shows as corrected), and when they joined.                                                                                    |
+
+If a newer roll replaced the voter's record, these follow it to the new one.
+A voter no longer on the roll gets 404.
+
 ## Errors
 
 Every error has the same body:
@@ -337,23 +351,24 @@ Grouped by tag, as in Swagger UI. The role column is who may call each
 group; "signed in" means any role. Everything returns only what's in the
 caller's scope.
 
-| Tag         | Endpoints                                                                                                                          | Roles                       |
-| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Health      | `GET /health`                                                                                                                      | anyone (no token)           |
-| Auth        | `POST /auth/otp/request`, `/auth/otp/verify`, `/voter-auth/otp/request`, `/voter-auth/otp/verify`, `/auth/refresh`, `/auth/logout` | anyone; logout with a token |
-| Me          | `GET /me`                                                                                                                          | any signed-in user          |
-| Sync        | `GET /sync/pull`, `POST /sync/push`                                                                                                | volunteer, admin            |
-| Households  | `GET /households`, `GET /households/{id}`                                                                                          | signed in                   |
-|             | `POST /households`, `PATCH /households/{id}`, `POST /households/{id}/members`                                                      | volunteer, admin            |
-| Voters      | `GET /voters/{id}`                                                                                                                 | signed in                   |
-|             | `PATCH /voters/{id}`                                                                                                               | volunteer, admin            |
-| Visits      | `POST /visits`                                                                                                                     | volunteer, admin            |
-| Conflicts   | `POST /conflicts/{id}/resolve`                                                                                                     | volunteer, admin            |
-| Imports     | `/imports/batches…`, `/imports/files…` (roll upload, review, confirm, rejections CSV)                                              | admin                       |
-| Geographies | `/geographies…` (the hierarchy, stations, coverage, master import)                                                                 | admin                       |
-| Users       | `/users…`, `/role-assignments…`                                                                                                    | admin                       |
-| Audit       | `GET /audit-events`                                                                                                                | admin                       |
-| Analytics   | `GET /analytics/nodes/{id}/summary`, `/children`, `/revisions`                                                                     | admin, campaign_manager     |
+| Tag                | Endpoints                                                                                                                          | Roles                       |
+| ------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Health             | `GET /health`                                                                                                                      | anyone (no token)           |
+| Auth               | `POST /auth/otp/request`, `/auth/otp/verify`, `/voter-auth/otp/request`, `/voter-auth/otp/verify`, `/auth/refresh`, `/auth/logout` | anyone; logout with a token |
+| Me                 | `GET /me`                                                                                                                          | any signed-in user          |
+| Sync               | `GET /sync/pull`, `POST /sync/push`                                                                                                | volunteer, admin            |
+| Households         | `GET /households`, `GET /households/{id}`                                                                                          | signed in                   |
+|                    | `POST /households`, `PATCH /households/{id}`, `POST /households/{id}/members`                                                      | volunteer, admin            |
+| Voters             | `GET /voters/{id}`                                                                                                                 | signed in                   |
+|                    | `PATCH /voters/{id}`                                                                                                               | volunteer, admin            |
+| Visits             | `POST /visits`                                                                                                                     | volunteer, admin            |
+| Voter self-service | `GET /voter/me`, `PATCH /voter/me/details`, `GET /voter/me/updates`                                                                | a voter's session           |
+| Conflicts          | `POST /conflicts/{id}/resolve`                                                                                                     | volunteer, admin            |
+| Imports            | `/imports/batches…`, `/imports/files…` (roll upload, review, confirm, rejections CSV)                                              | admin                       |
+| Geographies        | `/geographies…` (the hierarchy, stations, coverage, master import)                                                                 | admin                       |
+| Users              | `/users…`, `/role-assignments…`                                                                                                    | admin                       |
+| Audit              | `GET /audit-events`                                                                                                                | admin                       |
+| Analytics          | `GET /analytics/nodes/{id}/summary`, `/children`, `/revisions`                                                                     | admin, campaign_manager     |
 
 ## Changing the API
 
