@@ -482,6 +482,88 @@ void main() {
       expect(keys.toSet(), hasLength(2));
     });
 
+    test('a voter’s updates and consents, and withdrawing one', () async {
+      server.handle = (r) async => switch (r.path) {
+        '/v1/voter/me/updates' => (
+          200,
+          {
+            'items': [
+              {
+                'kind': 'detail',
+                'fieldKey': 'occupation',
+                'labelKey': 'field.occupation',
+                'by': 'volunteer',
+                'at': '2026-09-20T11:00:00.000Z',
+              },
+              {
+                'kind': 'visit',
+                'outcome': 'no_one_available',
+                'at': '2026-09-19T11:00:00.000Z',
+              },
+              {'kind': 'something_new', 'at': '2026-09-18T11:00:00.000Z'},
+              {'kind': 'joined', 'at': '2026-09-01T08:00:00.000Z'},
+            ],
+          },
+        ),
+        '/v1/voter/me/consents' => (
+          200,
+          {
+            'items': [
+              {
+                'id': 'c-1',
+                'purpose': 'caste_community',
+                'labelKey': 'field.caste_community',
+                'noticeVersion': '2026.1',
+                'method': 'in_person_verbal',
+                'capturedAt': '2026-09-20T11:00:00.000Z',
+                'status': 'granted',
+                'withdrawnAt': null,
+              },
+            ],
+          },
+        ),
+        '/v1/voter/me/consents/c%2F1/withdraw' => (
+          200,
+          {
+            'id': 'c/1',
+            'purpose': 'caste_community',
+            'labelKey': 'field.caste_community',
+            'noticeVersion': '2026.1',
+            'method': 'in_person_verbal',
+            'capturedAt': '2026-09-20T11:00:00.000Z',
+            'status': 'withdrawn',
+            'withdrawnAt': '2026-10-02T09:00:00.000Z',
+          },
+        ),
+        _ => (404, apiError('NOT_FOUND')),
+      };
+      final voter = VoterApi(dio);
+
+      final updates = await voter.updates();
+      // An unknown kind is left out.
+      expect([for (final u in updates) u.kind], ['detail', 'visit', 'joined']);
+      expect(
+        (updates[0].fieldKey, updates[0].by, updates[1].outcome),
+        ('occupation', 'volunteer', 'no_one_available'),
+      );
+      expect(updates[2].at, DateTime.utc(2026, 9, 1, 8));
+
+      final consents = await voter.consents();
+      expect(
+        [for (final c in consents) (c.id, c.purpose, c.isGranted)],
+        [('c-1', 'caste_community', true)],
+      );
+      expect(consents.single.withdrawnAt, isNull);
+
+      final withdrawn = await voter.withdrawConsent('c/1');
+      expect(withdrawn.isGranted, isFalse);
+      expect(withdrawn.withdrawnAt, DateTime.utc(2026, 10, 2, 9));
+      final sent = server.requests.last;
+      expect(sent.method, 'POST');
+      expect(sent.uri.path, '/v1/voter/me/consents/c%2F1/withdraw');
+      expect(sent.headers['Idempotency-Key'], isA<String>());
+    });
+
     test('a voter’s edit offline is a network error', () async {
       server.handle = (r) async => (0, null);
       await expectLater(

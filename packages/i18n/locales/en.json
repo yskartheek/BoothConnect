@@ -557,6 +557,78 @@
   },
   "mobile.voterAdd": "Add",
   "@mobile.voterAdd": { "description": "Voter Home prompt button: opens the edit screen." },
+  "mobile.voterTabUpdates": "Updates",
+  "@mobile.voterTabUpdates": { "description": "Voter tab: the history of their record." },
+  "mobile.voterTabPrivacy": "Privacy",
+  "@mobile.voterTabPrivacy": { "description": "Voter tab: what's shared and consents." },
+  "mobile.voterUpdateYou": "You updated your {detail}",
+  "@mobile.voterUpdateYou": {
+    "description": "Updates: the voter changed a detail. {detail}: the detail's name, lower case in English."
+  },
+  "mobile.voterUpdateVolunteer": "Your booth volunteer updated your {detail}",
+  "@mobile.voterUpdateVolunteer": {
+    "description": "Updates: a volunteer changed a detail. {detail}: the detail's name, lower case in English."
+  },
+  "mobile.voterUpdateAdmin": "An administrator updated your {detail}",
+  "@mobile.voterUpdateAdmin": {
+    "description": "Updates: an administrator changed a detail. {detail}: the detail's name, lower case in English."
+  },
+  "mobile.voterUpdateVisit": "Booth volunteer visited · {outcome}",
+  "@mobile.voterUpdateVisit": {
+    "description": "Updates: a visit to the voter's household. {outcome}: the visit outcome, e.g. No one home."
+  },
+  "mobile.voterUpdateJoined": "You started using the app",
+  "@mobile.voterUpdateJoined": { "description": "Updates: the voter's first sign-in." },
+  "mobile.voterUpdatesEmpty": "Nothing yet. Changes to your details and visits to your home will show here.",
+  "@mobile.voterUpdatesEmpty": { "description": "Updates: empty state." },
+  "mobile.voterWhoSawTitle": "Who has seen my details?",
+  "@mobile.voterWhoSawTitle": {
+    "description": "Updates: heading of the note on who can see the voter's details."
+  },
+  "mobile.voterWhoSawBody": "Your booth volunteer and the booth coordinator can see your details. Every view is logged.",
+  "@mobile.voterWhoSawBody": { "description": "Updates: who can see the voter's details." },
+  "mobile.voterPrivacySharedTitle": "Shared with your booth team",
+  "@mobile.voterPrivacySharedTitle": {
+    "description": "Privacy: heading of the details the booth team sees."
+  },
+  "mobile.voterPurposeMobile": "So your booth volunteer can reach you, and so you can sign in.",
+  "@mobile.voterPurposeMobile": { "description": "Privacy: why the mobile number is shared." },
+  "mobile.voterPurposeOccupation": "Helps your booth team understand the needs of your area.",
+  "@mobile.voterPurposeOccupation": { "description": "Privacy: why the occupation is shared." },
+  "mobile.voterPurposeAdditionalInfo": "Anything you want your booth volunteer to know.",
+  "@mobile.voterPurposeAdditionalInfo": {
+    "description": "Privacy: why additional info is shared."
+  },
+  "mobile.voterPurposeConsent": "Only with your consent. You can stop sharing at any time.",
+  "@mobile.voterPurposeConsent": {
+    "description": "Privacy: a detail shared only with the voter's consent."
+  },
+  "mobile.voterConsentTitle": "Shared with your consent",
+  "@mobile.voterConsentTitle": { "description": "Privacy: heading of the consent-gated details." },
+  "mobile.voterConsentGiven": "You agreed on {date}",
+  "@mobile.voterConsentGiven": {
+    "description": "Privacy: when consent was given. {date}: e.g. 2 Oct."
+  },
+  "mobile.voterConsentWithdrawn": "You stopped sharing on {date}",
+  "@mobile.voterConsentWithdrawn": {
+    "description": "Privacy: a withdrawn consent. {date}: e.g. 2 Oct."
+  },
+  "mobile.voterNoConsents": "You haven't agreed to share any other details.",
+  "@mobile.voterNoConsents": { "description": "Privacy: no consents." },
+  "mobile.voterStopSharing": "Stop sharing",
+  "@mobile.voterStopSharing": {
+    "description": "Privacy: withdraws a consent (button and dialog action)."
+  },
+  "mobile.voterStopSharingTitle": "Stop sharing your {detail}?",
+  "@mobile.voterStopSharingTitle": {
+    "description": "Privacy: confirmation title. {detail}: the detail's name, lower case in English."
+  },
+  "mobile.voterStopSharingBody": "Your booth team will no longer see it, and it is removed from their phones.",
+  "@mobile.voterStopSharingBody": { "description": "Privacy: confirmation text." },
+  "mobile.voterKeepSharing": "Keep sharing",
+  "@mobile.voterKeepSharing": { "description": "Privacy: confirmation dialog's cancel action." },
+  "mobile.voterStoppedSharing": "Stopped sharing.",
+  "@mobile.voterStoppedSharing": { "description": "Snackbar after a consent is withdrawn." },
 
   "web.appTitle": "BoothConnect Admin",
   "@web.appTitle": { "description": "Browser tab title and page heading of the admin portal." },

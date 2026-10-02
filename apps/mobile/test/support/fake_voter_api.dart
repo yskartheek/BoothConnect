@@ -41,8 +41,14 @@ VoterSelf syntheticVoter({
 
 /// [VoterApi] without a server.
 class FakeVoterApi implements VoterApi {
-  FakeVoterApi({VoterSelf? self, this.failWith})
-    : self = self ?? syntheticVoter();
+  FakeVoterApi({
+    VoterSelf? self,
+    this.failWith,
+    List<VoterUpdate>? updates,
+    List<VoterConsent>? consents,
+  }) : self = self ?? syntheticVoter(),
+       updateList = updates ?? syntheticUpdates(),
+       consentList = consents ?? [syntheticConsent()];
 
   VoterSelf self;
 
@@ -98,4 +104,80 @@ class FakeVoterApi implements VoterApi {
     );
     return results;
   }
+
+  List<VoterUpdate> updateList;
+  List<VoterConsent> consentList;
+
+  /// Every consent withdrawn, in order.
+  final withdrawn = <String>[];
+
+  @override
+  Future<List<VoterUpdate>> updates() async {
+    if (failWith != null) throw failWith!;
+    return updateList;
+  }
+
+  @override
+  Future<List<VoterConsent>> consents() async {
+    if (failWith != null) throw failWith!;
+    return consentList;
+  }
+
+  @override
+  Future<VoterConsent> withdrawConsent(String id) async {
+    if (failWith != null) throw failWith!;
+    withdrawn.add(id);
+    final at = DateTime.utc(2026, 10, 2, 9);
+    consentList = [
+      for (final c in consentList)
+        c.id == id && c.isGranted
+            ? VoterConsent(
+                id: c.id,
+                purpose: c.purpose,
+                status: 'withdrawn',
+                capturedAt: c.capturedAt,
+                withdrawnAt: at,
+              )
+            : c,
+    ];
+    return consentList.firstWhere((c) => c.id == id);
+  }
 }
+
+/// A voter's history, newest first. Synthetic data only.
+List<VoterUpdate> syntheticUpdates() => [
+  VoterUpdate(
+    kind: 'detail',
+    fieldKey: 'mobile_number',
+    by: 'you',
+    at: DateTime.utc(2026, 9, 30, 10),
+  ),
+  VoterUpdate(
+    kind: 'visit',
+    outcome: 'no_one_available',
+    at: DateTime.utc(2026, 9, 20, 11),
+  ),
+  VoterUpdate(
+    kind: 'detail',
+    fieldKey: 'occupation',
+    by: 'volunteer',
+    at: DateTime.utc(2026, 9, 20, 11),
+  ),
+  VoterUpdate(
+    kind: 'detail',
+    fieldKey: 'additional_info',
+    by: 'admin',
+    at: DateTime.utc(2026, 9, 10, 12),
+  ),
+  VoterUpdate(kind: 'joined', at: DateTime.utc(2026, 9, 1, 8)),
+];
+
+/// Caste / community, shared with the voter's consent. Synthetic.
+VoterConsent syntheticConsent({String id = 'c-1', String status = 'granted'}) =>
+    VoterConsent(
+      id: id,
+      purpose: 'caste_community',
+      status: status,
+      capturedAt: DateTime.utc(2026, 9, 20, 11),
+      withdrawnAt: status == 'withdrawn' ? DateTime.utc(2026, 9, 25, 9) : null,
+    );

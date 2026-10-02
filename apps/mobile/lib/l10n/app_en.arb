@@ -938,6 +938,123 @@
   "@voterAdd": {
     "description": "Voter Home prompt button: opens the edit screen."
   },
+  "voterTabUpdates": "Updates",
+  "@voterTabUpdates": {
+    "description": "Voter tab: the history of their record."
+  },
+  "voterTabPrivacy": "Privacy",
+  "@voterTabPrivacy": {
+    "description": "Voter tab: what's shared and consents."
+  },
+  "voterUpdateYou": "You updated your {detail}",
+  "@voterUpdateYou": {
+    "description": "Updates: the voter changed a detail. {detail}: the detail's name, lower case in English.",
+    "placeholders": {
+      "detail": {}
+    }
+  },
+  "voterUpdateVolunteer": "Your booth volunteer updated your {detail}",
+  "@voterUpdateVolunteer": {
+    "description": "Updates: a volunteer changed a detail. {detail}: the detail's name, lower case in English.",
+    "placeholders": {
+      "detail": {}
+    }
+  },
+  "voterUpdateAdmin": "An administrator updated your {detail}",
+  "@voterUpdateAdmin": {
+    "description": "Updates: an administrator changed a detail. {detail}: the detail's name, lower case in English.",
+    "placeholders": {
+      "detail": {}
+    }
+  },
+  "voterUpdateVisit": "Booth volunteer visited · {outcome}",
+  "@voterUpdateVisit": {
+    "description": "Updates: a visit to the voter's household. {outcome}: the visit outcome, e.g. No one home.",
+    "placeholders": {
+      "outcome": {}
+    }
+  },
+  "voterUpdateJoined": "You started using the app",
+  "@voterUpdateJoined": {
+    "description": "Updates: the voter's first sign-in."
+  },
+  "voterUpdatesEmpty": "Nothing yet. Changes to your details and visits to your home will show here.",
+  "@voterUpdatesEmpty": {
+    "description": "Updates: empty state."
+  },
+  "voterWhoSawTitle": "Who has seen my details?",
+  "@voterWhoSawTitle": {
+    "description": "Updates: heading of the note on who can see the voter's details."
+  },
+  "voterWhoSawBody": "Your booth volunteer and the booth coordinator can see your details. Every view is logged.",
+  "@voterWhoSawBody": {
+    "description": "Updates: who can see the voter's details."
+  },
+  "voterPrivacySharedTitle": "Shared with your booth team",
+  "@voterPrivacySharedTitle": {
+    "description": "Privacy: heading of the details the booth team sees."
+  },
+  "voterPurposeMobile": "So your booth volunteer can reach you, and so you can sign in.",
+  "@voterPurposeMobile": {
+    "description": "Privacy: why the mobile number is shared."
+  },
+  "voterPurposeOccupation": "Helps your booth team understand the needs of your area.",
+  "@voterPurposeOccupation": {
+    "description": "Privacy: why the occupation is shared."
+  },
+  "voterPurposeAdditionalInfo": "Anything you want your booth volunteer to know.",
+  "@voterPurposeAdditionalInfo": {
+    "description": "Privacy: why additional info is shared."
+  },
+  "voterPurposeConsent": "Only with your consent. You can stop sharing at any time.",
+  "@voterPurposeConsent": {
+    "description": "Privacy: a detail shared only with the voter's consent."
+  },
+  "voterConsentTitle": "Shared with your consent",
+  "@voterConsentTitle": {
+    "description": "Privacy: heading of the consent-gated details."
+  },
+  "voterConsentGiven": "You agreed on {date}",
+  "@voterConsentGiven": {
+    "description": "Privacy: when consent was given. {date}: e.g. 2 Oct.",
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "voterConsentWithdrawn": "You stopped sharing on {date}",
+  "@voterConsentWithdrawn": {
+    "description": "Privacy: a withdrawn consent. {date}: e.g. 2 Oct.",
+    "placeholders": {
+      "date": {}
+    }
+  },
+  "voterNoConsents": "You haven't agreed to share any other details.",
+  "@voterNoConsents": {
+    "description": "Privacy: no consents."
+  },
+  "voterStopSharing": "Stop sharing",
+  "@voterStopSharing": {
+    "description": "Privacy: withdraws a consent (button and dialog action)."
+  },
+  "voterStopSharingTitle": "Stop sharing your {detail}?",
+  "@voterStopSharingTitle": {
+    "description": "Privacy: confirmation title. {detail}: the detail's name, lower case in English.",
+    "placeholders": {
+      "detail": {}
+    }
+  },
+  "voterStopSharingBody": "Your booth team will no longer see it, and it is removed from their phones.",
+  "@voterStopSharingBody": {
+    "description": "Privacy: confirmation text."
+  },
+  "voterKeepSharing": "Keep sharing",
+  "@voterKeepSharing": {
+    "description": "Privacy: confirmation dialog's cancel action."
+  },
+  "voterStoppedSharing": "Stopped sharing.",
+  "@voterStoppedSharing": {
+    "description": "Snackbar after a consent is withdrawn."
+  },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {
     "description": "Visit outcome (API: completed)."
