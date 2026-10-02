@@ -167,6 +167,20 @@ The voter is always the session's, so no request names a voter:
 If a newer roll replaced the voter's record, these follow it to the new one.
 A voter no longer on the roll gets 404.
 
+### Staff: a voter's consents
+
+A voter can also ask their volunteer, or an admin, to withdraw a consent
+for them (#213). With a volunteer's or admin's session, for a voter in
+their booths (404 otherwise):
+
+| Call                                                                | What it does                                                                                                                                                            |
+| ------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /voters/{id}/consents`                                         | The voter's consents, newest first, as for the voter, plus `capturedBy` and `withdrawnBy` (`{id, name}` or null).                                                       |
+| `POST /voters/{id}/consents/{consentId}/withdraw` + Idempotency-Key | Withdraws it, as when the voter does it themselves: the covered values stop being shown and synced at once. Audited (`consent.withdraw`, `by`: `volunteer` or `admin`). |
+
+A value recorded later for the same field needs a new consent; it then
+replaces the hidden value instead of conflicting with it.
+
 Try it with the development seed's demo voter (`DMO1000001`, mobile
 `+919999900101`):
 
@@ -383,6 +397,7 @@ caller's scope.
 |                    | `POST /households`, `PATCH /households/{id}`, `POST /households/{id}/members`                                                          | volunteer, admin            |
 | Voters             | `GET /voters/{id}`                                                                                                                     | signed in                   |
 |                    | `PATCH /voters/{id}`                                                                                                                   | volunteer, admin            |
+|                    | `GET /voters/{id}/consents`, `POST /voters/{id}/consents/{consentId}/withdraw`                                                         | volunteer, admin            |
 | Visits             | `POST /visits`                                                                                                                         | volunteer, admin            |
 | Voter self-service | `GET /voter/me`, `PATCH /voter/me/details`, `GET /voter/me/updates`, `GET /voter/me/consents`, `POST /voter/me/consents/{id}/withdraw` | a voter's session           |
 | Conflicts          | `POST /conflicts/{id}/resolve`                                                                                                         | volunteer, admin            |

@@ -36,6 +36,7 @@ export type { SyncPage } from '../sync/sync.service';
 export type { Me } from '../users/me.service';
 export type { RoleAssignmentView, UserCreated, UserSummary } from '../users/users.service';
 export type { VisitCreated } from '../visits/visits.service';
+export type { StaffConsent, StaffConsents } from '../consents/consents.service';
 export type { MemberEdited } from '../voters/voter-writes.service';
 export type { VoterDetail } from '../voters/voters.service';
 export type {

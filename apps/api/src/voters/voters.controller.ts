@@ -1,4 +1,16 @@
-import { Body, Controller, Get, Param, ParseUUIDPipe, Patch, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  HttpStatus,
+  Param,
+  ParseUUIDPipe,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import { Transform, Type } from 'class-transformer';
 import {
   ArrayMaxSize,
@@ -21,6 +33,7 @@ import type { Scope } from '../authz/scope.service';
 import { actorOf } from '../common/actor';
 import { Idempotent } from '../idempotency/idempotency.interceptor';
 import { type MemberEdited, VoterWritesService } from './voter-writes.service';
+import type { StaffConsent, StaffConsents } from '../consents/consents.service';
 import { type VoterDetail, VotersService } from './voters.service';
 import { ApiTags } from '@nestjs/swagger';
 import { ApiResult } from '../openapi/api-result';
@@ -97,5 +110,35 @@ export class VotersController {
     @Body() dto: EditMemberDto,
   ): Promise<MemberEdited> {
     return this.writes.edit(scope, actorOf(user, req), id, dto.fields);
+  }
+
+  /** The voter's consents, with who recorded and who withdrew each (#213). */
+  @ApiResult('StaffConsents')
+  @Get(':id/consents')
+  @Roles('volunteer', 'admin')
+  consents(
+    @CurrentScope() scope: Scope,
+    @Param('id', ParseUUIDPipe) id: string,
+  ): Promise<StaffConsents> {
+    return this.voters.consents(scope, id);
+  }
+
+  /**
+   * Withdraws one of the voter's consents, at the voter's request (#213).
+   * Withdrawing again returns it unchanged.
+   */
+  @ApiResult('StaffConsent')
+  @Post(':id/consents/:consentId/withdraw')
+  @HttpCode(HttpStatus.OK)
+  @Idempotent()
+  @Roles('volunteer', 'admin')
+  withdrawConsent(
+    @CurrentScope() scope: Scope,
+    @CurrentUser() user: AuthUser,
+    @Req() req: Request & { id?: unknown },
+    @Param('id', ParseUUIDPipe) id: string,
+    @Param('consentId', ParseUUIDPipe) consentId: string,
+  ): Promise<StaffConsent> {
+    return this.voters.withdrawConsent(scope, actorOf(user, req), id, consentId);
   }
 }

@@ -134,6 +134,7 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #224  | [The voter's own record: details, shared-detail edits, updates](224-voter-own-record.md)          | Ready to test   |
 | #225  | [Voter consents: list and withdraw](225-voter-consents.md)                                        | Ready to test   |
 | #226  | [One app for volunteers and voters: voter sign-in and Home](226-voter-app-entry.md)               | Ready to test   |
+| #213  | [Consent withdrawal by staff, and erasure (proposed)](213-consent-withdrawal.md)                  | Ready to test   |
 | #227  | [Voter app: My details, and editing what the voter shares](227-voter-details.md)                  | Ready to test   |
 | #228  | [Voter app: Updates and Privacy (stop sharing a consent)](228-voter-updates-privacy.md)           | Ready to test   |
 | #229  | [Voter prototype end to end: demo voter, admin label, docs](229-voter-prototype.md)               | Ready to test   |
