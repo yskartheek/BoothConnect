@@ -5,11 +5,16 @@ import type { INestApplication } from '@nestjs/common';
 import { type OpenAPIObject, SwaggerModule } from '@nestjs/swagger';
 
 /**
- * Swagger UI at `/v1/docs`, outside production (#52). It shows the
+ * Swagger UI at `/v1/docs`, outside production (#52, #78). It shows the
  * committed `docs/api/openapi.json`, so it matches what the client packages
- * are generated from.
+ * are generated from. Returns whether it was set up.
  */
-export function setupApiDocs(app: INestApplication, prefix: string): boolean {
+export function setupApiDocs(
+  app: INestApplication,
+  prefix: string,
+  nodeEnv: string | undefined,
+): boolean {
+  if (nodeEnv === 'production') return false;
   const spec = join(__dirname, '..', '..', '..', '..', 'docs', 'api', 'openapi.json');
   if (!existsSync(spec)) return false;
   const document = JSON.parse(readFileSync(spec, 'utf8')) as OpenAPIObject;
