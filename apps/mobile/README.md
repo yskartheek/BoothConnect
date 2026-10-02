@@ -415,6 +415,20 @@ One app for volunteers and voters (epic #222):
   details are read again after every save.
 - **Home** shows **Check your details** while a shared detail is missing,
   with **Add** opening the form.
+- **Updates** (#228, `voter_updates_screen.dart`, `/voter/updates`): the
+  history from `GET /v1/voter/me/updates`, newest first: "You updated your
+  mobile number", "Your booth volunteer updated your occupation", "An
+  administrator updated…", "Booth volunteer visited · No one home", "You
+  started using the app". Never the values. Above it, **Who has seen my
+  details?**: the booth volunteer and coordinator, and every view is logged.
+- **Privacy** (#228, `voter_privacy_screen.dart`, `/voter/privacy`):
+  - **Shared with your booth team**: each shared detail with why, in the
+    voter's words (strings in the app, not the admin's purpose text);
+  - **Shared with your consent** (`GET /v1/voter/me/consents`): when it was
+    given, and **Stop sharing**, which asks first, then withdraws it
+    (`POST …/consents/:id/withdraw`, a new idempotency key) and re-reads the
+    consents, details and history. A withdrawn one says when it stopped;
+  - **Sign out**.
 
 ## End-to-end test (#68)
 

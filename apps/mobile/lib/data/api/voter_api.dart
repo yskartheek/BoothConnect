@@ -153,6 +153,72 @@ class DetailResult {
   final String? code;
 }
 
+/// Something that happened to the voter's record (`GET /v1/voter/me/updates`):
+/// `detail` (a detail changed, by `you`, `volunteer` or `admin`; never the
+/// value), `visit` (to their household, with its outcome) or `joined` (their
+/// first sign-in). Unknown kinds are left out.
+class VoterUpdate {
+  const VoterUpdate({
+    required this.kind,
+    required this.at,
+    this.fieldKey,
+    this.by,
+    this.outcome,
+  });
+
+  static VoterUpdate? fromJson(Map<String, dynamic> json) {
+    final kind = json['kind'] as String;
+    if (!const {'detail', 'visit', 'joined'}.contains(kind)) return null;
+    return VoterUpdate(
+      kind: kind,
+      at: DateTime.parse(json['at'] as String),
+      fieldKey: json['fieldKey'] as String?,
+      by: json['by'] as String?,
+      outcome: json['outcome'] as String?,
+    );
+  }
+
+  final String kind;
+  final DateTime at;
+  final String? fieldKey;
+  final String? by;
+  final String? outcome;
+}
+
+/// One of the voter's consents (`GET /v1/voter/me/consents`, #225).
+class VoterConsent {
+  const VoterConsent({
+    required this.id,
+    required this.purpose,
+    required this.status,
+    required this.capturedAt,
+    this.withdrawnAt,
+  });
+
+  factory VoterConsent.fromJson(Map<String, dynamic> json) => VoterConsent(
+    id: json['id'] as String,
+    purpose: json['purpose'] as String,
+    status: json['status'] as String,
+    capturedAt: DateTime.parse(json['capturedAt'] as String),
+    withdrawnAt: switch (json['withdrawnAt']) {
+      final String at => DateTime.parse(at),
+      _ => null,
+    },
+  );
+
+  final String id;
+
+  /// The field key it covers, e.g. `caste_community`.
+  final String purpose;
+
+  /// `granted` or `withdrawn`.
+  final String status;
+  final DateTime capturedAt;
+  final DateTime? withdrawnAt;
+
+  bool get isGranted => status == 'granted';
+}
+
 /// The voter self-service API (#224, #225). Failures are [ApiError]s.
 class VoterApi {
   VoterApi(this._dio);
@@ -182,6 +248,38 @@ class VoterApi {
       for (final f in response.data!['fields'] as List<dynamic>)
         DetailResult.fromJson(f as Map<String, dynamic>),
     ];
+  }
+
+  /// What happened to the voter's record, newest first.
+  Future<List<VoterUpdate>> updates() async {
+    final response = await _call(
+      () => _dio.get<Map<String, dynamic>>('/v1/voter/me/updates'),
+    );
+    return [
+      for (final item in response.data!['items'] as List<dynamic>)
+        ?VoterUpdate.fromJson(item as Map<String, dynamic>),
+    ];
+  }
+
+  Future<List<VoterConsent>> consents() async {
+    final response = await _call(
+      () => _dio.get<Map<String, dynamic>>('/v1/voter/me/consents'),
+    );
+    return [
+      for (final item in response.data!['items'] as List<dynamic>)
+        VoterConsent.fromJson(item as Map<String, dynamic>),
+    ];
+  }
+
+  /// Stops sharing what consent [id] covers. Withdrawing twice is harmless.
+  Future<VoterConsent> withdrawConsent(String id) async {
+    final response = await _call(
+      () => _dio.post<Map<String, dynamic>>(
+        '/v1/voter/me/consents/${Uri.encodeComponent(id)}/withdraw',
+        options: Options(headers: {'Idempotency-Key': newId()}),
+      ),
+    );
+    return VoterConsent.fromJson(response.data!);
   }
 
   static Future<Response<T>> _call<T>(
