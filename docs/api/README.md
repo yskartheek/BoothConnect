@@ -404,3 +404,8 @@ pnpm --filter @boothconnect/api-client generate   # regenerate the typed client
 
 A new or changed endpoint that's scoped to booths or areas also needs a
 row in `ROUTES` in `apps/api/test/cross-booth.int-spec.ts`.
+
+A new query parameter is logged as `[redacted]` until it's added to
+`LOGGABLE_QUERY_PARAMS` in `apps/api/src/config/logger.ts`; add it only if
+its values are IDs, codes, dates, numbers or flags, never free text (#210).
+Path parameters are logged, so they must be IDs.
