@@ -437,6 +437,61 @@ void main() {
       expect(self.detail('occupation')!.fieldValueId, isNull);
     });
 
+    test('a voter’s edit: one PATCH, a fresh idempotency key each', () async {
+      server.handle = (r) async => switch (r.path) {
+        '/v1/voter/me/details' => (
+          200,
+          {
+            'fields': [
+              {'fieldKey': 'occupation', 'status': 'applied'},
+              {
+                'fieldKey': 'mobile_number',
+                'status': 'rejected',
+                'code': 'VALIDATION_FAILED',
+              },
+            ],
+          },
+        ),
+        _ => (404, apiError('NOT_FOUND')),
+      };
+      final voter = VoterApi(dio);
+      const edits = [
+        DetailEdit(key: 'occupation', value: 'Farmer', baseVersion: 'fv-2'),
+        DetailEdit(key: 'mobile_number', value: '+91', baseVersion: null),
+      ];
+      final results = await voter.editDetails(edits);
+      expect(
+        [for (final r in results) (r.key, r.status, r.code)],
+        [
+          ('occupation', 'applied', null),
+          ('mobile_number', 'rejected', 'VALIDATION_FAILED'),
+        ],
+      );
+      await voter.editDetails(edits);
+
+      final sent = server.to('/v1/voter/me/details');
+      expect(sent.map((r) => r.method), ['PATCH', 'PATCH']);
+      expect(sent.first.data, {
+        'fields': [
+          {'fieldKey': 'occupation', 'value': 'Farmer', 'baseVersion': 'fv-2'},
+          {'fieldKey': 'mobile_number', 'value': '+91', 'baseVersion': null},
+        ],
+      });
+      final keys = sent.map((r) => r.headers['Idempotency-Key']).toList();
+      expect(keys.every((k) => k is String && k.isNotEmpty), isTrue);
+      expect(keys.toSet(), hasLength(2));
+    });
+
+    test('a voter’s edit offline is a network error', () async {
+      server.handle = (r) async => (0, null);
+      await expectLater(
+        VoterApi(dio).editDetails(const [
+          DetailEdit(key: 'occupation', value: 'Farmer', baseVersion: null),
+        ]),
+        throwsA(isA<ApiError>().having((e) => e.isNetwork, 'isNetwork', true)),
+      );
+    });
+
     test('logout forgets the tokens, even offline', () async {
       await tokens.save(const Tokens(access: 'access-1', refresh: 'refresh-1'));
       server.handle = (r) async => (0, null);

@@ -860,6 +860,84 @@
   "@voterLoadFailed": {
     "description": "Voter screens: loading failed."
   },
+  "voterTabHome": "Home",
+  "@voterTabHome": {
+    "description": "Voter tab: Home."
+  },
+  "voterTabDetails": "My details",
+  "@voterTabDetails": {
+    "description": "Voter tab and screen title: the voter's details."
+  },
+  "voterOfficialTitle": "From the electoral roll",
+  "@voterOfficialTitle": {
+    "description": "My details: heading of the roll's entry."
+  },
+  "voterOfficialChip": "Official",
+  "@voterOfficialChip": {
+    "description": "My details: chip marking the roll's entry."
+  },
+  "voterAgeGender": "Age · gender",
+  "@voterAgeGender": {
+    "description": "My details: label of the age and gender row."
+  },
+  "voterPartSerial": "Part · serial",
+  "@voterPartSerial": {
+    "description": "My details: label of the part and serial number row."
+  },
+  "voterForm8": "Something wrong here? Official corrections are made with the Election Commission (Form 8).",
+  "@voterForm8": {
+    "description": "My details: under the roll's entry, which the app can't change."
+  },
+  "voterSharedTitle": "Details you share",
+  "@voterSharedTitle": {
+    "description": "My details: heading of the details the voter shares."
+  },
+  "voterNotAdded": "Not added",
+  "@voterNotAdded": {
+    "description": "My details: a shared detail with no value."
+  },
+  "voterSharedNote": "Shared with your booth team only.",
+  "@voterSharedNote": {
+    "description": "My details and edit: who sees shared details."
+  },
+  "voterEditTitle": "Edit my details",
+  "@voterEditTitle": {
+    "description": "Title of the voter's edit screen."
+  },
+  "voterMobileHelp": "Changing it changes the number you sign in with.",
+  "@voterMobileHelp": {
+    "description": "Voter edit: help under the mobile number."
+  },
+  "voterSaved": "Saved.",
+  "@voterSaved": {
+    "description": "Snackbar after the voter saves their details."
+  },
+  "voterSaveFailed": "Couldn't save. Try again.",
+  "@voterSaveFailed": {
+    "description": "Snackbar when saving the voter's details fails."
+  },
+  "voterConflict": "Someone else changed your {detail} just now. Check it and try again.",
+  "@voterConflict": {
+    "description": "Snackbar: a conflict. {detail}: the detail's name, lower case in English, e.g. occupation.",
+    "placeholders": {
+      "detail": {}
+    }
+  },
+  "voterCheckDetails": "Check your details",
+  "@voterCheckDetails": {
+    "description": "Voter Home: prompt when shared details are missing."
+  },
+  "voterNotAddedYet": "{details} not added yet",
+  "@voterNotAddedYet": {
+    "description": "Voter Home prompt. {details}: the missing details, comma-separated.",
+    "placeholders": {
+      "details": {}
+    }
+  },
+  "voterAdd": "Add",
+  "@voterAdd": {
+    "description": "Voter Home prompt button: opens the edit screen."
+  },
   "visitOutcomeCompleted": "Met the family",
   "@visitOutcomeCompleted": {
     "description": "Visit outcome (API: completed)."

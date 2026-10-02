@@ -12,7 +12,10 @@ import '../features/households/new_household_screen.dart';
 import '../features/members/member_screen.dart';
 import '../features/sync/sync_screen.dart';
 import '../features/visit/visit_screen.dart';
+import '../features/voter/voter_details_edit_screen.dart';
+import '../features/voter/voter_details_screen.dart';
 import '../features/voter/voter_home_screen.dart';
+import '../features/voter/voter_shell.dart';
 import '../widgets/states.dart';
 import 'not_found_screen.dart';
 
@@ -34,6 +37,8 @@ abstract final class Routes {
 
   /// The voter side of the app (#226): only for a voter's session.
   static const voter = '/voter';
+  static const voterDetails = '/voter/details';
+  static const voterDetailsEdit = '/voter/details/edit';
 
   static bool isVoterPage(String path) =>
       path == voter || path.startsWith('$voter/');
@@ -145,9 +150,23 @@ final routerProvider = Provider<GoRouter>((ref) {
         path: Routes.sync,
         builder: (context, state) => const SyncScreen(),
       ),
+      // The voter's tabs (#227).
+      ShellRoute(
+        builder: (context, state, child) => VoterShell(child: child),
+        routes: [
+          GoRoute(
+            path: Routes.voter,
+            builder: (context, state) => const VoterHomeScreen(),
+          ),
+          GoRoute(
+            path: Routes.voterDetails,
+            builder: (context, state) => const VoterDetailsScreen(),
+          ),
+        ],
+      ),
       GoRoute(
-        path: Routes.voter,
-        builder: (context, state) => const VoterHomeScreen(),
+        path: Routes.voterDetailsEdit,
+        builder: (context, state) => const VoterDetailsEditScreen(),
       ),
     ],
   );
