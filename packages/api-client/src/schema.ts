@@ -628,6 +628,38 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/voter/me/consents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["VoterSelf_consents"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/voter/me/consents/{id}/withdraw": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["VoterSelf_withdrawConsent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/voter/me/details": {
         parameters: {
             query?: never;
@@ -887,6 +919,10 @@ export interface components {
              */
             voterId?: string;
         };
+        /** @enum {string} */
+        ConsentMethod: "in_person_verbal" | "in_person_signed" | "self_service";
+        /** @enum {string} */
+        ConsentStatus: "granted" | "withdrawn";
         CorrectRowDto: {
             /** @description Why the row is rejected; shown to other reviewers. */
             reason?: string;
@@ -1978,6 +2014,23 @@ export interface components {
         };
         /** @enum {string} */
         VisitOutcome: "completed" | "partially_completed" | "no_one_available" | "refused" | "address_not_found" | "household_moved" | "voter_deceased" | "duplicate_or_incorrect_listing" | "follow_up_requested" | "unsafe_or_inaccessible";
+        /** @description One of the voter's consents (#225). */
+        VoterConsent: {
+            /** Format: date-time */
+            capturedAt: string;
+            id: string;
+            /** @description The covered field's label key, for showing it; null if unknown. */
+            labelKey: string | null;
+            method: components["schemas"]["ConsentMethod"];
+            noticeVersion: string;
+            /** @description The field key it covers, e.g. "caste_community". */
+            purpose: string;
+            status: components["schemas"]["ConsentStatus"];
+            withdrawnAt: string | null;
+        };
+        VoterConsents: {
+            items: components["schemas"]["VoterConsent"][];
+        };
         VoterDetail: {
             epicNumber: string | null;
             /** @description Every enabled field the caller may see, set or not. */
@@ -3605,6 +3658,67 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["VoterSelf"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterSelf_consents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterConsents"];
+                };
+            };
+            /** @description Error */
+            default: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApiErrorBody"];
+                };
+            };
+        };
+    };
+    VoterSelf_withdrawConsent: {
+        parameters: {
+            query?: never;
+            header: {
+                /** @description A unique key per logical request (8–128 of A–Z a–z 0–9 _ -). Retrying with the same key returns the first response instead of repeating the change. */
+                "Idempotency-Key": string;
+            };
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["VoterConsent"];
                 };
             };
             /** @description Error */
