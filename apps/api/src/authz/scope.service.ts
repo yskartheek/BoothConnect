@@ -15,6 +15,12 @@ export interface Scope {
    * main and auxiliary. Booth-level data is visible only for these IDs.
    */
   boothIds: string[];
+  /**
+   * A voter's session (#223): the voter record it acts for. Such a scope has
+   * the `voter` role only and no booths, so booth-scoped endpoints return
+   * nothing and staff endpoints refuse it.
+   */
+  voterId?: string;
 }
 
 @Injectable()
@@ -26,7 +32,10 @@ export class ScopeService {
    * not yet ended) covers its node and everything below it, found through
    * `geography_closure` (which includes the node itself at depth 0).
    */
-  async resolve(userId: string, at = new Date()): Promise<Scope> {
+  async resolve(userId: string, at = new Date(), voterId?: string): Promise<Scope> {
+    // A voter's session never carries the user's staff roles, even when the
+    // same phone also belongs to a volunteer or an admin.
+    if (voterId) return { userId, roles: ['voter'], nodeIds: [], boothIds: [], voterId };
     const assignments = await this.prisma.roleAssignment.findMany({
       where: {
         userId,

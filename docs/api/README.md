@@ -132,6 +132,25 @@ again. Keep tokens in the platform's secure storage. The mobile app uses
 covers, with the path from the state down. A volunteer's node is usually a
 polling station (a booth).
 
+### Voter sign-in
+
+Voters sign in with their **voter ID (EPIC)** and a code sent to the **mobile
+number on their record** (one a volunteer collected):
+
+| Step           | Call                                                          | Notes                                                                                                                                                                                                                  |
+| -------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Ask for a code | `POST /voter-auth/otp/request` `{epic, phone}`                | Always **202**. A code is sent only when one active voter has that EPIC (spaces and case don't matter) **and** `phone` is their current mobile number. Rate-limited per phone and per EPIC, whether they match or not. |
+| Sign in        | `POST /voter-auth/otp/verify` `{epic, phone, code, deviceId}` | The usual token pair. A wrong code, an unknown EPIC and a phone that isn't on the record are all **401 `OTP_INVALID`**. The first sign-in creates the phone's user.                                                    |
+
+Refresh and sign-out are the same as for staff. A voter's session acts for
+that voter record only:
+
+- `GET /me` has `voter: {id}` and no `assignments`;
+- it has the `voter` role and **no booths**, so booth-scoped endpoints return
+  nothing and staff endpoints are 403;
+- this holds even when the same phone belongs to a volunteer or an admin:
+  their own sign-in keeps their staff rights.
+
 ## Errors
 
 Every error has the same body:
@@ -318,23 +337,23 @@ Grouped by tag, as in Swagger UI. The role column is who may call each
 group; "signed in" means any role. Everything returns only what's in the
 caller's scope.
 
-| Tag         | Endpoints                                                                             | Roles                       |
-| ----------- | ------------------------------------------------------------------------------------- | --------------------------- |
-| Health      | `GET /health`                                                                         | anyone (no token)           |
-| Auth        | `POST /auth/otp/request`, `/auth/otp/verify`, `/auth/refresh`, `/auth/logout`         | anyone; logout with a token |
-| Me          | `GET /me`                                                                             | any signed-in user          |
-| Sync        | `GET /sync/pull`, `POST /sync/push`                                                   | volunteer, admin            |
-| Households  | `GET /households`, `GET /households/{id}`                                             | signed in                   |
-|             | `POST /households`, `PATCH /households/{id}`, `POST /households/{id}/members`         | volunteer, admin            |
-| Voters      | `GET /voters/{id}`                                                                    | signed in                   |
-|             | `PATCH /voters/{id}`                                                                  | volunteer, admin            |
-| Visits      | `POST /visits`                                                                        | volunteer, admin            |
-| Conflicts   | `POST /conflicts/{id}/resolve`                                                        | volunteer, admin            |
-| Imports     | `/imports/batches…`, `/imports/files…` (roll upload, review, confirm, rejections CSV) | admin                       |
-| Geographies | `/geographies…` (the hierarchy, stations, coverage, master import)                    | admin                       |
-| Users       | `/users…`, `/role-assignments…`                                                       | admin                       |
-| Audit       | `GET /audit-events`                                                                   | admin                       |
-| Analytics   | `GET /analytics/nodes/{id}/summary`, `/children`, `/revisions`                        | admin, campaign_manager     |
+| Tag         | Endpoints                                                                                                                          | Roles                       |
+| ----------- | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Health      | `GET /health`                                                                                                                      | anyone (no token)           |
+| Auth        | `POST /auth/otp/request`, `/auth/otp/verify`, `/voter-auth/otp/request`, `/voter-auth/otp/verify`, `/auth/refresh`, `/auth/logout` | anyone; logout with a token |
+| Me          | `GET /me`                                                                                                                          | any signed-in user          |
+| Sync        | `GET /sync/pull`, `POST /sync/push`                                                                                                | volunteer, admin            |
+| Households  | `GET /households`, `GET /households/{id}`                                                                                          | signed in                   |
+|             | `POST /households`, `PATCH /households/{id}`, `POST /households/{id}/members`                                                      | volunteer, admin            |
+| Voters      | `GET /voters/{id}`                                                                                                                 | signed in                   |
+|             | `PATCH /voters/{id}`                                                                                                               | volunteer, admin            |
+| Visits      | `POST /visits`                                                                                                                     | volunteer, admin            |
+| Conflicts   | `POST /conflicts/{id}/resolve`                                                                                                     | volunteer, admin            |
+| Imports     | `/imports/batches…`, `/imports/files…` (roll upload, review, confirm, rejections CSV)                                              | admin                       |
+| Geographies | `/geographies…` (the hierarchy, stations, coverage, master import)                                                                 | admin                       |
+| Users       | `/users…`, `/role-assignments…`                                                                                                    | admin                       |
+| Audit       | `GET /audit-events`                                                                                                                | admin                       |
+| Analytics   | `GET /analytics/nodes/{id}/summary`, `/children`, `/revisions`                                                                     | admin, campaign_manager     |
 
 ## Changing the API
 

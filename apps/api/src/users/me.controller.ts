@@ -10,10 +10,13 @@ import { ApiResult } from '../openapi/api-result';
 export class MeController {
   constructor(private readonly me: MeService) {}
 
-  /** The signed-in user's profile and their currently active role assignments. */
+  /**
+   * The signed-in user's profile and their currently active role
+   * assignments; for a voter's session, the voter it acts for instead.
+   */
   @ApiResult('Me')
   @Get()
   get(@CurrentUser() user: AuthUser): Promise<Me> {
-    return this.me.get(user.userId);
+    return this.me.get(user.userId, user.voterId);
   }
 }

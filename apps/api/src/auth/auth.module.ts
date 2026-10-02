@@ -11,11 +11,12 @@ import { JwtAuthGuard } from './jwt-auth.guard';
 import { LogOtpSender, OTP_SENDER, UnconfiguredOtpSender } from './otp-sender';
 import { OtpService } from './otp.service';
 import { TokenService } from './token.service';
+import { VoterAuthController } from './voter-auth.controller';
 
 @Module({
   // Secrets and lifetimes are passed per call by TokenService.
   imports: [JwtModule.register({})],
-  controllers: [AuthController],
+  controllers: [AuthController, VoterAuthController],
   providers: [
     OtpService,
     TokenService,

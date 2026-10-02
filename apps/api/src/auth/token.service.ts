@@ -56,16 +56,21 @@ export class TokenService {
       .digest('hex');
   }
 
-  /** Creates a session for the device and returns its ID and first token pair. */
+  /**
+   * Creates a session for the device and returns its ID and first token pair.
+   * With `voterId`, it's a voter's session: it acts for that voter record only.
+   */
   async startSession(
     userId: string,
     deviceId: string,
+    voterId?: string,
   ): Promise<{ sessionId: string; tokens: TokenPair }> {
     const refreshToken = newRefreshToken();
     const session = await this.prisma.session.create({
       data: {
         userId,
         deviceId,
+        voterId: voterId ?? null,
         refreshHash: this.hashRefreshToken(refreshToken),
         expiresAt: new Date(Date.now() + this.setting('JWT_REFRESH_TTL_SECONDS') * 1000),
         lastUsedAt: new Date(),
@@ -150,6 +155,7 @@ export class TokenService {
       where: { id: claims.sid },
       select: {
         userId: true,
+        voterId: true,
         revokedAt: true,
         expiresAt: true,
         user: { select: { status: true } },
@@ -157,7 +163,11 @@ export class TokenService {
     });
     if (!session || session.userId !== claims.sub) return undefined;
     if (!isOpen(session) || session.user.status !== 'active') return undefined;
-    return { userId: claims.sub, sessionId: claims.sid };
+    return {
+      userId: claims.sub,
+      sessionId: claims.sid,
+      ...(session.voterId ? { voterId: session.voterId } : {}),
+    };
   }
 
   private async accessToken(

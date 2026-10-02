@@ -2816,6 +2816,7 @@
         "additionalProperties": false,
         "properties": {
           "assignments": {
+            "description": "Empty for a voter's session, whatever the user's staff roles.",
             "items": {
               "$ref": "#/components/schemas/AssignmentView"
             },
@@ -2841,6 +2842,26 @@
           },
           "preferredLanguage": {
             "type": "string"
+          },
+          "voter": {
+            "anyOf": [
+              {
+                "additionalProperties": false,
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "id"
+                ],
+                "type": "object"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "description": "Set for a voter's session (#223): the voter record it acts for."
           }
         },
         "required": [
@@ -2850,7 +2871,8 @@
           "email",
           "preferredLanguage",
           "mfaState",
-          "assignments"
+          "assignments",
+          "voter"
         ],
         "type": "object"
       },
@@ -3387,6 +3409,21 @@
           }
         },
         "required": [
+          "phone"
+        ],
+        "type": "object"
+      },
+      "RequestVoterOtpDto": {
+        "properties": {
+          "epic": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "epic",
           "phone"
         ],
         "type": "object"
@@ -4799,6 +4836,33 @@
           }
         },
         "required": [
+          "phone",
+          "code",
+          "deviceId"
+        ],
+        "type": "object"
+      },
+      "VerifyVoterOtpDto": {
+        "properties": {
+          "code": {
+            "pattern": "^\\d{6}$",
+            "type": "string"
+          },
+          "deviceId": {
+            "description": "A stable identifier of the app installation.",
+            "maxLength": 128,
+            "minLength": 1,
+            "type": "string"
+          },
+          "epic": {
+            "type": "string"
+          },
+          "phone": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "epic",
           "phone",
           "code",
           "deviceId"
@@ -7518,6 +7582,83 @@
         ],
         "tags": [
           "Visits"
+        ]
+      }
+    },
+    "/v1/voter-auth/otp/request": {
+      "post": {
+        "operationId": "VoterAuth_requestOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestVoterOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "No content"
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Auth"
+        ]
+      }
+    },
+    "/v1/voter-auth/otp/verify": {
+      "post": {
+        "operationId": "VoterAuth_verifyOtp",
+        "parameters": [],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/VerifyVoterOtpDto"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TokenPair"
+                }
+              }
+            },
+            "description": ""
+          },
+          "default": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ApiErrorBody"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "security": [],
+        "tags": [
+          "Auth"
         ]
       }
     },

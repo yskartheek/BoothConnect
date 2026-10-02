@@ -130,4 +130,5 @@ becomes clickable later. Use this timeline to decide when to spend time testing.
 | #80   | [ADRs for the key Milestone 1 decisions](80-adrs.md)                                              | Ready to test   |
 | #114  | [Mobile member details: every editable field, caste behind consent](114-mobile-member-details.md) | Ready to test   |
 | #115  | [Mobile household address, one-tap location and Add household](115-mobile-household-address.md)   | Ready to test   |
+| #223  | [Voter sign-in (EPIC + mobile on record) and the voter's scope](223-voter-sign-in.md)             | Ready to test   |
 | #79   | [SETUP.md: run commands for every app, the offline-sync demo](79-setup.md)                        | Ready to test   |
