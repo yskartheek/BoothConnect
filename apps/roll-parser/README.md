@@ -107,7 +107,7 @@ Husbands/Others Name`, `House Number`, `Age`, `Gender`); a colon that OCR
    dropped doesn't matter. Wrapped names are joined. `DELETED` / `MODIFIED`
    are read from the photo placeholder area (only the marker is kept).
 4. **Normalisation, raw text always kept:** EPIC letters/digits corrected by
-   position (`X1Z…` → `XIZ…`); names cleaned (`]` → `I`, a lowercase `l` in a
+   position (`D1M…` → `DIM…`); names cleaned (`]` → `I`, a lowercase `l` in a
    capitals-only name → `I`, stray punctuation dropped).
 5. **Serial from reading order** (starting at the cover's first serial); the
    serial printed in the box is only a cross-check.
