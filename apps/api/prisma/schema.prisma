@@ -607,7 +607,7 @@ model Voter {
   /// Official members only (checked): position in the roll.
   sectionNo        Int?              @map("section_no")
   serialNo         Int?              @map("serial_no")
-  /// EPIC number, e.g. XIZ5458518. Official members always have one.
+  /// EPIC number, e.g. DMO9000004. Official members always have one.
   sourceVoterId    String?           @map("source_voter_id")
   /// Official members only: as printed (name, relationType, relativeName, houseNumber, age, gender, rawText).
   sourceData       Json?             @map("source_data")

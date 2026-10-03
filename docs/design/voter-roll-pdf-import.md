@@ -150,7 +150,7 @@ Revision 2026, English, 23 pages, 571 electors.
 - **Pages 3 to N−1 (voters):** page header with AC, Part and "Section No and
   Name". A 3 × 10 grid of boxes, 30 per page. Each box has the serial number
   (in a small bordered box), the EPIC number (3 letters + 7 digits, e.g.
-  `XIZ5458518`; prefixes vary within a part), Name, relation
+  `DMO9000004`, synthetic; prefixes vary within a part), Name, relation
   (`Fathers`/`Husbands`/`Mothers`/`Others` Name), House Number, Age, Gender.
   Names can wrap onto a second line. The photo area only says "Photo
   Available"; there is no image in it.

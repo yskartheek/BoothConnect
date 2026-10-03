@@ -29,12 +29,12 @@ from .test_header import fake_lines
 @pytest.mark.parametrize(
     ("raw", "epic"),
     [
-        ("XIZ5458518", "XIZ5458518"),
-        ("X1Z5458518", "XIZ5458518"),  # the spike's misread
-        ("0AQ3180922", "OAQ3180922"),
-        ("PZZ69B234O", "PZZ6982340"),  # letters in the digit part
-        ("  pzz 698 2340 ", "PZZ6982340"),
-        ("PZZ69823", None),  # too short
+        ("DMO9000004", "DMO9000004"),
+        ("D1M9000004", "DIM9000004"),  # 1 read for I, as in the spike
+        ("0MD9000007", "OMD9000007"),
+        ("DMO90B200O", "DMO9082000"),  # letters in the digit part
+        ("  dmo 908 2000 ", "DMO9082000"),
+        ("DMO90820", None),  # too short
     ],
 )
 def test_epic_letters_and_digits_are_corrected_by_position(raw: str, epic: str | None) -> None:
@@ -44,10 +44,10 @@ def test_epic_letters_and_digits_are_corrected_by_position(raw: str, epic: str |
 @pytest.mark.parametrize(
     ("raw", "name"),
     [
-        ("TALAR]", "TALARI"),  # the spike's misread
+        ("KUMAR]", "KUMARI"),  # ] read for I, as in the spike
         ("SAl SURESH", "SAI SURESH"),  # lowercase l in a capitals-only name
         ("RAV1 KUMAR.", "RAVI KUMAR"),
-        ("  LAKSHMI   TANEYA ,", "LAKSHMI TANEYA"),
+        ("  LAKSHMI   DEMOREDDY ,", "LAKSHMI DEMOREDDY"),
         ("|||", "III"),
         ("..", None),
     ],
@@ -65,16 +65,16 @@ def test_gender_values() -> None:
 
 def test_body_fields_with_wrapped_names_and_lost_colons() -> None:
     (line,) = fake_lines(
-        "Name RAMA VENKATESWARLU KALPANA KAME Husbands Name : ANIL LLAME "
-        "House Number : 10-2/A Age 66 Gender : Female"
+        "Name SITA RAMA DEMO KUMARI DEMOREDDY Husbands Name : RAVI DEMOREDDY "
+        "House Number : 9-9/Z Age 61 Gender : Female"
     )
     body = parse_body(line)
-    assert body.name.value == "RAMA VENKATESWARLU KALPANA KAME"
-    assert body.name.raw == "RAMA VENKATESWARLU KALPANA KAME"
+    assert body.name.value == "SITA RAMA DEMO KUMARI DEMOREDDY"
+    assert body.name.raw == "SITA RAMA DEMO KUMARI DEMOREDDY"
     assert body.relation_type.value is RelationType.HUSBAND
-    assert body.relative_name.value == "ANIL LLAME"
-    assert body.house_number.value == "10-2/A"
-    assert body.age.value == 66
+    assert body.relative_name.value == "RAVI DEMOREDDY"
+    assert body.house_number.value == "9-9/Z"
+    assert body.age.value == 61
     assert body.gender.value is Gender.FEMALE
     assert 0 < body.name.confidence <= 1
 
